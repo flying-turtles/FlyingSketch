@@ -196,7 +196,7 @@ struct PartsLibraryView: View {
         } catch is CancellationError {
             return
         } catch {
-            alert = AlertInfo(title: "Import failed", message: String(describing: error))
+            alert = AlertInfo(title: "Import failed", message: error.localizedDescription)
         }
     }
 
@@ -282,7 +282,7 @@ struct PartsLibraryView: View {
         } catch is CancellationError {
             return
         } catch {
-            alert = AlertInfo(title: "Export failed", message: String(describing: error))
+            alert = AlertInfo(title: "Export failed", message: error.localizedDescription)
         }
     }
 
@@ -296,7 +296,7 @@ struct PartsLibraryView: View {
             try await library.delete(libraryID: part.definition.libraryID)
             contentChanged()
         } catch {
-            alert = AlertInfo(title: "Delete failed", message: String(describing: error))
+            alert = AlertInfo(title: "Delete failed", message: error.localizedDescription)
         }
     }
 }
