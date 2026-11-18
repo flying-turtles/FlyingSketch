@@ -12,6 +12,17 @@ public struct Viewport: Equatable, Codable, Sendable {
         self.zoom = zoom
     }
 
+    /// Sanitises untrusted input: bad zoom -> 1 then clamped to `zoomRange`; non-finite centre -> `.zero`.
+    public init(from decoder: Decoder) throws {
+        enum Key: String, CodingKey { case center, zoom }
+        let c = try decoder.container(keyedBy: Key.self)
+        let rawCenter = try c.decode(Vec2.self, forKey: .center)
+        let rawZoom = try c.decode(Double.self, forKey: .zoom)
+        center = rawCenter.x.isFinite && rawCenter.y.isFinite ? rawCenter : .zero
+        let z = rawZoom.isFinite && rawZoom > 0 ? rawZoom : 1
+        zoom = min(max(z, Self.zoomRange.lowerBound), Self.zoomRange.upperBound)
+    }
+
     private var scale: Double { zoom * Self.pointsPerMillimetre }
 
     public func worldToView(_ p: Vec2, viewSize: Vec2) -> Vec2 {

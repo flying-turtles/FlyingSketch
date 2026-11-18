@@ -55,3 +55,15 @@ import Testing
     let data = try JSONEncoder().encode(vp)
     #expect(try JSONDecoder().decode(Viewport.self, from: data) == vp)
 }
+
+@Test func sanitizesDecodedViewport() throws {
+    func decode(_ json: String) throws -> Viewport {
+        try JSONDecoder().decode(Viewport.self, from: Data(json.utf8))
+    }
+    #expect(try decode(#"{"center":{"x":0,"y":0},"zoom":0}"#).zoom == 1)
+    #expect(try decode(#"{"center":{"x":0,"y":0},"zoom":-3}"#).zoom == 1)
+    #expect(try decode(#"{"center":{"x":0,"y":0},"zoom":1000}"#).zoom == 32)
+    #expect(try decode(#"{"center":{"x":0,"y":0},"zoom":0.001}"#).zoom == 0.05)
+    let big = try decode(#"{"center":{"x":1e300,"y":-1e300},"zoom":2}"#)
+    #expect(big.center == Vec2(x: 1e300, y: -1e300) && big.zoom == 2)
+}
