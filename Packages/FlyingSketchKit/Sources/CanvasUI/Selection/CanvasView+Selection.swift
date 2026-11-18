@@ -45,6 +45,7 @@ extension CanvasView {
         if let id = textSession?.existing?.id, !doc.objects.contains(where: { $0.id == id }) {
             endTextEditing() // edited text vanished (undo etc.): drop the editor, commit is a no-op
         }
+        if wires.documentDidChange(doc) { clearWirePreview() }
         render(settled: true)
     }
 

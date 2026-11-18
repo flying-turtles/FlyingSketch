@@ -19,13 +19,20 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     public var onPencilDoubleTap: (() -> Void)?
 
     public var toolState = ToolState() {
-        didSet { if toolState.kind != oldValue.kind { endTextEditing() } }
+        didSet {
+            guard toolState.kind != oldValue.kind else { return }
+            endTextEditing()
+            if oldValue.kind == .wire { endWireSession() }
+        }
     }
     /// Snap shape endpoints and text/image placement to the 10 mm grid.
     public var snapsToGrid = false
     /// Font size in mm for newly placed text.
     public var textFontSize: Double = 5
     private(set) var shapes: ShapeController!
+    private(set) var wires: WireController!
+    var wirePreview: CALayer?
+    var wireTouch = WireTouch()
     private(set) var textController: TextController!
     var shapePreview: CALayer?
     var textSession: TextSession?
@@ -87,6 +94,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         eraser.onHiddenChange = { [weak self] ids in self?.renderer.hiddenIDs = ids }
         lasso = LassoController(model: model, candidates: lookup)
         shapes = ShapeController(model: model)
+        wires = WireController(model: model, candidates: lookup)
         textController = TextController(model: model)
 
         let previous = model.onChange
@@ -121,6 +129,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     @objc private func handleUndoTap() {
         guard liveViewport == nil, activeGestures == 0 else { return }
+        // An open wire is finished (free end) instead of undone.
+        if wires.isOpen { endWireSession(); return }
         if model.undoManager.canUndo { model.undoManager.undo() }
     }
 
@@ -146,6 +156,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         guard bounds.width > 0, bounds.height > 0 else { return }
         renderer.update(document: model.document, viewport: liveViewport ?? viewport, viewSize: viewSize, settled: settled)
         updateSelectionOverlay()
+        refreshWirePreview()
         if settled { layoutTextEditor() }
     }
 
@@ -158,6 +169,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     /// `pencilOnly` a finger selects: tap selects/clears, drag in the selection moves, drag elsewhere lassos.
     enum Interaction {
         case ink, erase, lasso, move, shape
+        /// Wire tool: draws or continues a wire.
+        case wire
+        /// Wire tool: touch-down on an existing wire end drags it.
+        case wireEnd
         /// Text tool tap; the editor opens on release.
         case text(start: CGPoint)
         /// Text-tool touch that travelled too far to be a tap; does nothing.
@@ -181,6 +196,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             case .lasso: return insideSelection ? .move : .lasso
             case .shape: return .shape
             case .text: return .text(start: p)
+            case .wire:
+                let w = worldPoint(p)
+                let hitsEnd = !wires.isOpen && wires.end(near: w, radius: wireRadius) != nil
+                return hitsEnd ? .wireEnd : .wire
             case .image: return nil
             }
         }
@@ -263,6 +282,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             beginMove(at: sample(touch).position)
         case .shape:
             beginShape(at: sample(touch).position, event: event)
+        case .wire:
+            beginWire(at: sample(touch).position)
+        case .wireEnd:
+            beginWireEndDrag(at: sample(touch).position)
         case .pending, .text, .ignored:
             break
         }
@@ -282,6 +305,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             updateMove(to: sample(touch).position)
         case .shape:
             moveShape(to: sample(touch).position, event: event)
+        case .wire:
+            moveWire(to: sample(touch).position)
+        case .wireEnd:
+            moveWireEnd(to: sample(touch).position)
         case .text(let start):
             let p = location(of: touch)
             if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
@@ -322,6 +349,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .shape:
             moveShape(to: sample(touch).position, event: event)
             endShape()
+        case .wire:
+            endWire(at: sample(touch).position)
+        case .wireEnd:
+            endWireEndDrag(at: sample(touch).position)
         case .text(let start):
             beginTextEditing(at: start)
         case .ignored:
@@ -351,6 +382,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .lasso: lasso.cancel(); lassoPath.clear()
         case .move: cancelMove()
         case .shape: cancelShape()
+        case .wire: cancelWireTouch()
+        case .wireEnd: cancelWireEndDrag()
         case .pending, .text, .ignored: break
         }
     }

@@ -2,7 +2,7 @@ import SketchCore
 import InkEngine
 
 public enum ToolKind: Equatable {
-    case ink(InkTool), eraser, lasso, shape(ShapeKind), text, image
+    case ink(InkTool), eraser, lasso, shape(ShapeKind), text, image, wire
 }
 
 public struct ToolState {

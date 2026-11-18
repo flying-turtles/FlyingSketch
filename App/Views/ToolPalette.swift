@@ -36,6 +36,7 @@ struct ToolPalette<Accessory: View>: View {
                 toolButton("lasso", .lasso, label: "Lasso")
                 shapesMenu
                 toolButton("textformat", .text, label: "Text")
+                toolButton("point.topleft.down.to.point.bottomright.curvepath", .wire, label: "Wire")
                 PhotosPicker(selection: $photo, matching: .images) { Image(systemName: "photo") }
                     .accessibilityLabel("Image")
                 Button(action: openParts) { Image(systemName: "cpu").padding(6) }
