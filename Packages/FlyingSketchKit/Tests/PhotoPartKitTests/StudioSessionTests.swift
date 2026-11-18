@@ -212,4 +212,18 @@ private struct SlowCutout: CutoutProviding {
         let files = try #require(try store.studioFiles(forLibraryID: "p"))
         #expect(throws: PhotoPartError.self) { try StudioFiles.decode(files) }
     }
+
+    @MainActor @Test func wrongSizeMaskIsNotEditable() throws {
+        let s = StudioSession(source: StudioSessionTests.source(), cutout: FakeCutout(result: .success([])))
+        var files = try s.studioFiles().encoded()
+        files["mask.png"] = MaskBitmap(width: 3, height: 3, filled: true).pngData()
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("StudioCorrupt-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = PersonalLibraryStore(rootURL: root)
+        let def = PartDefinition(libraryID: "p", versionHash: "h", title: "P", family: "photo", size: Vec2(x: 5, y: 5),
+                                 graphicAsset: "g.svg", graphicKind: .svg)
+        try store.write(LibraryPart(definition: def, graphic: Data("<svg/>".utf8), source: .personal), studio: files)
+        let back = try #require(try store.studioFiles(forLibraryID: "p"))
+        #expect(throws: PhotoPartError.self) { try StudioFiles.decode(back) }
+    }
 }

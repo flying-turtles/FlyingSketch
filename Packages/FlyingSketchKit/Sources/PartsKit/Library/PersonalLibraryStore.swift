@@ -127,7 +127,9 @@ public struct PersonalLibraryStore: Sendable {
             guard let graphic = try? Data(contentsOf: graphicURL) else {
                 issues.append(LoadIssue(directory: dir, reason: .missingGraphic)); continue
             }
+            // A not-yet-downloaded iCloud `.draft.json.icloud` placeholder still counts as editable.
             let editable = fm.fileExists(atPath: dir.appendingPathComponent("studio/draft.json").path)
+                || fm.fileExists(atPath: dir.appendingPathComponent("studio/.draft.json.icloud").path)
             parts.append(LibraryPart(definition: meta.definition, graphic: graphic, source: meta.source, isEditable: editable))
         }
         return (parts, issues)
@@ -137,7 +139,7 @@ public struct PersonalLibraryStore: Sendable {
     /// `studio` files (opaque names -> bytes) go in `studio/`; nil drops any existing `studio/`.
     public func write(_ part: LibraryPart, studio: [String: Data]? = nil) throws {
         if let studio {
-            for name in studio.keys where !Self.isValidStudioFileName(name) {
+            for name in studio.keys where !Self.studioReadNames.contains(name) {
                 throw PersonalLibraryError.invalidStudioFile(name)
             }
         }
@@ -172,11 +174,7 @@ public struct PersonalLibraryStore: Sendable {
     private static let studioReadNames = ["draft.json", "source.png", "mask.png"]
     private static let maxStudioFileBytes = 20 * 1024 * 1024
 
-    static func isValidStudioFileName(_ name: String) -> Bool {
-        name.range(of: "^[a-z]+\\.(json|png)$", options: .regularExpression) != nil
-    }
-
-    /// Studio files of a part; nil when absent, `draft.json` missing, or still downloading from iCloud.
+    /// Studio files of a part (symlinks skipped, failed size lookup = unreadable); nil when absent, `draft.json` missing, or still downloading from iCloud.
     /// An oversize (> 20 MB) file is treated as unreadable (nil).
     public func studioFiles(forLibraryID id: String) throws -> [String: Data]? {
         let fm = FileManager.default
@@ -186,8 +184,9 @@ public struct PersonalLibraryStore: Sendable {
             let url = studioDir.appendingPathComponent(name)
             if Self.requestDownloadIfPlaceholder(url) { return nil }
             guard fm.fileExists(atPath: url.path) else { continue }
-            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            guard size <= Self.maxStudioFileBytes, let data = try? Data(contentsOf: url) else { return nil }
+            guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isSymbolicLinkKey]),
+                  values.isSymbolicLink != true, let size = values.fileSize,
+                  size <= Self.maxStudioFileBytes, let data = try? Data(contentsOf: url) else { return nil }
             result[name] = data
         }
         return result["draft.json"] == nil ? nil : result
