@@ -32,6 +32,9 @@ public struct VisionCutout: CutoutProviding {
         var result: [(mask: MaskBitmap, area: Int)] = []
         for i in observation.allInstances {
             let buffer = try observation.generateScaledMaskForImage(forInstances: IndexSet(integer: i), from: handler)
+            guard CVPixelBufferGetWidth(buffer) == image.width, CVPixelBufferGetHeight(buffer) == image.height else {
+                throw PhotoPartError.cutoutUnavailable
+            }
             let mask = mask(from: buffer)
             let area = mask.bytes.reduce(0) { $0 + ($1 != 0 ? 1 : 0) }
             if area > 0 { result.append((mask, area)) }
@@ -63,9 +66,9 @@ public struct VisionCutout: CutoutProviding {
         }
         return mask
     }
+}
 
-    /// Index of the first mask containing `point`.
-    public func instanceIndex(at point: Vec2, in masks: [MaskBitmap]) -> Int? {
-        masks.firstIndex { $0.value(at: point) }
-    }
+/// Index of the first mask containing `point`.
+public func instanceIndex(at point: Vec2, in masks: [MaskBitmap]) -> Int? {
+    masks.firstIndex { $0.value(at: point) }
 }

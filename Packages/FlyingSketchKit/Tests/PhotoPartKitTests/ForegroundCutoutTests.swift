@@ -52,10 +52,9 @@ import Testing
         var b = MaskBitmap(width: 4, height: 4, filled: false)
         a.bytes[0] = 255
         b.bytes[3 * 4 + 3] = 255
-        let cut = VisionCutout()
-        #expect(cut.instanceIndex(at: Vec2(x: 0.5, y: 0.5), in: [a, b]) == 0)
-        #expect(cut.instanceIndex(at: Vec2(x: 3.5, y: 3.5), in: [a, b]) == 1)
-        #expect(cut.instanceIndex(at: Vec2(x: 2, y: 2), in: [a, b]) == nil)
+        #expect(instanceIndex(at: Vec2(x: 0.5, y: 0.5), in: [a, b]) == 0)
+        #expect(instanceIndex(at: Vec2(x: 3.5, y: 3.5), in: [a, b]) == 1)
+        #expect(instanceIndex(at: Vec2(x: 2, y: 2), in: [a, b]) == nil)
     }
 
     @Test func visionOnSyntheticImageIsTyped() async throws {
