@@ -140,10 +140,20 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         (event?.allTouches?.filter { $0.type == .direct }.count ?? 0) > 1
     }
 
+    /// Multi-touch guard applies to finger interactions only: a Pencil interaction is never cancelled by
+    /// direct touches, and a new Pencil touch is never blocked by resting fingers.
+    static func shouldCancelForMultiTouch(activeIsPencil: Bool?, newTouchIsPencil: Bool, directTouchCount: Int) -> Bool {
+        if activeIsPencil == true || newTouchIsPencil { return false }
+        return directTouchCount > 1
+    }
+
     static let hitSlop: CGFloat = 8
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if Self.isMultiTouch(event) {
+        let directCount = event?.allTouches?.filter { $0.type == .direct }.count ?? 0
+        if Self.shouldCancelForMultiTouch(activeIsPencil: activeTouch.map { $0.type == .pencil },
+                                          newTouchIsPencil: touches.contains { $0.type == .pencil },
+                                          directTouchCount: directCount) {
             cancelInteraction() // two fingers: pan/pinch/tap gestures take over
             return
         }
@@ -154,6 +164,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         }
         guard activeTouch == nil else { return }
         for touch in touches {
+            // Resting fingers (2+) belong to pan/pinch; only a Pencil may start an interaction then.
+            if touch.type == .direct, directCount > 1 { continue }
             guard let kind = interaction(for: touch) else { continue }
             activeTouch = touch
             interaction = kind
