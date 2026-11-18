@@ -37,9 +37,10 @@ struct SketchEditorView: View {
 
     private var undoNotifications: some Publisher<Notification, Never> {
         let c = NotificationCenter.default
+        // Never observe .NSUndoManagerCheckpoint: `canRedo` (read in `body`) posts it, which would
+        // re-render `body` forever (main thread pinned, blank editor).
         return Publishers.MergeMany([
-            .NSUndoManagerCheckpoint, .NSUndoManagerDidUndoChange,
-            .NSUndoManagerDidRedoChange, .NSUndoManagerDidCloseUndoGroup,
+            .NSUndoManagerDidUndoChange, .NSUndoManagerDidRedoChange, .NSUndoManagerDidCloseUndoGroup,
         ].map { c.publisher(for: $0, object: undoManager) })
     }
 
