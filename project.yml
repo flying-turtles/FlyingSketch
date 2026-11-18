@@ -1,0 +1,33 @@
+name: FlyingSketch
+options:
+  bundleIdPrefix: com.flyingturtle
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    TARGETED_DEVICE_FAMILY: "2"
+    DEVELOPMENT_TEAM: WDJPX25GFC
+packages:
+  FlyingSketchKit:
+    path: Packages/FlyingSketchKit
+targets:
+  FlyingSketch:
+    type: application
+    platform: iOS
+    sources: [App]
+    dependencies:
+      - package: FlyingSketchKit
+        product: SketchCore
+      - package: FlyingSketchKit
+        product: InkEngine
+      - package: FlyingSketchKit
+        product: CanvasUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.flyingturtle.flyingsketch
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
