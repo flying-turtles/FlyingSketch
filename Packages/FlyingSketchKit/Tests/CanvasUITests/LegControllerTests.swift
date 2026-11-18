@@ -173,3 +173,68 @@ private func hole(_ b: PartInstance, _ id: String) -> Vec2 { connectorPositions(
     #expect(part(m, r.id).legEnds["a"] == h)
     #expect(m.undoManager.undoActionName == "Bend Leg")
 }
+
+@Test @MainActor func grabOffsetKeepsLegFromJumping() {
+    let (m, r, _, _) = scene()
+    let a = connectorPositions(r, resistorDef)["a"]!
+    let grab = a + Vec2(x: 1.5, y: 0) // touch-down off the end
+    let c = LegController(model: m)
+    c.begin(part: r.id, connector: "a", grabAt: grab)
+    c.move(to: grab)
+    c.end()
+    #expect(!m.undoManager.canUndo)
+    c.begin(part: r.id, connector: "a", grabAt: grab)
+    c.move(to: grab + Vec2(x: -5, y: 0))
+    c.end()
+    #expect(part(m, r.id).legEnds["a"]!.distance(to: a + Vec2(x: -5, y: 0)) < 1e-9)
+}
+
+@Test @MainActor func viewTouchOffEndThenReleaseMakesNoEdit() {
+    let (m, r, _, _) = scene()
+    let v = canvas(m)
+    v.selection.ids = [r.id]
+    let a = connectorPositions(r, resistorDef)["a"]!
+    let off = a + Vec2(x: 12 / (Viewport.pointsPerMillimetre * v.currentViewport.zoom) * 0.7, y: 0)
+    v.beginLegDrag(ConnectorRef(part: r.id, connector: "a"), at: off)
+    v.endLegDrag(at: off)
+    #expect(!m.undoManager.canUndo)
+}
+
+@Test @MainActor func overlappingLegEndsPickFirstInDocumentOrder() {
+    let r1 = PartInstance(definitionKey: resistorDef.key, center: .zero, label: "R1")
+    let r2 = PartInstance(definitionKey: resistorDef.key, center: .zero, label: "R2")
+    let m = DocumentModel(document: SketchDocument(objects: [.part(r1), .part(r2)], parts: [resistorDef.key: resistorDef]))
+    let v = canvas(m)
+    v.selection.ids = [r1.id, r2.id]
+    let end = viewPoint(v, connectorPositions(r1, resistorDef)["a"]!)
+    for _ in 0..<5 {
+        #expect(v.legEnd(at: end)?.part == r1.id)
+    }
+}
+
+@Test @MainActor func legDoesNotSnapToOwnSocket() {
+    var def = resistorDef
+    let socket = ConnectorDef(id: "s", name: "s", kind: .female, position: Vec2(x: 5, y: 1.25))
+    def.connectors.append(socket)
+    def.libraryID = "fixture-resistor-socket"
+    let r = PartInstance(definitionKey: def.key, center: .zero, label: "R1")
+    let m = DocumentModel(document: SketchDocument(objects: [.part(r)], parts: [def.key: def]))
+    let s = connectorPositions(r, def)["s"]!
+    let c = LegController(model: m)
+    c.begin(part: r.id, connector: "a")
+    c.move(to: s + Vec2(x: 0.3, y: 0))
+    c.end()
+    #expect(part(m, r.id).legEnds["a"]!.distance(to: s + Vec2(x: 0.3, y: 0)) < 1e-9)
+}
+
+@Test @MainActor func handlesFollowSelectionMovePreview() {
+    let (m, r, _, _) = scene()
+    let v = canvas(m)
+    v.selection.ids = [r.id]
+    let before = v.selectedLegEnds().first { $0.ref.connector == "a" }!.position
+    v.beginMove(at: before)
+    v.updateMove(to: before + Vec2(x: 10, y: 0))
+    let after = v.selectedLegEnds().first { $0.ref.connector == "a" }!.position
+    #expect(after == before + Vec2(x: 10, y: 0))
+    v.cancelMove()
+}

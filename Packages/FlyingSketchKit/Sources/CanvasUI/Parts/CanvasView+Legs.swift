@@ -13,6 +13,7 @@ extension CanvasView {
         guard !selection.ids.isEmpty else { return [] }
         var doc = model.document
         if !legPreview.isEmpty { _ = SceneEdit.replace(legPreview).apply(to: &doc) }
+        if moveEngaged { _ = SceneEdit.replace(movedObjects(moveSet, rigid: moveRigid, by: moveDelta)).apply(to: &doc) }
         var result: [(ConnectorRef, Vec2)] = []
         for case .part(let p) in doc.objects where selection.ids.contains(p.id) {
             guard let def = doc.parts[p.definitionKey] else { continue }
@@ -32,8 +33,7 @@ extension CanvasView {
         for (ref, pos) in selectedLegEnds() {
             let d = pos.distance(to: w)
             guard d <= r else { continue }
-            if let b = best, d > b.d || (d == b.d && !(ref.part.raw.uuidString + ref.connector < b.ref.part.raw.uuidString + b.ref.connector)) { continue }
-            best = (ref, d)
+            if d < (best?.d ?? .infinity) { best = (ref, d) } // strict <: document order breaks ties
         }
         return best?.ref
     }
@@ -55,7 +55,7 @@ extension CanvasView {
 
     func beginLegDrag(_ ref: ConnectorRef, at world: Vec2) {
         legs.minDistance = Double(Self.legMinTravel) / (Viewport.pointsPerMillimetre * currentViewport.zoom)
-        legs.begin(part: ref.part, connector: ref.connector)
+        legs.begin(part: ref.part, connector: ref.connector, grabAt: world)
         moveLeg(to: world)
     }
 

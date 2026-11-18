@@ -8,6 +8,7 @@ final class LegController {
     private var connector = ""
     private var startEnd = Vec2.zero
     private var current = Vec2.zero
+    private var grab = Vec2.zero
     /// Releases closer than this (mm) to the original leg end make no edit.
     var minDistance = 0.0
 
@@ -22,19 +23,22 @@ final class LegController {
         return connectorPositions(p, def)[connector]
     }
 
-    func begin(part id: ObjectID, connector: String) {
+    /// `grabAt`: world touch-down point (default: the leg end). The leg end follows the touch by offset, so a
+    /// grab up to the handle radius off the end never makes the end jump.
+    func begin(part id: ObjectID, connector: String, grabAt: Vec2? = nil) {
         guard let end = Self.legEnd(part: id, connector: connector, in: model.document) else { return }
         part = id
         self.connector = connector
         startEnd = end
         current = end
+        grab = grabAt ?? end
     }
 
-    /// Previews the leg at `world` (unsnapped): replacement objects for the part and its attached wires.
+    /// Previews the leg for touch point `world` (leg end = original end + touch - grab; unsnapped): replacement objects for the part and its attached wires.
     @discardableResult
     func move(to world: Vec2) -> [SceneObject] {
         guard let id = part else { return [] }
-        current = world
+        current = startEnd + (world - grab)
         return Self.bent(id, connector, to: world, in: model.document)
     }
 
