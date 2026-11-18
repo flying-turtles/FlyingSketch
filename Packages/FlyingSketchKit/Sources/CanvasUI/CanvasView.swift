@@ -1,5 +1,6 @@
 import UIKit
 import SketchCore
+import InkEngine
 
 /// Infinite canvas. Two-finger pan + pinch navigate; the viewport persists to the model on gesture end.
 public final class CanvasView: UIView, UIGestureRecognizerDelegate {
@@ -12,6 +13,12 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     private var activeGestures = 0
 
     private var storedViewport: Viewport
+
+    public var toolState = ToolState()
+    private let ink: InkInputController
+    private let liveStroke = LiveStrokeLayer()
+    private var activeInkTouch: UITouch?
+    private var activeInkStyle: (tool: InkTool, color: RGBAColor, width: Double) = (.pen, .black, 0.5)
 
     public var viewport: Viewport {
         get { storedViewport }
@@ -30,10 +37,13 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     public init(model: DocumentModel) {
         self.model = model
+        self.ink = InkInputController(model: model)
         self.storedViewport = model.document.viewport
         super.init(frame: .zero)
         renderer = SceneRenderer(rootLayer: layer, factory: factory)
         backgroundColor = .white
+        isMultipleTouchEnabled = true
+        layer.addSublayer(liveStroke.layer)
 
         let previous = model.onChange
         model.onChange = { [weak self] doc in
@@ -57,6 +67,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     public override func layoutSubviews() {
         super.layoutSubviews()
         factory.screenScale = traitCollection.displayScale
+        liveStroke.setFrame(bounds)
         render(settled: true)
     }
 
@@ -65,6 +76,71 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     private func render(settled: Bool) {
         guard bounds.width > 0, bounds.height > 0 else { return }
         renderer.update(document: model.document, viewport: liveViewport ?? viewport, viewSize: viewSize, settled: settled)
+    }
+
+    // MARK: Ink touches
+
+    /// Viewport the user currently sees (includes an in-flight pan/pinch).
+    private var currentViewport: Viewport { liveViewport ?? viewport }
+
+    private func acceptsInk(_ touch: UITouch) -> Bool {
+        guard case .ink = toolState.kind else { return false }
+        return touch.type == .pencil || !toolState.pencilOnly
+    }
+
+    public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard activeInkTouch == nil, case .ink(let tool) = toolState.kind,
+              let touch = touches.first(where: acceptsInk) else { return }
+        activeInkTouch = touch
+        activeInkStyle = (tool, toolState.color, toolState.inkWidth)
+        ink.begin(sample(touch), tool: tool, color: toolState.color, width: toolState.inkWidth, params: toolState.params)
+        drawLive(ink.move(coalesced: coalescedSamples(touch, event), predicted: predictedSamples(touch, event)))
+    }
+
+    public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = activeInkTouch, touches.contains(touch) else { return }
+        drawLive(ink.move(coalesced: coalescedSamples(touch, event), predicted: predictedSamples(touch, event)))
+    }
+
+    public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = activeInkTouch, touches.contains(touch) else { return }
+        _ = ink.move(coalesced: coalescedSamples(touch, event), predicted: [])
+        activeInkTouch = nil
+        // One transaction: committed layer appears and live path disappears together.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        ink.end()
+        liveStroke.clear()
+        CATransaction.commit()
+    }
+
+    public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = activeInkTouch, touches.contains(touch) else { return }
+        activeInkTouch = nil
+        ink.cancel()
+        liveStroke.clear()
+    }
+
+    private func drawLive(_ points: [InkPoint]) {
+        liveStroke.update(points: points, tool: activeInkStyle.tool, color: activeInkStyle.color,
+                          width: activeInkStyle.width, viewport: currentViewport, viewSize: viewSize)
+    }
+
+    private func coalescedSamples(_ touch: UITouch, _ event: UIEvent?) -> [InkSample] {
+        (event?.coalescedTouches(for: touch) ?? [touch]).map(sample)
+    }
+
+    private func predictedSamples(_ touch: UITouch, _ event: UIEvent?) -> [InkSample] {
+        (event?.predictedTouches(for: touch) ?? []).map(sample)
+    }
+
+    private func sample(_ t: UITouch) -> InkSample {
+        let loc = t.preciseLocation(in: self)
+        let world = currentViewport.viewToWorld(Vec2(x: loc.x, y: loc.y), viewSize: viewSize)
+        guard t.type == .pencil else { return InkSample(position: world, timestamp: t.timestamp) }
+        let force = t.maximumPossibleForce > 0 ? min(max(Double(t.force / t.maximumPossibleForce), 0), 1) : 0.5
+        return InkSample(position: world, force: force, altitude: Double(t.altitudeAngle),
+                         azimuth: Double(t.azimuthAngle(in: self)), timestamp: t.timestamp)
     }
 
     // MARK: Gestures
