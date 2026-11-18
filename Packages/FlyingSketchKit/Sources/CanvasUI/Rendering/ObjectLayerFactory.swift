@@ -1,6 +1,7 @@
 import UIKit
 import SketchCore
 import InkEngine
+import PartsKit
 import SwiftDraw
 import ImageIO
 
@@ -437,7 +438,8 @@ final class CALayerObjectFactory: ObjectLayerFactory {
     /// screen's preferred, possibly extended-range, format). PNGs are downsampled so neither edge exceeds the target.
     nonisolated static func rasterize(data: Data, isSVG: Bool, width: Int, height: Int) -> RasterResult {
         if isSVG {
-            guard let svg = SVG(data: data) else { return RasterResult(image: nil) }
+            // Untrusted bytes (document, pasteboard): same guard as import; failure -> nil -> placeholder.
+            guard PartInputGuard.isAcceptableSVG(data), let svg = SVG(data: data) else { return RasterResult(image: nil) }
             let format = UIGraphicsImageRendererFormat()
             format.scale = 1
             format.opaque = false

@@ -114,7 +114,13 @@ struct FzpDocument {
 }
 
 /// Pre-parse checks shared by fzp and SVG input.
-enum PartInputGuard {
+public enum PartInputGuard {
+    /// True when `data` passes the SVG import checks (size <= `FzpParser.maxSVGSize`, no NUL, no entity
+    /// declarations). Renderers apply it to embedded SVGs, which arrive from documents and the pasteboard.
+    public static func isAcceptableSVG(_ data: Data) -> Bool {
+        (try? check(data, max: FzpParser.maxSVGSize) { PartImportError.invalidSVG($0) }) != nil
+    }
+
     static func check(_ data: Data, max: Int, error: (String) -> PartImportError) throws {
         if data.count > max { throw error("too large") }
         if data.contains(0) { throw error("unsupported encoding") }

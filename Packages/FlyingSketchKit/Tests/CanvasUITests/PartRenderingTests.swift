@@ -2,6 +2,7 @@ import QuartzCore
 import UIKit
 import Testing
 import SketchCore
+import PartsKit
 @testable import CanvasUI
 
 private let viewSize = Vec2(x: 1024, y: 1366)
@@ -296,4 +297,19 @@ private func doc(_ def: PartDefinition, turns: Int = 0) -> (SketchDocument, Part
     #expect(v.y > viewSize.y / 2 + 9 * ppm)
     // Leg default end (local (-5, 5), left of body) lands above centre after a clockwise turn.
     #expect(part.legLayers[0].frame.minY < viewSize.y / 2 - 9 * ppm)
+}
+
+/// Embedded SVGs come from documents/pasteboard: they pass the import guard (size, encoding, entities) before SwiftDraw.
+@Test @MainActor func rasterizeRejectsUnguardedSVG() {
+    let ok = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10mm\" height=\"10mm\"><rect width=\"10\" height=\"10\"/></svg>".utf8)
+    #expect(CALayerObjectFactory.rasterize(data: ok, isSVG: true, width: 8, height: 8).image != nil)
+    let entity = Data("<?xml version=\"1.0\"?><!DOCTYPE svg [<!ENTITY a \"aaaa\">]><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10mm\" height=\"10mm\"><rect width=\"10\" height=\"10\"/></svg>".utf8)
+    #expect(CALayerObjectFactory.rasterize(data: entity, isSVG: true, width: 8, height: 8).image == nil)
+    var nul = ok
+    nul.append(0)
+    #expect(CALayerObjectFactory.rasterize(data: nul, isSVG: true, width: 8, height: 8).image == nil)
+    var huge = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10mm\" height=\"10mm\"><!--".utf8)
+    huge.append(Data(repeating: UInt8(ascii: "x"), count: FzpParser.maxSVGSize))
+    huge.append(Data("--><rect width=\"10\" height=\"10\"/></svg>".utf8))
+    #expect(CALayerObjectFactory.rasterize(data: huge, isSVG: true, width: 8, height: 8).image == nil)
 }
