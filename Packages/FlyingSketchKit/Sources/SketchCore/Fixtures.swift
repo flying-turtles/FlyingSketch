@@ -41,7 +41,9 @@ extension SketchDocument {
         let r = PartInstance(definitionKey: resistor.key, center: Vec2(x: 0, y: 0), label: "R1",
                              legEnds: ["a": Vec2(x: -7, y: 3)])
         let b = PartInstance(definitionKey: board.key, center: Vec2(x: 40, y: 0), quarterTurns: 1)
-        let wire = Wire(start: WireEnd(position: Vec2(x: 5, y: 0), attachment: .connector(part: r.id, connector: "b")),
+        // Attached end sits exactly on its connector (consistent: reading reconciles nothing).
+        let bEnd = connectorPositions(r, resistor)["b"]!
+        let wire = Wire(start: WireEnd(position: bEnd, attachment: .connector(part: r.id, connector: "b")),
                         end: WireEnd(position: Vec2(x: 30, y: 5)), bends: [Vec2(x: 5, y: 5)])
         return SketchDocument(objects: [.part(r), .part(b), .wire(wire)],
                               assets: [resistor.graphicAsset: Data([1]), board.graphicAsset: Data([2])],

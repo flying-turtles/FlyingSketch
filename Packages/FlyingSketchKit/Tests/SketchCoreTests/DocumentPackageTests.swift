@@ -91,3 +91,30 @@ import Testing
     let w = FileWrapper(directoryWithFileWrappers: ["document.json": FileWrapper(regularFileWithContents: Data(json.utf8))])
     #expect(throws: DocumentError.self) { try DocumentPackage.read(w) }
 }
+
+@Test func readReconcilesDanglingWireAttachments() throws {
+    var doc = SketchDocument.fixtureWithPartsAndWire()
+    let resistorID = doc.objects[0].id
+    let ghost = ObjectID.new()
+    let dangling = Wire(start: WireEnd(position: Vec2(x: 1, y: 2), attachment: .connector(part: ghost, connector: "a")),
+                        end: WireEnd(position: Vec2(x: 99, y: 99), attachment: .connector(part: resistorID, connector: "a")))
+    doc.objects.append(.wire(dangling))
+    let back = try DocumentPackage.read(DocumentPackage.fileWrapper(for: doc))
+    guard case .wire(let w)? = back.objects.last else { Issue.record("wire missing"); return }
+    #expect(w.start.attachment == nil && w.start.position == Vec2(x: 1, y: 2)) // missing part: free end, kept
+    let r = try #require(back.objects.first.flatMap { if case .part(let p) = $0 { p } else { nil } })
+    let def = try #require(back.parts[r.definitionKey])
+    #expect(w.end.attachment == .connector(part: resistorID, connector: "a"))
+    #expect(w.end.position == connectorPositions(r, def)["a"]) // follows its connector
+    // Already consistent documents round-trip unchanged.
+    let clean = SketchDocument.fixtureWithPartsAndWire()
+    #expect(reconcileWires(in: clean).isEmpty)
+    #expect(try DocumentPackage.read(DocumentPackage.fileWrapper(for: clean)) == clean)
+}
+
+@Test func readRejectsMisKeyedPartDefinition() throws {
+    var doc = SketchDocument.fixtureWithPartsAndWire()
+    let def = PartDefinition.fixtureResistor()
+    doc.parts["other@key"] = def
+    #expect(throws: DocumentError.self) { try DocumentPackage.read(DocumentPackage.fileWrapper(for: doc)) }
+}

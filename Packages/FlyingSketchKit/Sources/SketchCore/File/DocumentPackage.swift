@@ -57,14 +57,21 @@ public enum DocumentPackage {
 
         let parts = body.parts ?? [:]
         try validate(body.objects, body.viewport, parts)
+        if let (key, _) = parts.first(where: { $0.key != $0.value.key }) {
+            throw DocumentError.corrupt("part definition stored under mismatched key \(key)")
+        }
 
         var assets: [String: Data] = [:]
         for (name, w) in wrapper.fileWrappers?[assetsName]?.fileWrappers ?? [:] where isSafeAssetName(name) {
             if let data = w.regularFileContents { assets[name] = data }
         }
         // Reading upgrades to v2; the next write is always v2.
-        return SketchDocument(formatVersion: 2, objects: body.objects,
-                              viewport: body.viewport, assets: assets, parts: parts)
+        var doc = SketchDocument(formatVersion: 2, objects: body.objects,
+                                 viewport: body.viewport, assets: assets, parts: parts)
+        // Dangling or stale attachments (older builds, external edits): ends follow their connector or go free.
+        let fixed = reconcileWires(in: doc)
+        if !fixed.isEmpty { _ = SceneEdit.replace(fixed).apply(to: &doc) }
+        return doc
     }
 
     /// Rejects values that would trap or exhaust memory downstream (index cells, layer sizes).
