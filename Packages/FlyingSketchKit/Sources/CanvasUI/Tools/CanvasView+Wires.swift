@@ -48,9 +48,9 @@ extension CanvasView {
             if wires.openPoints.count >= 2 { wires.finishFree() } else { wires.cancel() }
             clearWirePreview()
         } else if wireTouch.startedSession && wires.openPoints.count == 1 && nearLast {
-            showWirePreview([])  // a tap that only placed the start point: stay open
-        } else if wires.connector(near: world, radius: radius) != nil {
-            wires.finish(at: world, radius: radius)
+            showWirePreview(wires.openPoints)  // a tap that only placed the start point: stay open, marker shown
+        } else if let hit = wires.connector(near: world, radius: radius) {
+            wires.finish(at: world, onto: hit)
             clearWirePreview()
         } else {
             wires.addBend(at: world)
@@ -58,9 +58,16 @@ extension CanvasView {
         }
     }
 
-    /// Wire touch cancelled (second finger, window gone): the open wire stays, without the rubber band.
+    /// Wire touch cancelled (second finger, window gone): an open wire stays, without the rubber band. A session
+    /// this touch started and that still holds only its start point is dropped, so it cannot strand.
     func cancelWireTouch() {
-        if wires.isOpen { showWirePreview(wires.openPoints) }
+        guard wires.isOpen else { return }
+        if wireTouch.startedSession && wires.openPoints.count == 1 {
+            wires.cancel()
+            clearWirePreview()
+        } else {
+            showWirePreview(wires.openPoints)
+        }
     }
 
     /// Tool change or two-finger tap: finishes the open wire as a free end (no edit under 2 points).

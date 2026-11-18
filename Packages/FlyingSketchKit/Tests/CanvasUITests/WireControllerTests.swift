@@ -233,3 +233,66 @@ private func pos(_ p: PartInstance, _ def: PartDefinition, _ id: String) -> Vec2
     m.undoManager.undo()                           // outside change cancels the open wire
     #expect(!v.wires.isOpen && wires(m).isEmpty)
 }
+
+@Test @MainActor func secondFingerDropsStartOnlySessionAndUndoStillWorks() {
+    let (v, m, _, _) = wireCanvas()
+    m.perform(.insert([.shape(ShapeObject(kind: .line, start: .zero, end: Vec2(x: 5, y: 5)))], at: nil), actionName: "Shape")
+    v.beginWire(at: Vec2(x: 0, y: 60))             // first finger starts the session
+    #expect(v.wires.isOpen)
+    v.cancelWireTouch()                            // second finger arrives
+    #expect(!v.wires.isOpen && v.wirePreview == nil)
+    v.handleUndoTap()                              // two-finger tap now undoes
+    #expect(!m.undoManager.canUndo && m.document.objects.count == 2)
+}
+
+@Test @MainActor func twoFingerTapFinishesOpenWireFreeWithoutUndo() {
+    let (v, m, r, _) = wireCanvas()
+    m.perform(.insert([.shape(ShapeObject(kind: .line, start: .zero, end: Vec2(x: 5, y: 5)))], at: nil), actionName: "Shape")
+    v.beginWire(at: pos(r, resistorDef, "a"))
+    v.endWire(at: Vec2(x: -20, y: 20))
+    v.handleUndoTap()
+    #expect(wires(m).count == 1 && !v.wires.isOpen)
+    #expect(m.document.objects.contains { if case .shape = $0 { true } else { false } })
+    v.handleUndoTap()                              // no open wire: undoes the Add Wire
+    #expect(wires(m).isEmpty)
+}
+
+@Test @MainActor func startMarkerShownForOneSessionPoint() {
+    let (v, _, _, _) = wireCanvas()
+    v.beginWire(at: Vec2(x: 0, y: 60))
+    v.endWire(at: Vec2(x: 0, y: 60))
+    #expect(v.wires.isOpen && v.wirePreview != nil)
+}
+
+@Test @MainActor func previewReprojectsAfterViewportChange() throws {
+    let (v, _, _, _) = wireCanvas()
+    v.beginWire(at: Vec2(x: 0, y: 60))
+    v.endWire(at: Vec2(x: 10, y: 60))
+    func firstPoint() throws -> CGPoint {
+        let layer = try #require(v.wirePreview as? CAShapeLayer)
+        var first: CGPoint?
+        layer.path?.applyWithBlock { e in
+            if first == nil, e.pointee.type == .moveToPoint { first = e.pointee.points[0] }
+        }
+        let p = try #require(first)
+        return CGPoint(x: p.x + layer.frame.minX, y: p.y + layer.frame.minY)
+    }
+    func expected() -> CGPoint {
+        let e = v.currentViewport.worldToView(Vec2(x: 0, y: 60), viewSize: v.viewSize)
+        return CGPoint(x: e.x, y: e.y)
+    }
+    var p = try firstPoint(), e = expected()
+    #expect(abs(p.x - e.x) < 0.01 && abs(p.y - e.y) < 0.01)
+    v.viewport = Viewport(center: Vec2(x: 3, y: 40), zoom: 3)
+    p = try firstPoint(); e = expected()
+    #expect(abs(p.x - e.x) < 0.01 && abs(p.y - e.y) < 0.01)
+}
+
+@Test @MainActor func candidateOrderDoesNotAffectTies() {
+    // Two wires with ends at the same spot: the later (topmost) wins even if candidates arrive reversed.
+    let (_, m, _, _, w1) = dragScene()
+    let w2 = Wire(start: WireEnd(position: w1.end.position), end: WireEnd(position: Vec2(x: -50, y: 50)))
+    m.perform(.insert([.wire(w2)], at: nil), actionName: "w")
+    let c = WireController(model: m, candidates: { rect in m.document.objects.reversed().filter { bounds(of: $0, in: m.document).intersects(rect) } })
+    #expect(c.end(near: w1.end.position, radius: 1)?.wire.id == w2.id)
+}

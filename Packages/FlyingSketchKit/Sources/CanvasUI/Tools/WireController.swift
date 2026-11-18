@@ -47,11 +47,15 @@ final class WireController {
 
     // MARK: Lookup
 
+    /// Objects near `p` in document (z) order, bottom to top, regardless of the candidate source's order.
     private func objects(near p: Vec2, radius: Double) -> [SceneObject] {
         let rect = Rect(origin: p - Vec2(x: radius, y: radius), size: Vec2(x: 2 * radius, y: 2 * radius))
-        if let candidates { return candidates(rect) }
         let doc = model.document
-        return doc.objects.filter { bounds(of: $0, in: doc).intersects(rect) }
+        guard let candidates else { return doc.objects.filter { bounds(of: $0, in: doc).intersects(rect) } }
+        let found = candidates(rect)
+        guard found.count > 1 else { return found }
+        let wanted = Set(found.map(\.id))
+        return doc.objects.filter { wanted.contains($0.id) }
     }
 
     /// Nearest connector within `radius`; ties go to the earlier part (z-order), then declaration order.
@@ -101,7 +105,14 @@ final class WireController {
     @discardableResult
     func finish(at world: Vec2, radius: Double) -> Bool {
         guard isOpen else { return false }
-        if let (ref, pos) = connector(near: world, radius: radius) {
+        return finish(at: world, onto: connector(near: world, radius: radius))
+    }
+
+    /// Like `finish(at:radius:)` with the connector lookup already done (`nil` = free end at `world`).
+    @discardableResult
+    func finish(at world: Vec2, onto hit: (ConnectorRef, Vec2)?) -> Bool {
+        guard isOpen else { return false }
+        if let (ref, pos) = hit {
             return commit(WireEnd(position: pos, attachment: .connector(part: ref.part, connector: ref.connector)))
         }
         return commit(WireEnd(position: world))
@@ -138,9 +149,15 @@ final class WireController {
         return true
     }
 
-    /// Wire for displaying `polyline` (>= 2 points) in the draw colour; nil when too short.
+    /// Wire for displaying `polyline` in the draw colour; nil when empty. A single point shows as a start marker
+    /// (zero-length wire: round dot plus the free-end circle).
     func previewWire(_ polyline: [Vec2]) -> Wire? {
-        guard polyline.count >= 2 else { return nil }
+        guard let only = polyline.first else { return nil }
+        guard polyline.count >= 2 else {
+            return Wire(start: WireEnd(position: only, attachment: startAttachment.map {
+                            .connector(part: $0.part, connector: $0.connector) }),
+                        end: WireEnd(position: only), color: color)
+        }
         return Wire(start: WireEnd(position: polyline[0], attachment: startAttachment.map {
                         .connector(part: $0.part, connector: $0.connector) }),
                     end: WireEnd(position: polyline[polyline.count - 1]),

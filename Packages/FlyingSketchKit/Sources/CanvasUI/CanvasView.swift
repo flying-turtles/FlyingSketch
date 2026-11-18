@@ -127,7 +127,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         addInteraction(UIPencilInteraction(delegate: self))
     }
 
-    @objc private func handleUndoTap() {
+    @objc func handleUndoTap() {
         guard liveViewport == nil, activeGestures == 0 else { return }
         // An open wire is finished (free end) instead of undone.
         if wires.isOpen { endWireSession(); return }
