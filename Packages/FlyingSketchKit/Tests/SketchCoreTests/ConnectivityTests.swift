@@ -195,3 +195,55 @@ private func carryFixture() -> (doc: SketchDocument, board: PartInstance, module
     r.center = .zero
     #expect(reconcileWires(in: baseDoc([.part(r), .wire(fixed)])).isEmpty)
 }
+
+@Test func snapTieIsDeterministicFirstConnectorWins() {
+    // Legs +-0.46 from nearest holes in the same column: equal-length offsets with opposite signs.
+    let board = PartInstance(definitionKey: boardDef.key, center: Vec2(x: 40, y: 0))
+    let h = hole(board, "c1r0")
+    var r = PartInstance(definitionKey: resistorDef.key, center: .zero)
+    r.legEnds = ["a": h + Vec2(x: 0, y: 0.46), "b": hole(board, "c1r3") + Vec2(x: 0, y: -0.46)]
+    let doc = baseDoc([.part(board)])
+    for _ in 0..<20 {
+        let off = plugSnapOffset(for: r, in: doc, excluding: [])
+        #expect(off != nil && near(off!, Vec2(x: 0, y: -0.46)))
+    }
+}
+
+@Test func wireOnPinnedLegStaysAndDefaultEndPins() {
+    var (doc, board, r) = pluggedFixture()
+    // a: plugged with a default (not materialised) end; b free.
+    r.legEnds = [:]
+    r.center = hole(board, "c0r2") - (resistorDef.connectors[0].leg!.defaultEnd - resistorDef.size / 2)
+    let aPos = connectorPositions(r, resistorDef)["a"]!
+    let bPos = connectorPositions(r, resistorDef)["b"]!
+    let w = Wire(start: WireEnd(position: aPos, attachment: .connector(part: r.id, connector: "a")),
+                 end: WireEnd(position: Vec2(x: 90, y: 90)))
+    let w2 = Wire(start: WireEnd(position: bPos, attachment: .connector(part: r.id, connector: "b")),
+                  end: WireEnd(position: Vec2(x: 90, y: 91)))
+    doc.objects = [.part(board), .part(r), .wire(w), .wire(w2)]
+    let d = Vec2(x: 3, y: -4)
+    let out = moveParts([r.id], by: d, in: doc)
+    let moved = part(out[0])
+    #expect(near(connectorPositions(moved, resistorDef)["a"]!, aPos))
+    #expect(moved.legEnds["a"] != nil && moved.legEnds["b"] == nil)
+    // Wire on pinned leg is unchanged -> not returned; wire on free leg follows.
+    #expect(out.count == 2)
+    #expect(wire(out[1]).id == w2.id && near(wire(out[1]).start.position, bPos + d))
+}
+
+@MainActor @Test func mixedBatchUndoRedoUndoRoundTrip() {
+    let r = PartInstance(definitionKey: resistorDef.key, center: .zero)
+    let w = Wire(start: WireEnd(position: Vec2(x: 5, y: 0), attachment: .connector(part: r.id, connector: "b")),
+                 end: WireEnd(position: Vec2(x: 30, y: 5)))
+    let doc = baseDoc([.part(r), .wire(w)])
+    let model = DocumentModel(document: doc)
+    let (removed, detached) = removeParts([r.id], in: doc)
+    model.perform([.replace(detached), .remove(removed)], actionName: "Delete")
+    let after = model.document
+    model.undoManager.undo()
+    #expect(model.document == doc)
+    model.undoManager.redo()
+    #expect(model.document == after)
+    model.undoManager.undo()
+    #expect(model.document == doc)
+}

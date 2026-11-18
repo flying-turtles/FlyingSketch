@@ -29,7 +29,14 @@ struct FemaleIndex {
     private struct Cell: Hashable { var x: Int; var y: Int }
     private struct Entry { var ref: ConnectorRef; var position: Vec2 }
 
+    /// Distances closer than this are ties, resolved by `precedes` so results never depend on hash order.
+    static let tieEpsilon = 1e-9
     private static let cellSize = 2.54
+
+    static func precedes(_ a: ConnectorRef, _ b: ConnectorRef) -> Bool {
+        let (pa, pb) = (a.part.raw.uuidString, b.part.raw.uuidString)
+        return pa != pb ? pa < pb : a.connector < b.connector
+    }
     private var cells: [Cell: [Entry]] = [:]
 
     init(_ doc: SketchDocument, excluding: Set<ObjectID> = []) {
@@ -55,7 +62,9 @@ struct FemaleIndex {
             for dy in -1...1 {
                 for e in cells[Cell(x: c.x + dx, y: c.y + dy)] ?? [] where e.ref.part != part {
                     let d = e.position.distance(to: p)
-                    if d <= radius, d < (best?.d ?? .infinity) { best = (e.ref, e.position, d) }
+                    guard d <= radius else { continue }
+                    if let b = best, d > b.d + Self.tieEpsilon || (abs(d - b.d) <= Self.tieEpsilon && !Self.precedes(e.ref, b.ref)) { continue }
+                    best = (e.ref, e.position, d)
                 }
             }
         }
@@ -85,12 +94,13 @@ public func plugSnapOffset(for instance: PartInstance, in doc: SketchDocument, e
     guard let def = doc.parts[instance.definitionKey] else { return nil }
     let index = FemaleIndex(doc, excluding: excluding.union([instance.id]))
     var best: (offset: Vec2, d: Double)?
-    for (id, pos) in connectorPositions(instance, def) {
-        guard def.connectors.first(where: { $0.id == id })?.kind == .male,
-              let hit = index.nearest(to: pos, within: plugSnapRadius) else { continue }
+    let positions = connectorPositions(instance, def)
+    // Declaration order + epsilon ties: first connector wins, so the result is stable across launches.
+    for c in def.connectors where c.kind == .male {
+        guard let pos = positions[c.id], let hit = index.nearest(to: pos, within: plugSnapRadius) else { continue }
         let offset = hit.position - pos
         let d = offset.length
-        if d < (best?.d ?? .infinity) { best = (offset, d) }
+        if d < (best?.d ?? .infinity) - FemaleIndex.tieEpsilon { best = (offset, d) }
     }
     return best?.offset
 }

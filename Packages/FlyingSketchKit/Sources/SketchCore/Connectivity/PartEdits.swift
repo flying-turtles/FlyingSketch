@@ -27,18 +27,19 @@ private func attached(_ end: WireEnd, toAnyOf ids: Set<ObjectID>) -> Bool {
 }
 
 /// Moves parts by `delta`. Returns replaced part instances (a leg end stays put when plugged into a part
-/// outside `ids`) plus every wire attached to a moved part (end positions updated). Wires listed in `ids`
+/// outside `ids`) plus every wire whose attached connector actually moved (end positions updated). Wires listed in `ids`
 /// also shift their free ends and bends.
 public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocument) -> [SceneObject] {
     let old = partsByID(doc)
-    let plugged = contacts(in: doc)
+    var pluggedTo: [ConnectorRef: Set<ObjectID>] = [:]
+    for c in contacts(in: doc) where ids.contains(c.male.part) { pluggedTo[c.male, default: []].insert(c.female.part) }
     var moved: [ObjectID: PartInstance] = [:]
     for id in ids {
         guard var p = old[id], let def = doc.parts[p.definitionKey] else { continue }
         let current = connectorPositions(p, def)
         p.center = p.center + delta
         for c in def.connectors where c.leg != nil {
-            let pinned = plugged.contains { $0.male == ConnectorRef(part: id, connector: c.id) && !ids.contains($0.female.part) }
+            let pinned = pluggedTo[ConnectorRef(part: id, connector: c.id)]?.contains { !ids.contains($0) } ?? false
             if pinned {
                 p.legEnds[c.id] = current[c.id]
             } else if let end = p.legEnds[c.id] {
@@ -52,15 +53,18 @@ public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocume
         return .part(m)
     }
     let merged = old.merging(moved) { _, new in new }
+    let movedIDs = Set(moved.keys)
     for case .wire(var w) in doc.objects {
         let own = ids.contains(w.id)
-        guard own || attached(w.start, toAnyOf: Set(moved.keys)) || attached(w.end, toAnyOf: Set(moved.keys)) else { continue }
+        guard own || attached(w.start, toAnyOf: movedIDs) || attached(w.end, toAnyOf: movedIDs) else { continue }
+        let original = w
         if own {
             w.bends = w.bends.map { $0 + delta }
             if w.start.attachment == nil { w.start.position = w.start.position + delta }
             if w.end.attachment == nil { w.end.position = w.end.position + delta }
         }
-        result.append(.wire(reconciled(w, parts: merged, doc: doc)))
+        let fixed = reconciled(w, parts: merged, doc: doc)
+        if fixed != original { result.append(.wire(fixed)) }
     }
     return result
 }
