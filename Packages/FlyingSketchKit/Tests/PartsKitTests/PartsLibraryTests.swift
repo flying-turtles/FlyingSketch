@@ -82,14 +82,14 @@ private func makePart(id: String, title: String = "Mine", family: String = "cust
         let imported = try await lib.importFzpz(fzpz())
         #expect(imported.source == .personal)
 
-        let reloaded = try PersonalLibraryStore(rootURL: root).load()
+        let reloaded = try PersonalLibraryStore(rootURL: root).load().parts
         let got = try #require(reloaded.first { $0.definition.libraryID == imported.definition.libraryID })
         #expect(got.definition == imported.definition)
         #expect(got.graphic == imported.graphic)
 
         // re-import replaces, no duplicate
         _ = try await lib.importFzpz(fzpz())
-        #expect(try PersonalLibraryStore(rootURL: root).load().count == 1)
+        #expect(try PersonalLibraryStore(rootURL: root).load().parts.count == 1)
         let fresh = PartsLibrary(bundledCatalogURL: catalogURL, personalStore: PersonalLibraryStore(rootURL: root))
         #expect(await fresh.part(libraryID: imported.definition.libraryID) != nil)
     }
@@ -104,10 +104,66 @@ private func makePart(id: String, title: String = "Mine", family: String = "cust
             #expect(dir.deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL)
         }
         #expect(PersonalLibraryStore.sanitize("../x") == ".._x")
+        #expect(!PersonalLibraryStore.directoryName(forLibraryID: "../x").contains("/"))
         #expect(PersonalLibraryStore.sanitize("..") == "part_..")
         #expect(PersonalLibraryStore.sanitize("") == "part_")
         let escaped = root.deletingLastPathComponent().appendingPathComponent("x")
         #expect(!FileManager.default.fileExists(atPath: escaped.appendingPathComponent("part.json").path))
-        #expect(try store.load().count == 6)
+        #expect(try store.load().parts.count == 6)
+    }
+
+    @Test func collidingSanitizedIDsSurviveReload() throws {
+        let root = tempRoot()
+        let store = PersonalLibraryStore(rootURL: root)
+        let ids = ["a/b", "a_b", "a b", "é", "è", ".tmp-foo"]
+        for id in ids { try store.write(makePart(id: id, title: id)) }
+        let loaded = try store.load()
+        #expect(loaded.issues.isEmpty)
+        #expect(Set(loaded.parts.map(\.definition.libraryID)) == Set(ids))
+    }
+
+    @Test func graphicNamedPartJSONDoesNotClobberMetadata() throws {
+        let store = PersonalLibraryStore(rootURL: tempRoot())
+        var p = makePart(id: "evil")
+        p.definition.graphicAsset = "part.json"
+        try store.write(p)
+        let loaded = try store.load()
+        let got = try #require(loaded.parts.first)
+        #expect(got.definition.graphicAsset == "part.json")
+        #expect(got.graphic == p.graphic)
+    }
+
+    @Test func corruptPartReportedOthersLoad() async throws {
+        let root = tempRoot()
+        let store = PersonalLibraryStore(rootURL: root)
+        try store.write(makePart(id: "good"))
+        try store.write(makePart(id: "bad"))
+        try Data("{".utf8).write(to: store.directory(forLibraryID: "bad").appendingPathComponent("part.json"))
+        let loaded = try store.load()
+        #expect(loaded.parts.map(\.definition.libraryID) == ["good"])
+        #expect(loaded.issues.count == 1)
+        #expect(loaded.issues.first?.reason == .unreadableMetadata)
+
+        let lib = PartsLibrary(bundledCatalogURL: catalogURL, personalStore: store)
+        _ = await lib.allParts()
+        #expect(await lib.lastLoadIssues.count == 1)
+    }
+
+    @Test func iCloudPlaceholderReportedNotDownloaded() throws {
+        let root = tempRoot()
+        let store = PersonalLibraryStore(rootURL: root)
+        try store.write(makePart(id: "cloud"))
+        let dir = try store.directory(forLibraryID: "cloud")
+        try FileManager.default.removeItem(at: dir.appendingPathComponent("part.json"))
+        try Data().write(to: dir.appendingPathComponent(".part.json.icloud"))
+        let loaded = try store.load()
+        #expect(loaded.parts.isEmpty)
+        #expect(loaded.issues.first?.reason == .notDownloaded)
+    }
+
+    @Test func unreadableRootThrows() throws {
+        let root = tempRoot()
+        try Data("x".utf8).write(to: root) // file where a directory is expected
+        #expect(throws: (any Error).self) { try PersonalLibraryStore(rootURL: root).load() }
     }
 }

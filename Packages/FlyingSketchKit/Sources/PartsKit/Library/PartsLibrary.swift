@@ -1,4 +1,5 @@
 import Foundation
+import os
 import SketchCore
 
 private struct CatalogRow: Decodable {
@@ -11,6 +12,12 @@ public actor PartsLibrary {
     private let bundledCatalogURL: URL
     private let personalStore: PersonalLibraryStore
     private var bundled: [LibraryPart]?
+    private var personalIndex: [String: LibraryPart]?
+    private var merged: [LibraryPart]?
+    private let logger = Logger(subsystem: "com.flyingturtle.flyingsketch", category: "parts")
+
+    /// Problems found by the most recent personal-library load.
+    public private(set) var lastLoadIssues: [LoadIssue] = []
 
     public init(bundledCatalogURL: URL, personalStore: PersonalLibraryStore) {
         self.bundledCatalogURL = bundledCatalogURL
@@ -19,10 +26,19 @@ public actor PartsLibrary {
 
     /// All parts, personal overriding bundled by `libraryID`, sorted by title.
     public func allParts() async -> [LibraryPart] {
+        if let merged { return merged }
         var byID: [String: LibraryPart] = [:]
         for part in loadBundled() { byID[part.definition.libraryID] = part }
-        for part in (try? personalStore.load()) ?? [] { byID[part.definition.libraryID] = part }
-        return sortedByTitle(Array(byID.values))
+        for (id, part) in loadPersonal() { byID[id] = part }
+        let result = sortedByTitle(Array(byID.values))
+        merged = result
+        return result
+    }
+
+    /// Drops caches so the next read re-scans disk (e.g. after iCloud delivers new parts).
+    public func reload() {
+        personalIndex = nil
+        merged = nil
     }
 
     /// Case- and diacritic-insensitive; every whitespace-separated token must match title, family, a tag or a property value.
@@ -38,7 +54,8 @@ public actor PartsLibrary {
     }
 
     public func part(libraryID: String) async -> LibraryPart? {
-        await allParts().first { $0.definition.libraryID == libraryID }
+        if let p = loadPersonal()[libraryID] { return p }
+        return loadBundled().first { $0.definition.libraryID == libraryID }
     }
 
     /// Imports a Fritzing `.fzpz` and stores it as a personal part (re-import replaces).
@@ -46,6 +63,7 @@ public actor PartsLibrary {
         let (definition, graphic) = try FzpzImporter.importPart(data)
         let part = LibraryPart(definition: definition, graphic: graphic, source: .personal)
         try personalStore.write(part)
+        reload()
         return part
     }
 
@@ -53,6 +71,25 @@ public actor PartsLibrary {
         var stored = part
         stored.source = .personal
         try personalStore.write(stored)
+        reload()
+    }
+
+    private func loadPersonal() -> [String: LibraryPart] {
+        if let personalIndex { return personalIndex }
+        var index: [String: LibraryPart] = [:]
+        do {
+            let result = try personalStore.load()
+            for part in result.parts { index[part.definition.libraryID] = part }
+            lastLoadIssues = result.issues
+        } catch {
+            logger.error("personal library root unreadable: \(String(describing: error), privacy: .public)")
+            lastLoadIssues = [LoadIssue(directory: personalStore.rootURL, reason: .rootUnreadable)]
+        }
+        for issue in lastLoadIssues {
+            logger.error("part load issue \(issue.reason.rawValue, privacy: .public): \(issue.directory.lastPathComponent, privacy: .public)")
+        }
+        personalIndex = index
+        return index
     }
 
     private func loadBundled() -> [LibraryPart] {

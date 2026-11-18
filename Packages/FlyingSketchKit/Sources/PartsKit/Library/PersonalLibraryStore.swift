@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import SketchCore
 
 /// A part in the library: definition + graphic bytes + where it came from.
@@ -18,6 +19,13 @@ public struct LibraryPart: Hashable, Sendable {
 
 public enum PersonalLibraryError: Error, Equatable {
     case escapesRoot(String)
+}
+
+/// A per-part problem found while loading; the rest of the library still loads.
+public struct LoadIssue: Hashable, Sendable {
+    public enum Reason: String, Sendable { case unreadableMetadata, missingGraphic, notDownloaded, rootUnreadable }
+    public var directory: URL
+    public var reason: Reason
 }
 
 /// On-disk personal parts: one directory per sanitized `libraryID` holding `part.json` + the graphic.
@@ -48,9 +56,18 @@ public struct PersonalLibraryStore: Sendable {
         return (s.isEmpty || s == "." || s == "..") ? "part_" + s : s
     }
 
+    /// `<sanitized prefix (64)>-<12 hex of SHA-256(raw id)>`: distinct IDs never share a directory.
+    static func directoryName(forLibraryID id: String) -> String {
+        let hash = SHA256.hash(data: Data(id.utf8)).map { String(format: "%02x", $0) }.joined().prefix(12)
+        return String(sanitize(id).prefix(64)) + "-" + hash
+    }
+
+    static func graphicFileName(_ kind: GraphicKind) -> String { "graphic." + kind.rawValue }
+
     /// Directory for a part, verified to stay inside the root.
     func directory(forLibraryID id: String) throws -> URL {
-        let dir = rootURL.appendingPathComponent(Self.sanitize(id), isDirectory: true).standardizedFileURL
+        let dir = rootURL.appendingPathComponent(Self.directoryName(forLibraryID: id), isDirectory: true)
+            .standardizedFileURL
         let rootPath = rootURL.standardizedFileURL.path
         guard dir.path.hasPrefix(rootPath.hasSuffix("/") ? rootPath : rootPath + "/") else {
             throw PersonalLibraryError.escapesRoot(id)
@@ -63,37 +80,65 @@ public struct PersonalLibraryStore: Sendable {
         var source: LibraryPart.Source
     }
 
-    /// Loads every readable part; unreadable or incomplete directories are skipped.
-    public func load() throws -> [LibraryPart] {
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: rootURL.path) else { return [] }
-        let dirs = try fm.contentsOfDirectory(at: rootURL, includingPropertiesForKeys: [.isDirectoryKey])
-        var parts: [LibraryPart] = []
-        for dir in dirs where !dir.lastPathComponent.hasPrefix(".tmp-") {
-            guard let json = try? Data(contentsOf: dir.appendingPathComponent("part.json")),
-                  let meta = try? JSONDecoder().decode(Meta.self, from: json),
-                  let graphic = try? Data(contentsOf: dir.appendingPathComponent(
-                    Self.sanitize(meta.definition.graphicAsset)))
-            else { continue }
-            parts.append(LibraryPart(definition: meta.definition, graphic: graphic, source: meta.source))
-        }
-        return parts
+    /// Legacy atomic-write temp directories (`.tmp-<UUID>`) are not parts.
+    private static func isLegacyTemp(_ name: String) -> Bool {
+        name.hasPrefix(".tmp-") && UUID(uuidString: String(name.dropFirst(5))) != nil
     }
 
-    /// Writes into a temp directory, then swaps it in (replacing an existing part of the same ID).
+    /// Placeholder for a not-yet-downloaded iCloud file: `.<name>.icloud`. Starts the download if present.
+    private static func requestDownloadIfPlaceholder(_ file: URL) -> Bool {
+        let placeholder = file.deletingLastPathComponent().appendingPathComponent("." + file.lastPathComponent + ".icloud")
+        guard FileManager.default.fileExists(atPath: placeholder.path) else { return false }
+        try? FileManager.default.startDownloadingUbiquitousItem(at: file)
+        return true
+    }
+
+    /// Loads every readable part; per-part problems are reported as issues, a root-level failure throws.
+    public func load() throws -> (parts: [LibraryPart], issues: [LoadIssue]) {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: rootURL.path) else { return ([], []) }
+        let dirs = try fm.contentsOfDirectory(at: rootURL, includingPropertiesForKeys: [.isDirectoryKey])
+        var parts: [LibraryPart] = []
+        var issues: [LoadIssue] = []
+        for dir in dirs where !Self.isLegacyTemp(dir.lastPathComponent) {
+            let isDir = (try? dir.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            guard isDir else { continue }
+            let metaURL = dir.appendingPathComponent("part.json")
+            if Self.requestDownloadIfPlaceholder(metaURL) {
+                issues.append(LoadIssue(directory: dir, reason: .notDownloaded)); continue
+            }
+            guard let json = try? Data(contentsOf: metaURL),
+                  let meta = try? JSONDecoder().decode(Meta.self, from: json) else {
+                issues.append(LoadIssue(directory: dir, reason: .unreadableMetadata)); continue
+            }
+            let graphicURL = dir.appendingPathComponent(Self.graphicFileName(meta.definition.graphicKind))
+            if Self.requestDownloadIfPlaceholder(graphicURL) {
+                issues.append(LoadIssue(directory: dir, reason: .notDownloaded)); continue
+            }
+            guard let graphic = try? Data(contentsOf: graphicURL) else {
+                issues.append(LoadIssue(directory: dir, reason: .missingGraphic)); continue
+            }
+            parts.append(LibraryPart(definition: meta.definition, graphic: graphic, source: meta.source))
+        }
+        return (parts, issues)
+    }
+
+    /// Writes into a temp directory (outside the synced root), then swaps it in; replaces the same ID.
     public func write(_ part: LibraryPart) throws {
         let fm = FileManager.default
         let dest = try directory(forLibraryID: part.definition.libraryID)
         try fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
-        let tmp = rootURL.appendingPathComponent(".tmp-\(UUID().uuidString)", isDirectory: true)
-        try fm.createDirectory(at: tmp, withIntermediateDirectories: false)
-        defer { try? fm.removeItem(at: tmp) }
+        let scratch = (try? fm.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: dest, create: true))
+            ?? fm.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let tmp = scratch.appendingPathComponent("part", isDirectory: true)
+        try fm.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: scratch) }
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let meta = Meta(definition: part.definition, source: part.source)
         try encoder.encode(meta).write(to: tmp.appendingPathComponent("part.json"), options: .atomic)
-        try part.graphic.write(to: tmp.appendingPathComponent(Self.sanitize(part.definition.graphicAsset)),
+        try part.graphic.write(to: tmp.appendingPathComponent(Self.graphicFileName(part.definition.graphicKind)),
                                options: .atomic)
 
         if fm.fileExists(atPath: dest.path) {
