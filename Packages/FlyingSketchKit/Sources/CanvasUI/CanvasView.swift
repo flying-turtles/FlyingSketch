@@ -44,6 +44,18 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     private(set) var lasso: LassoController!
     let lassoPath = LassoPathLayer()
     let selectionOverlay = SelectionOverlay()
+    private(set) var legs: LegController!
+    /// Replacement part + wires shown while a leg is dragged.
+    var legPreview: [SceneObject] = []
+    /// Accent circles at leg ends of selected legged parts.
+    let legHandles: CAShapeLayer = {
+        let l = CAShapeLayer()
+        l.fillColor = UIColor.systemBlue.withAlphaComponent(0.25).cgColor
+        l.strokeColor = UIColor.systemBlue.cgColor
+        l.lineWidth = 1
+        l.isHidden = true
+        return l
+    }()
     /// Selected objects; the app may observe or set it.
     public let selection: SelectionState
     /// Move gesture in progress: world delta applied so far (visual only until release).
@@ -87,6 +99,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         isMultipleTouchEnabled = true
         layer.addSublayer(liveStroke.layer)
         layer.addSublayer(selectionOverlay.layer)
+        layer.addSublayer(legHandles)
         layer.addSublayer(lassoPath.layer)
 
         let lookup: (Rect) -> [SceneObject] = { [weak self] rect in self?.renderer.objects(in: rect) ?? [] }
@@ -95,6 +108,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         lasso = LassoController(model: model, candidates: lookup)
         shapes = ShapeController(model: model)
         wires = WireController(model: model, candidates: lookup)
+        legs = LegController(model: model)
         textController = TextController(model: model)
 
         let previous = model.onChange
@@ -171,6 +185,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case ink, erase, lasso, move, shape
         /// Wire tool: draws or continues a wire.
         case wire
+        /// Selected part's leg end dragged (lasso tool or finger selection mode).
+        case leg(ConnectorRef)
         /// Wire tool: touch-down on an existing wire end drags it.
         case wireEnd
         /// Text tool tap; the editor opens on release.
@@ -189,6 +205,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     func route(isPencil: Bool, at p: CGPoint) -> Interaction? {
         let insideSelection = selectionViewRect?
             .insetBy(dx: -Self.hitSlop, dy: -Self.hitSlop).contains(p) == true
+        let selecting = (isPencil || !toolState.pencilOnly) ? toolState.kind == .lasso : true
+        if selecting, let end = legEnd(at: p) { return .leg(end) }
         if isPencil || !toolState.pencilOnly {
             switch toolState.kind {
             case .ink: return .ink
@@ -286,6 +304,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             beginWire(at: sample(touch).position)
         case .wireEnd:
             beginWireEndDrag(at: sample(touch).position)
+        case .leg(let ref):
+            beginLegDrag(ref, at: sample(touch).position)
         case .pending, .text, .ignored:
             break
         }
@@ -309,6 +329,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             moveWire(to: sample(touch).position)
         case .wireEnd:
             moveWireEnd(to: sample(touch).position)
+        case .leg:
+            moveLeg(to: sample(touch).position)
         case .text(let start):
             let p = location(of: touch)
             if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
@@ -353,6 +375,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             endWire(at: sample(touch).position)
         case .wireEnd:
             endWireEndDrag(at: sample(touch).position)
+        case .leg:
+            endLegDrag(at: sample(touch).position)
         case .text(let start):
             beginTextEditing(at: start)
         case .ignored:
@@ -384,6 +408,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .shape: cancelShape()
         case .wire: cancelWireTouch()
         case .wireEnd: cancelWireEndDrag()
+        case .leg: cancelLegDrag()
         case .pending, .text, .ignored: break
         }
     }

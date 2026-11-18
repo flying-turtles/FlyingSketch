@@ -72,6 +72,7 @@ extension CanvasView {
 
     func updateSelectionOverlay() {
         selectionOverlay.update(viewRect: selectionViewRect)
+        updateLegHandles()
     }
 
     // MARK: Tap and lasso

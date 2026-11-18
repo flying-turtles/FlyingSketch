@@ -88,6 +88,11 @@ public func contacts(in doc: SketchDocument) -> Set<Contact> {
     return result
 }
 
+/// Nearest female connector (<= 1.0 mm) of a part other than `part` to world point `p`; nil if none.
+public func nearestFemale(to p: Vec2, in doc: SketchDocument, excluding part: ObjectID) -> (ref: ConnectorRef, position: Vec2)? {
+    FemaleIndex(doc, excluding: [part]).nearest(to: p, within: plugSnapRadius)
+}
+
 /// Smallest offset (<= 1.0 mm) that puts a male connector of `instance` exactly on a female of a part not in
 /// `excluding` (the instance itself is always ignored); nil if none.
 public func plugSnapOffset(for instance: PartInstance, in doc: SketchDocument, excluding: Set<ObjectID>) -> Vec2? {
