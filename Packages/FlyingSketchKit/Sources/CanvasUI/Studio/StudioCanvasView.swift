@@ -8,6 +8,14 @@ public enum StudioCanvasMode: Equatable {
     /// Modes that display the cropped/rotated output preview instead of the raw source photo.
     var showsOutput: Bool {
         switch self {
+        case .calibrate, .pins: true
+        case .view, .brush, .trace, .chooseInstance, .crop: false
+        }
+    }
+
+    /// Modes whose single-touch input drives an overlay (`StudioOverlays.swift`) instead of a stroke.
+    var usesOverlay: Bool {
+        switch self {
         case .crop, .calibrate, .pins: true
         case .view, .brush, .trace, .chooseInstance: false
         }
@@ -15,7 +23,8 @@ public enum StudioCanvasMode: Equatable {
 }
 
 /// Photo studio canvas: source photo + mask overlay (or output preview), two-finger pan/pinch,
-/// single-touch mask brush / lasso trace / instance pick. Stroke logic lives in `StudioInputController`.
+/// single-touch mask brush / lasso trace / instance pick. Stroke logic lives in `StudioInputController`;
+/// crop/calibration/pin overlays and their touch handling live in `StudioOverlays.swift`.
 public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
     public static let zoomRange: ClosedRange<CGFloat> = 0.25...16
     static let dimOpacity: Float = 0.6
@@ -26,20 +35,35 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
         didSet {
             guard mode != oldValue else { return }
             cancelTool()
+            pendingCalibrationA = nil
+            if mode.showsOutput != oldValue.showsOutput {
+                zoom = 1 // content changes between source and output: refit
+                offset = .zero
+            }
             refresh()
         }
     }
     /// Reported when a finished trace is rejected (e.g. `.traceTooShort`).
     public var onError: ((PhotoPartError) -> Void)?
+    /// Called when a pin is tapped in `.pins` mode.
+    public var onPinSelected: ((String) -> Void)?
+    /// Highlighted pin in `.pins` mode.
+    public var selectedPinID: String? {
+        didSet { if selectedPinID != oldValue { layoutOverlays() } }
+    }
 
     let input = StudioInputController()
     /// Zoom relative to fit, and offset (view pt) of the content centre from the bounds centre.
     private(set) var zoom: CGFloat = 1
     private(set) var offset: CGPoint = .zero
+    let overlays = StudioOverlayLayers()
+    var overlayDrag: OverlayDrag?
+    /// First calibration point (source px) until the second one is placed.
+    var pendingCalibrationA: Vec2?
 
     private let contentLayer = CALayer()  // content space (source or output px) → view
     private let sourceLayer = CALayer()   // source px → content space
-    private let imageLayer = CALayer()
+    let imageLayer = CALayer()
     private let cutoutMaskLayer = CALayer()
     private let dimLayer = CALayer()
     private var tintLayers: [CALayer] = []
@@ -66,13 +90,14 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
         contentLayer.masksToBounds = true
         imageLayer.contents = session.source.image
         imageLayer.magnificationFilter = .nearest // crisp pixels when zoomed in for mask edits
-        dimLayer.backgroundColor = UIColor.black.cgColor
         dimLayer.opacity = Self.dimOpacity
-        dimLayer.mask = CALayer()
+        dimLayer.magnificationFilter = .nearest
+        cutoutMaskLayer.magnificationFilter = .nearest
         sourceLayer.addSublayer(imageLayer)
         sourceLayer.addSublayer(dimLayer)
         contentLayer.addSublayer(sourceLayer)
         layer.addSublayer(contentLayer)
+        layer.addSublayer(overlays.layer)
         liveLayer.fillColor = nil
         liveLayer.lineCap = .round
         liveLayer.lineJoin = .round
@@ -120,7 +145,7 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
     }
 
     /// Aspect-fit × zoom, centred at bounds centre + offset.
-    private var contentToView: CGAffineTransform {
+    var contentToView: CGAffineTransform {
         let s = fitScale * zoom, c = contentSize
         let centre = CGPoint(x: bounds.midX + offset.x, y: bounds.midY + offset.y)
         return CGAffineTransform(a: s, b: 0, c: 0, d: s,
@@ -171,8 +196,8 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
         for l in [imageLayer, dimLayer, cutoutMaskLayer] + tintLayers {
             l.frame = CGRect(origin: .zero, size: s)
         }
-        dimLayer.mask?.frame = dimLayer.bounds
         CATransaction.commit()
+        layoutOverlays()
     }
 
     // MARK: Display
@@ -183,7 +208,7 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
         CATransaction.setDisableActions(true)
         if renderedMask != session.mask {
             renderedMask = session.mask
-            dimLayer.mask?.contents = MaskOverlayImage.make(session.mask, inside: false, color: MaskOverlayImage.black)
+            dimLayer.contents = MaskOverlayImage.make(session.mask, inside: false, color: MaskOverlayImage.black)
             cutoutImageStale = true
         }
         let candidates: [MaskBitmap]
@@ -195,7 +220,6 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
             cutoutMaskLayer.contents = MaskOverlayImage.make(session.mask, inside: true, color: MaskOverlayImage.black)
             cutoutImageStale = false
         }
-        // Seam for Task 9: crop/calibrate/pins overlays go above `contentLayer`.
         imageLayer.mask = output ? cutoutMaskLayer : nil
         dimLayer.isHidden = output
         for l in tintLayers { l.isHidden = output }
@@ -218,7 +242,7 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
         renderedInstances = masks
     }
 
-    private func updateLiveLayer() {
+    func updateLiveLayer() {
         let pts = input.viewPoints
         guard let first = pts.first else { liveLayer.path = nil; return }
         let path = UIBezierPath()
@@ -244,17 +268,19 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
 
     // MARK: Tool input (testable without UITouch)
 
-    private var modeHasTool: Bool {
+    private var modeHasStroke: Bool {
         switch mode {
         case .brush, .trace, .chooseInstance: true
-        case .view, .crop, .calibrate, .pins: false // Task 9 adds crop/calibrate/pin handling
+        case .view, .crop, .calibrate, .pins: false
         }
     }
+
+    private var toolActive: Bool { input.isActive || overlayDrag != nil }
 
     /// Returns true when this touch started the tool action.
     @discardableResult
     func touchDown(at p: CGPoint, isPencil: Bool, directTouchCount: Int) -> Bool {
-        if input.isActive {
+        if toolActive {
             if CanvasView.pencilPreemptsFinger(activeIsPencil: activeIsPencil, newTouchIsPencil: isPencil) {
                 cancelTool() // Pencil takes over from a finger (e.g. resting palm)
             } else {
@@ -265,21 +291,39 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
                 return false
             }
         }
-        guard modeHasTool, isPencil || directTouchCount <= 1 else { return false }
+        guard isPencil || directTouchCount <= 1 else { return false }
+        if mode.usesOverlay {
+            guard overlayBegin(at: p) else { return false }
+        } else {
+            guard modeHasStroke else { return false }
+            input.viewToSource = viewToSource
+            input.begin(p)
+            updateLiveLayer()
+        }
         activeIsPencil = isPencil
-        input.viewToSource = viewToSource
-        input.begin(p)
-        updateLiveLayer()
         return true
     }
 
-    func touchMoved(to p: CGPoint) {
+    func touchMoved(to p: CGPoint) { touchMoved(through: [p]) }
+
+    /// All points of one touch event (coalesced); the display updates once.
+    func touchMoved(through points: [CGPoint]) {
+        if overlayDrag != nil {
+            if let last = points.last { overlayMove(to: last) }
+            return
+        }
         guard input.isActive else { return }
-        input.move(p)
+        for p in points { input.move(p) }
         updateLiveLayer()
     }
 
     func touchEnded() {
+        if overlayDrag != nil {
+            overlayEnd()
+            clearActive()
+            refresh()
+            return
+        }
         guard input.isActive else { return }
         let points = input.end()
         clearActive()
@@ -298,6 +342,7 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
 
     func cancelTool() {
         input.cancel()
+        overlayCancel()
         clearActive()
     }
 

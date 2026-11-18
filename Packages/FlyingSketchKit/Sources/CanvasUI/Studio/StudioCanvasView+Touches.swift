@@ -15,7 +15,8 @@ extension StudioCanvasView {
 
     override public func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = activeTouch, touches.contains(touch) else { return }
-        for t in event?.coalescedTouches(for: touch) ?? [touch] { touchMoved(to: t.location(in: self)) }
+        let coalesced = event?.coalescedTouches(for: touch) ?? [touch]
+        touchMoved(through: coalesced.map { $0.location(in: self) })
     }
 
     override public func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
