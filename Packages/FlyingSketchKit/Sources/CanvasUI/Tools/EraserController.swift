@@ -17,7 +17,7 @@ final class EraserController {
     init(model: DocumentModel, candidates: ((Rect) -> [SceneObject])? = nil) {
         self.model = model
         self.candidates = candidates ?? { [unowned model] rect in
-            model.document.objects.filter { bounds(of: $0).intersects(rect) }
+            model.document.objects.filter { bounds(of: $0, in: model.document).intersects(rect) }
         }
     }
 
@@ -69,6 +69,7 @@ final class EraserController {
         let box = Rect.bounding([a, b])!.insetBy(-radius)
         let pending = candidates(box).filter { !hit.contains($0.id) }
         guard !pending.isEmpty else { return }
+        let doc = model.document
         let step = max(radius / 2, 1e-6)
         let tolerance = (radius * radius + step * step / 4).squareRoot()
         let n = max(Int((a.distance(to: b) / step).rounded(.up)), 1)
@@ -76,7 +77,7 @@ final class EraserController {
         for object in pending {
             for i in 0...n {
                 let p = a + (b - a) * (Double(i) / Double(n))
-                if hitTest(object, point: p, tolerance: tolerance) {
+                if hitTest(object, point: p, tolerance: tolerance, in: doc) {
                     newHits.insert(object.id)
                     break
                 }

@@ -38,9 +38,11 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     let lassoPath = LassoPathLayer()
     let selectionOverlay = SelectionOverlay()
     /// Selected objects; the app may observe or set it.
-    public let selection = SelectionState()
+    public let selection: SelectionState
     /// Move gesture in progress: world delta applied so far (visual only until release).
     var moveStart: Vec2?
+    /// Ids moved by the in-flight gesture (selection plus carried parts); set once the drag engages.
+    var moveSet: Set<ObjectID> = []
     var moveDelta: Vec2 = .zero
     var moveEngaged = false
     var editMenu: UIEditMenuInteraction!
@@ -64,8 +66,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         }
     }
 
-    public init(model: DocumentModel) {
+    /// `selection` may be supplied by the app so SwiftUI can observe it from the first render.
+    public init(model: DocumentModel, selection: SelectionState = SelectionState()) {
         self.model = model
+        self.selection = selection
         self.ink = InkInputController(model: model)
         self.storedViewport = model.document.viewport
         super.init(frame: .zero)

@@ -41,11 +41,18 @@ final class SceneRenderer {
     /// Objects previewed translated by `moveOffset` view points. Document is untouched.
     private(set) var movingIDs: Set<ObjectID> = []
     private(set) var moveOffset: CGPoint = .zero
+    /// Objects previewed with substitute geometry (moved parts, re-pathed wires), keyed by id. Document is untouched.
+    private(set) var previewObjects: [ObjectID: SceneObject] = [:]
     private var feedbackBase: [ObjectID: (layer: CALayer, transform: CATransform3D)] = [:]
+    /// Layers currently showing a `previewObjects` substitute; restored to their entry's object on clear.
+    private var substituted: Set<ObjectID> = []
 
-    func setMovePreview(ids: Set<ObjectID>, offset: CGPoint) {
+    /// `ids` are translated rigidly by `offset`; `replacing` objects are re-rendered from the given geometry
+    /// (an id in both is only re-rendered).
+    func setMovePreview(ids: Set<ObjectID>, offset: CGPoint, replacing: [SceneObject] = []) {
         movingIDs = ids
         moveOffset = offset
+        previewObjects = Dictionary(replacing.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
         applyFeedback()
     }
 
@@ -55,6 +62,11 @@ final class SceneRenderer {
             b.layer.transform = b.transform
         }
         feedbackBase.removeAll(keepingCapacity: true)
+        for id in substituted {
+            guard let e = entries[id] else { continue }
+            factory.update(e.layer, for: e.object, viewport: e.viewport, viewSize: e.viewSize)
+        }
+        substituted.removeAll(keepingCapacity: true)
     }
 
     private func applyFeedback() {
@@ -62,11 +74,16 @@ final class SceneRenderer {
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
         clearFeedback()
+        for (id, object) in previewObjects {
+            guard let e = entries[id] else { continue }
+            factory.update(e.layer, for: object, viewport: e.viewport, viewSize: e.viewSize)
+            substituted.insert(id)
+        }
         for id in hiddenIDs.union(movingIDs) {
             guard let e = entries[id] else { continue }
             feedbackBase[id] = (e.layer, e.layer.transform)
             if hiddenIDs.contains(id) { e.layer.isHidden = true }
-            if movingIDs.contains(id) {
+            if movingIDs.contains(id), previewObjects[id] == nil {
                 e.layer.transform = CATransform3DConcat(e.layer.transform,
                                                         CATransform3DMakeTranslation(moveOffset.x, moveOffset.y, 0))
             }

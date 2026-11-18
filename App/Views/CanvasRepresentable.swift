@@ -10,6 +10,7 @@ final class CanvasHandle {
 /// Hosts `CanvasView`; pushes SwiftUI tool state into it on every update.
 struct CanvasRepresentable: UIViewRepresentable {
     let model: DocumentModel
+    let selection: SelectionState
     var toolState: ToolState
     var showsGrid: Bool
     var snapsToGrid: Bool
@@ -17,7 +18,7 @@ struct CanvasRepresentable: UIViewRepresentable {
     var onPencilDoubleTap: () -> Void
 
     func makeUIView(context: Context) -> CanvasView {
-        let view = CanvasView(model: model)
+        let view = CanvasView(model: model, selection: selection)
         view.onPencilDoubleTap = onPencilDoubleTap
         handle.view = view // plain reference, not SwiftUI state: no mutation during a view update
         return view

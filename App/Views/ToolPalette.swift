@@ -4,7 +4,13 @@ import SketchCore
 import InkEngine
 import CanvasUI
 
-struct ToolPalette: View {
+private let paletteSwatches: [RGBAColor] = [
+    RGBAColor(r: 0, g: 0, b: 0), RGBAColor(r: 0.3, g: 0.3, b: 0.3), RGBAColor(r: 0.9, g: 0.15, b: 0.15),
+    RGBAColor(r: 0.1, g: 0.35, b: 0.9), RGBAColor(r: 0.1, g: 0.65, b: 0.25), RGBAColor(r: 1, g: 0.55, b: 0.05),
+]
+
+/// `accessory` is shown after the tools (selection-dependent buttons such as the part inspector).
+struct ToolPalette<Accessory: View>: View {
     @Binding var toolState: ToolState
     @Binding var showsGrid: Bool
     @Binding var snapsToGrid: Bool
@@ -14,13 +20,10 @@ struct ToolPalette: View {
     let redo: () -> Void
     let insertImage: (Data) -> Void
     let insertStress: () -> Void
+    let openParts: () -> Void
+    let accessory: Accessory
 
     @State private var photo: PhotosPickerItem?
-
-    private static let swatches: [RGBAColor] = [
-        RGBAColor(r: 0, g: 0, b: 0), RGBAColor(r: 0.3, g: 0.3, b: 0.3), RGBAColor(r: 0.9, g: 0.15, b: 0.15),
-        RGBAColor(r: 0.1, g: 0.35, b: 0.9), RGBAColor(r: 0.1, g: 0.65, b: 0.25), RGBAColor(r: 1, g: 0.55, b: 0.05),
-    ]
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -35,8 +38,11 @@ struct ToolPalette: View {
                 toolButton("textformat", .text, label: "Text")
                 PhotosPicker(selection: $photo, matching: .images) { Image(systemName: "photo") }
                     .accessibilityLabel("Image")
+                Button(action: openParts) { Image(systemName: "cpu").padding(6) }
+                    .accessibilityLabel("Parts")
+                accessory
                 divider
-                ForEach(Self.swatches, id: \.self) { swatch in
+                ForEach(paletteSwatches, id: \.self) { swatch in
                     Button { toolState.color = swatch } label: {
                         Circle().fill(Color(swatch)).frame(width: 24, height: 24)
                             .overlay(Circle().stroke(toolState.color == swatch ? Color.accentColor : .secondary.opacity(0.4),

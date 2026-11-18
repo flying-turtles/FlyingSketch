@@ -21,7 +21,7 @@ let package = Package(
         .target(name: "InkEngine", dependencies: ["SketchCore"]),
         .target(
             name: "CanvasUI",
-            dependencies: ["InkEngine", "SketchCore", .product(name: "SwiftDraw", package: "SwiftDraw")],
+            dependencies: ["InkEngine", "SketchCore", "PartsKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "SketchCoreTests", dependencies: ["SketchCore"]),
@@ -32,7 +32,7 @@ let package = Package(
             resources: [.copy("Fixtures")]
         ),
         .testTarget(name: "InkEngineTests", dependencies: ["InkEngine"]),
-        .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI"]),
+        .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI", "PartsKit"]),
     ],
     swiftLanguageModes: [.v6]
 )

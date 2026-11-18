@@ -3,13 +3,15 @@ import SketchCore
 
 /// Collects a freehand polygon (world mm) and resolves it to the objects it encloses.
 final class LassoController {
+    private let model: DocumentModel
     /// Objects whose bounds intersect the rect. Defaults to a document scan; the canvas supplies the spatial index.
     private let candidates: (Rect) -> [SceneObject]
     private(set) var points: [Vec2] = []
 
     init(model: DocumentModel, candidates: ((Rect) -> [SceneObject])? = nil) {
+        self.model = model
         self.candidates = candidates ?? { [unowned model] rect in
-            model.document.objects.filter { bounds(of: $0).intersects(rect) }
+            model.document.objects.filter { bounds(of: $0, in: model.document).intersects(rect) }
         }
     }
 
@@ -23,7 +25,8 @@ final class LassoController {
     func end() -> Set<ObjectID> {
         defer { points = [] }
         guard let box = Rect.bounding(points) else { return [] }
-        return Set(candidates(box).filter { lassoContains(points, object: $0) }.map(\.id))
+        let doc = model.document
+        return Set(candidates(box).filter { lassoContains(points, object: $0, in: doc) }.map(\.id))
     }
 
     func cancel() { points = [] }

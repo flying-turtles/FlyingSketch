@@ -3,8 +3,11 @@ import Observation
 import SketchCore
 
 // CanvasView has its own `bounds`/`hitTest` members, which shadow the SketchCore functions inside the class.
-private func worldBounds(_ o: SceneObject) -> Rect { bounds(of: o) }
-private func objectHit(_ o: SceneObject, _ p: Vec2, _ tol: Double) -> Bool { hitTest(o, point: p, tolerance: tol) }
+// Doc-aware: parts use their definitions (body + legs), not the 10 mm fallback square.
+private func worldBounds(_ o: SceneObject, _ doc: SketchDocument) -> Rect { bounds(of: o, in: doc) }
+private func objectHit(_ o: SceneObject, _ p: Vec2, _ tol: Double, _ doc: SketchDocument) -> Bool {
+    hitTest(o, point: p, tolerance: tol, in: doc)
+}
 
 /// Selection, move and clipboard actions plus the edit menu.
 extension CanvasView {
@@ -53,7 +56,8 @@ extension CanvasView {
     }
 
     var selectionWorldBounds: Rect? {
-        selectedObjects.map { worldBounds($0) }.reduce(nil) { acc, r in acc.map { $0.union(r) } ?? r }
+        let doc = model.document
+        return selectedObjects.map { worldBounds($0, doc) }.reduce(nil) { acc, r in acc.map { $0.union(r) } ?? r }
     }
 
     /// Selection bounds in view space (follows an in-flight move preview).
@@ -75,7 +79,8 @@ extension CanvasView {
         let w = worldPoint(viewPoint)
         let tol = Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
         let box = Rect(origin: w - Vec2(x: tol, y: tol), size: Vec2(x: 2 * tol, y: 2 * tol))
-        return renderer.objects(in: box).last { objectHit($0, w, tol) }
+        let doc = model.document
+        return renderer.objects(in: box).last { objectHit($0, w, tol, doc) }
     }
 
     func tap(at viewPoint: CGPoint) {
@@ -109,9 +114,18 @@ extension CanvasView {
         if !moveEngaged {
             guard delta.length * scale > Self.hitSlop / 2 else { return }
             moveEngaged = true
+            moveSet = movingSet()
         }
         moveDelta = delta
-        renderer.setMovePreview(ids: selection.ids, offset: CGPoint(x: delta.x * scale, y: delta.y * scale))
+        // Parts and wires re-render from moved geometry (carried parts, attached wire ends); the rest translate.
+        let replaced = movedObjects(moveSet, by: delta).filter { o in
+            switch o {
+            case .part, .wire: true
+            default: false
+            }
+        }
+        renderer.setMovePreview(ids: selection.ids, offset: CGPoint(x: delta.x * scale, y: delta.y * scale),
+                                replacing: replaced)
         updateSelectionOverlay()
     }
 
@@ -119,6 +133,7 @@ extension CanvasView {
         let delta = moveDelta
         let engaged = moveEngaged
         let start = moveStart
+        let moving = moveSet
         resetMove()
         guard engaged, delta.length > 0 else {
             // Unengaged = a tap: re-target the selection unless it landed on an already selected object.
@@ -132,7 +147,9 @@ extension CanvasView {
             }
             return
         }
-        model.perform(.replace(selectedObjects.map { $0.translated(by: delta) }), actionName: "Move")
+        // Drop: snap the moved parts' males into nearby females of parts left in place, in the same edit.
+        let snapped = delta + plugSnap(moving, movedBy: delta)
+        model.perform(.replace(movedObjects(moving, by: snapped)), actionName: "Move")
         updateSelectionOverlay()
     }
 
@@ -140,6 +157,7 @@ extension CanvasView {
 
     private func resetMove() {
         moveStart = nil
+        moveSet = []
         moveDelta = .zero
         moveEngaged = false
         renderer.setMovePreview(ids: [], offset: .zero)
@@ -151,12 +169,15 @@ extension CanvasView {
     public func deleteSelection() {
         let objects = selectedObjects
         guard !objects.isEmpty else { return }
-        model.perform(.remove(Set(objects.map(\.id))), actionName: "Delete")
+        let ids = Set(objects.map(\.id))
+        // Wires attached to deleted parts stay, detached (attachment cleared, position kept), in the same edit.
+        let detached = removeParts(ids, in: model.document).detachedWires.filter { !ids.contains($0.id) }
+        model.perform((detached.isEmpty ? [] : [.replace(detached)]) + [.remove(ids)], actionName: "Delete")
         selection.ids = []
     }
 
     public func duplicateSelection() {
-        let copies = selectedObjects.map { $0.translated(by: Self.duplicateOffset).withID(.new()) }
+        let copies = cloned(selectedObjects, by: Self.duplicateOffset, into: model.document)
         guard !copies.isEmpty else { return }
         model.perform(.insert(copies, at: nil), actionName: "Duplicate")
         selection.ids = Set(copies.map(\.id))
@@ -165,20 +186,32 @@ extension CanvasView {
     public func copySelection() {
         let objects = selectedObjects
         guard !objects.isEmpty else { return }
+        let doc = model.document
         var assets: [String: Data] = [:]
-        for case .image(let i) in objects {
-            if let data = model.document.assets[i.assetName] { assets[i.assetName] = data }
+        var definitions: [String: PartDefinition] = [:]
+        for o in objects {
+            switch o {
+            case .image(let i):
+                if let data = doc.assets[i.assetName] { assets[i.assetName] = data }
+            case .part(let p):
+                guard let def = doc.parts[p.definitionKey] else { continue }
+                definitions[def.key] = def
+                if let data = doc.assets[def.graphicAsset] { assets[def.graphicAsset] = data }
+            default:
+                break
+            }
         }
-        Clipboard.write(objects, assets: assets)
+        Clipboard.write(objects, assets: assets, definitions: definitions)
     }
 
     public func paste() {
         guard let clip = Clipboard.read(), !clip.objects.isEmpty else { return }
-        let prepared = Clipboard.prepare(clip.objects, assets: clip.assets, for: model.document,
-                                         centeredAt: viewport.center)
+        let prepared = Clipboard.prepare(clip.objects, assets: clip.assets, definitions: clip.definitions,
+                                         for: model.document, centeredAt: viewport.center)
         guard !prepared.objects.isEmpty else { return }
         model.addAssets(prepared.assets)
-        model.perform(.insert(prepared.objects, at: nil), actionName: "Paste")
+        let defs: [SceneEdit] = prepared.definitions.isEmpty ? [] : [.setDefinitions(prepared.definitions.mapValues { $0 })]
+        model.perform(defs + [.insert(prepared.objects, at: nil)], actionName: "Paste")
         selection.ids = Set(prepared.objects.map(\.id))
     }
 
@@ -213,6 +246,14 @@ extension CanvasView: UIEditMenuInteractionDelegate {
             })
             items.append(UIAction(title: "Copy", image: UIImage(systemName: "doc.on.doc")) { [weak self] _ in
                 self?.copySelection()
+            })
+        }
+        if selectionContainsParts {
+            items.append(UIAction(title: "Rotate ↻", image: UIImage(systemName: "rotate.right")) { [weak self] _ in
+                self?.rotateSelectedParts(clockwise: true)
+            })
+            items.append(UIAction(title: "Rotate ↺", image: UIImage(systemName: "rotate.left")) { [weak self] _ in
+                self?.rotateSelectedParts(clockwise: false)
             })
         }
         if Clipboard.hasContent {

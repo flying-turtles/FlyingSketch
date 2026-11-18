@@ -31,6 +31,8 @@ targets:
         product: InkEngine
       - package: FlyingSketchKit
         product: CanvasUI
+      - package: FlyingSketchKit
+        product: PartsKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flyingturtle.flyingsketch

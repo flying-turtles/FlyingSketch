@@ -431,11 +431,11 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         }
     }
 
-    private struct RasterResult: @unchecked Sendable { var image: CGImage? }
+    struct RasterResult: @unchecked Sendable { var image: CGImage? }
 
     /// SVG renders with a pinned standard-range 8-bit format (4 B/px; SwiftDraw's own `rasterize` would use the
     /// screen's preferred, possibly extended-range, format). PNGs are downsampled so neither edge exceeds the target.
-    nonisolated private static func rasterize(data: Data, isSVG: Bool, width: Int, height: Int) -> RasterResult {
+    nonisolated static func rasterize(data: Data, isSVG: Bool, width: Int, height: Int) -> RasterResult {
         if isSVG {
             guard let svg = SVG(data: data) else { return RasterResult(image: nil) }
             let format = UIGraphicsImageRendererFormat()
