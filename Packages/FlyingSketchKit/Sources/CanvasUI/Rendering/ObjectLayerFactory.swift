@@ -2,6 +2,7 @@ import UIKit
 import SketchCore
 import InkEngine
 import SwiftDraw
+import ImageIO
 
 /// Renderer seam: builds/updates one layer per scene object, geometry in view coordinates.
 protocol ObjectLayerFactory {
@@ -24,6 +25,10 @@ nonisolated final class PartLayer: CALayer {
     var placeholderText: CATextLayer?
     /// Raster this layer currently wants; async results for other keys are ignored.
     var desiredKey: PartRasterCache.Key?
+    /// Asset whose image `body.contents` currently shows (cleared when the definition changes).
+    var displayedAsset: String?
+    /// Last inputs, so a failed async raster can switch this layer to the placeholder.
+    var lastInput: (instance: PartInstance, viewport: Viewport, viewSize: Vec2)?
     /// Pixel size of the wanted raster (debug/test).
     var rasterPixelSize: CGSize = .zero
     var isPlaceholder: Bool { placeholderShape != nil }
@@ -51,7 +56,9 @@ final class CALayerObjectFactory: ObjectLayerFactory {
     /// Number of rasterizations started (debug/test).
     private(set) var rasterJobCount = 0
     private var pending: [PartRasterCache.Key: [WeakPartLayer]] = [:]
-    private var rasterTasks: [Task<Void, Never>] = []
+    private var rasterTasks: [PartRasterCache.Key: Task<Void, Never>] = [:]
+    /// Keys whose rasterization failed; not retried (no re-parse on every settle).
+    private var failedRasters: Set<PartRasterCache.Key> = []
 
     private struct WeakPartLayer { weak var layer: PartLayer? }
 
@@ -67,8 +74,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
     /// Waits for every started rasterization and its main-actor delivery (tests).
     func waitForRasters() async {
         while !rasterTasks.isEmpty {
-            let tasks = rasterTasks
-            rasterTasks.removeAll()
+            let tasks = Array(rasterTasks.values)
             for t in tasks { await t.value }
         }
     }
@@ -172,7 +178,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
     }
 
     /// Max backing-store edge (px) for one text layer; extreme zoom blurs instead of exhausting memory.
-    static let maxBackingEdge: CGFloat = 4096
+    nonisolated static let maxBackingEdge: CGFloat = 4096
 
     static func cappedContentsScale(width: CGFloat, height: CGFloat, screenScale: CGFloat) -> CGFloat {
         guard width > 0, height > 0 else { return screenScale }
@@ -250,19 +256,29 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
+        layer.lastInput = (p, vp, size)
         guard let def = parts[p.definitionKey] else {
+            clearLegs(layer)
             showPlaceholder(layer, p, vp, size)
             return
         }
-        removePlaceholder(layer)
         let s = mm(vp)
-        layer.body.isHidden = false
         layer.body.bounds = CGRect(x: 0, y: 0, width: def.size.x * s, height: def.size.y * s)
         layer.body.position = pt(p.center, vp, size)
         let turns = ((p.quarterTurns % 4) + 4) % 4
         layer.body.transform = CATransform3DMakeRotation(CGFloat(turns) * .pi / 2, 0, 0, 1)
-        requestRaster(for: layer, def: def, vp: vp)
         updateLegs(layer, p, def, vp, size)
+        if requestRaster(for: layer, def: def, vp: vp) {
+            removePlaceholder(layer)
+            layer.body.isHidden = false
+        } else {
+            showPlaceholder(layer, p, vp, size)
+        }
+    }
+
+    private func clearLegs(_ layer: PartLayer) {
+        for l in layer.legLayers { l.removeFromSuperlayer() }
+        layer.legLayers.removeAll()
     }
 
     private func updateLegs(_ layer: PartLayer, _ p: PartInstance, _ def: PartDefinition, _ vp: Viewport, _ size: Vec2) {
@@ -275,6 +291,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         }
         for (l, (c, seg)) in zip(layer.legLayers, legs) {
             guard let spec = c.leg else { continue }
+            l.contentsScale = screenScale
             let path = CGMutablePath()
             path.move(to: pt(seg.origin, vp, size))
             path.addLine(to: pt(seg.end, vp, size))
@@ -298,8 +315,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         layer.body.isHidden = true
         layer.body.contents = nil
         layer.desiredKey = nil
-        for l in layer.legLayers { l.removeFromSuperlayer() }
-        layer.legLayers.removeAll()
+        layer.displayedAsset = nil
         let shape: CAShapeLayer, text: CATextLayer
         if let s = layer.placeholderShape, let t = layer.placeholderText {
             shape = s
@@ -307,6 +323,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         } else {
             shape = CAShapeLayer()
             text = CATextLayer()
+            shape.contentsScale = screenScale
             layer.addSublayer(shape)
             layer.addSublayer(text)
             layer.placeholderShape = shape
@@ -354,47 +371,61 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         return bucket
     }
 
-    private func requestRaster(for layer: PartLayer, def: PartDefinition, vp: Viewport) {
+    /// Returns false when the graphic cannot be shown (missing asset or failed decode): caller shows the placeholder.
+    private func requestRaster(for layer: PartLayer, def: PartDefinition, vp: Viewport) -> Bool {
         let isSVG = def.graphicKind == .svg
-        // PNGs decode once at native size; only SVG has scale buckets.
-        let bucket = isSVG ? rasterBucket(for: def, vp: vp) : 0
+        let bucket = rasterBucket(for: def, vp: vp)
         let key = PartRasterCache.Key(asset: def.graphicAsset, bucket: bucket)
         let scale = pow(2.0, Double(bucket))
-        let width = isSVG ? max(1, Int(ceil(def.size.x * scale))) : 0
-        let height = isSVG ? max(1, Int(ceil(def.size.y * scale))) : 0
+        let width = max(1, Int(ceil(def.size.x * scale)))
+        let height = max(1, Int(ceil(def.size.y * scale)))
         layer.desiredKey = key
         layer.rasterPixelSize = CGSize(width: width, height: height)
+        if layer.displayedAsset != def.graphicAsset {
+            layer.body.contents = nil
+            layer.displayedAsset = def.graphicAsset
+        }
         if let image = rasterCache.image(for: key) {
             layer.body.contents = image
-            return
+            return true
         }
+        if failedRasters.contains(key) { return false }
         // Blurry stand-in until the right bucket is ready.
         if layer.body.contents == nil, let stand = rasterCache.anyImage(forAsset: def.graphicAsset) {
             layer.body.contents = stand
         }
         if pending[key] != nil {
             pending[key]?.append(WeakPartLayer(layer: layer))
-            return
+            return true
         }
-        guard let data = assets[def.graphicAsset] else { return }
+        guard let data = assets[def.graphicAsset] else { return false }
         pending[key] = [WeakPartLayer(layer: layer)]
         rasterJobCount += 1
-        let task = Task { [weak self] in
+        rasterTasks[key] = Task { [weak self] in
             let result = await Task.detached(priority: .userInitiated) {
                 Self.rasterize(data: data, isSVG: isSVG, width: width, height: height)
             }.value
             self?.finishRaster(key, result.image)
         }
-        rasterTasks.append(task)
+        return true
     }
 
     private func finishRaster(_ key: PartRasterCache.Key, _ image: CGImage?) {
+        rasterTasks[key] = nil
         let waiting = pending.removeValue(forKey: key) ?? []
-        guard let image else { return }
-        rasterCache.insert(image, for: key)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
+        guard let image else {
+            failedRasters.insert(key)
+            for w in waiting {
+                if let l = w.layer, l.desiredKey == key, let i = l.lastInput {
+                    updatePart(l, i.instance, i.viewport, i.viewSize)
+                }
+            }
+            return
+        }
+        rasterCache.insert(image, for: key)
         for w in waiting {
             if let l = w.layer, l.desiredKey == key { l.body.contents = image }
         }
@@ -402,12 +433,28 @@ final class CALayerObjectFactory: ObjectLayerFactory {
 
     private struct RasterResult: @unchecked Sendable { var image: CGImage? }
 
+    /// SVG renders with a pinned standard-range 8-bit format (4 B/px; SwiftDraw's own `rasterize` would use the
+    /// screen's preferred, possibly extended-range, format). PNGs are downsampled so neither edge exceeds the target.
     nonisolated private static func rasterize(data: Data, isSVG: Bool, width: Int, height: Int) -> RasterResult {
         if isSVG {
             guard let svg = SVG(data: data) else { return RasterResult(image: nil) }
-            let image = svg.rasterize(size: CGSize(width: width, height: height), scale: 1)
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            format.opaque = false
+            format.preferredRange = .standard
+            let rect = CGRect(x: 0, y: 0, width: width, height: height)
+            let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { $0.draw(svg, in: rect) }
             return RasterResult(image: image.cgImage)
         }
-        return RasterResult(image: UIImage(data: data)?.cgImage)
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let full = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return RasterResult(image: nil) }
+        let limit = min(max(width, height), Int(maxBackingEdge))
+        guard max(full.width, full.height) > limit else { return RasterResult(image: full) }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: limit,
+        ]
+        return RasterResult(image: CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) ?? full)
     }
 }

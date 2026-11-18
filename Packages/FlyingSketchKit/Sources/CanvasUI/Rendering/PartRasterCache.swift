@@ -53,7 +53,7 @@ final class PartRasterCache {
     func insert(_ image: CGImage, for key: Key) {
         if let old = entries[key] { totalBytes -= old.bytes }
         clock += 1
-        let bytes = image.width * image.height * 4
+        let bytes = image.bytesPerRow * image.height
         entries[key] = Entry(image: image, bytes: bytes, tick: clock)
         totalBytes += bytes
         while totalBytes > byteBudget, entries.count > 1,

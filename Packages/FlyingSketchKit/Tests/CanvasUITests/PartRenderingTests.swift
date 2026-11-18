@@ -149,10 +149,11 @@ private func doc(_ def: PartDefinition, turns: Int = 0) -> (SketchDocument, Part
                             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
         return ctx.makeImage()!
     }
-    let cache = PartRasterCache(byteBudget: 3 * 100 * 100 * 4)
+    let unit = image(100).bytesPerRow * 100
+    let cache = PartRasterCache(byteBudget: 3 * unit)
     let k = (0..<4).map { PartRasterCache.Key(asset: "a\($0)", bucket: 0) }
     for i in 0..<3 { cache.insert(image(100), for: k[i]) }
-    #expect(cache.totalBytes == 3 * 40_000)
+    #expect(cache.totalBytes == 3 * unit)
     _ = cache.image(for: k[0]) // touch: k1 becomes oldest
     cache.insert(image(100), for: k[3])
     #expect(!cache.contains(k[1]))
@@ -181,4 +182,118 @@ private func doc(_ def: PartDefinition, turns: Int = 0) -> (SketchDocument, Part
     r.update(document: d, viewport: Viewport(center: .zero, zoom: 4), viewSize: viewSize, settled: true)
     await factory.waitForRasters()
     #expect(factory.rasterJobCount == 2)
+}
+
+// MARK: Fix round 1
+
+@Test @MainActor func legAndPlaceholderLayersUseScreenScale() {
+    let def = definition(20, 10, legs: true)
+    let (d, _) = doc(def)
+    let factory = CALayerObjectFactory()
+    factory.screenScale = 3
+    let (_, root, _) = render(d, zoom: 1, factory: factory)
+    let part = objectsLayer(root).sublayers!.first as! PartLayer
+    #expect(!part.legLayers.isEmpty && part.legLayers.allSatisfy { $0.contentsScale == 3 })
+
+    let missing = PartInstance(definitionKey: "nope@1", center: .zero, label: "U")
+    let (_, root2, _) = render(SketchDocument(objects: [.part(missing)]), zoom: 1, factory: factory)
+    let ph = objectsLayer(root2).sublayers!.first as! PartLayer
+    #expect(ph.placeholderShape?.contentsScale == 3)
+}
+
+@Test @MainActor func cacheCountsRealBytesPerRow() {
+    let ctx = CGContext(data: nil, width: 50, height: 50, bitsPerComponent: 16, bytesPerRow: 0,
+                        space: CGColorSpaceCreateDeviceRGB(),
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    let image = ctx.makeImage()!
+    #expect(image.bytesPerRow >= 50 * 8)
+    let cache = PartRasterCache()
+    cache.insert(image, for: .init(asset: "x", bucket: 0))
+    #expect(cache.totalBytes == image.bytesPerRow * 50)
+}
+
+@Test @MainActor func svgRasterIsStandardRange8Bit() async {
+    let (d, _) = doc(definition(20, 10))
+    let (_, root, factory) = render(d, zoom: 1)
+    await factory.waitForRasters()
+    let part = objectsLayer(root).sublayers!.first as! PartLayer
+    let image = part.body.contents as! CGImage
+    #expect(image.bitsPerPixel == 32 && image.bitsPerComponent == 8)
+}
+
+@Test @MainActor func failedRasterShowsPlaceholderAndIsNotRetried() async {
+    let def = definition(20, 10)
+    var (d, _) = doc(def)
+    d.assets[def.graphicAsset] = Data("not svg".utf8)
+    let factory = CALayerObjectFactory()
+    let (r, root, _) = render(d, zoom: 1, factory: factory)
+    await factory.waitForRasters()
+    let part = objectsLayer(root).sublayers!.first as! PartLayer
+    #expect(part.isPlaceholder)
+    r.update(document: d, viewport: Viewport(center: .zero, zoom: 1.01), viewSize: viewSize, settled: true)
+    await factory.waitForRasters()
+    #expect(factory.rasterJobCount == 1)
+    #expect(part.isPlaceholder)
+}
+
+@Test @MainActor func missingAssetShowsPlaceholder() {
+    let def = definition(20, 10)
+    var (d, _) = doc(def)
+    d.assets = [:]
+    let (_, root, _) = render(d, zoom: 1)
+    #expect((objectsLayer(root).sublayers!.first as! PartLayer).isPlaceholder)
+}
+
+@Test @MainActor func definitionChangeClearsOldImage() async {
+    let a = definition(20, 10, asset: "a.svg")
+    let (d, inst) = doc(a)
+    let factory = CALayerObjectFactory()
+    let (r, root, _) = render(d, zoom: 1, factory: factory)
+    await factory.waitForRasters()
+    let part = objectsLayer(root).sublayers!.first as! PartLayer
+    #expect(part.body.contents != nil)
+    let b = definition(20, 10, asset: "b.svg")
+    var inst2 = inst
+    inst2.definitionKey = b.key
+    var d2 = d
+    d2.objects = [.part(inst2)]
+    d2.parts = [b.key: b]
+    d2.assets = ["b.svg": svgData(20, 10)]
+    r.update(document: d2, viewport: Viewport(center: .zero, zoom: 1), viewSize: viewSize, settled: true)
+    let part2 = objectsLayer(root).sublayers!.first as! PartLayer
+    #expect(part2 === part && part.body.contents == nil)
+    await factory.waitForRasters()
+    #expect(part.body.contents != nil)
+}
+
+@Test @MainActor func pngIsDownsampledToCap() async {
+    let f = UIGraphicsImageRendererFormat()
+    f.scale = 1
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: 6000, height: 20), format: f)
+    let png = renderer.image { UIColor.blue.setFill(); $0.fill(CGRect(x: 0, y: 0, width: 6000, height: 20)) }.pngData()!
+    var def = definition(400, 1.3, asset: "p.png")
+    def.graphicKind = .png
+    let inst = PartInstance(definitionKey: def.key, center: .zero)
+    let d = SketchDocument(objects: [.part(inst)], assets: ["p.png": png], parts: [def.key: def])
+    let (_, root, factory) = render(d, zoom: 32)
+    await factory.waitForRasters()
+    let part = objectsLayer(root).sublayers!.first as! PartLayer
+    let image = part.body.contents as! CGImage
+    #expect(image.width <= 4096 && image.width < 6000)
+}
+
+@Test @MainActor func quarterTurnRotatesClockwise() {
+    let def = definition(20, 10, legs: true)
+    let (d, inst) = doc(def, turns: 1)
+    let vp = Viewport(center: .zero, zoom: 1)
+    let (_, root, _) = render(d, zoom: 1)
+    let part = objectsLayer(root).sublayers!.first as! PartLayer
+    // Body's right-middle edge must land where the model says (clockwise: right -> down).
+    let world = localToWorld(Vec2(x: 20, y: 5), instance: inst, definition: def)
+    let v = vp.worldToView(world, viewSize: viewSize)
+    let local = part.body.convert(CGPoint(x: 20 * ppm, y: 5 * ppm), to: part)
+    #expect(abs(local.x - v.x) < 0.5 && abs(local.y - v.y) < 0.5)
+    #expect(v.y > viewSize.y / 2 + 9 * ppm)
+    // Leg default end (local (-5, 5), left of body) lands above centre after a clockwise turn.
+    #expect(part.legLayers[0].frame.minY < viewSize.y / 2 - 9 * ppm)
 }
