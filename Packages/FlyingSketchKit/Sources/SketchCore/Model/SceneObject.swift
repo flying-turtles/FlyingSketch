@@ -3,6 +3,8 @@ public enum SceneObject: Hashable, Codable, Sendable {
     case shape(ShapeObject)
     case text(TextObject)
     case image(ImageObject)
+    case part(PartInstance)
+    case wire(Wire)
 
     public var id: ObjectID {
         switch self {
@@ -10,6 +12,8 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case .shape(let o): o.id
         case .text(let o): o.id
         case .image(let o): o.id
+        case .part(let o): o.id
+        case .wire(let o): o.id
         }
     }
 
@@ -19,6 +23,8 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case .shape(var o): o.id = newID; return .shape(o)
         case .text(var o): o.id = newID; return .text(o)
         case .image(var o): o.id = newID; return .image(o)
+        case .part(var o): o.id = newID; return .part(o)
+        case .wire(var o): o.id = newID; return .wire(o)
         }
     }
 
@@ -37,6 +43,15 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case .image(var o):
             o.frame.origin = o.frame.origin + d
             return .image(o)
+        case .part(var o):
+            o.center = o.center + d
+            o.legEnds = o.legEnds.mapValues { $0 + d }
+            return .part(o)
+        case .wire(var o):
+            o.start.position = o.start.position + d
+            o.end.position = o.end.position + d
+            o.bends = o.bends.map { $0 + d }
+            return .wire(o)
         }
     }
 
@@ -50,6 +65,8 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case "shape": self = .shape(try ShapeObject(from: decoder))
         case "text": self = .text(try TextObject(from: decoder))
         case "image": self = .image(try ImageObject(from: decoder))
+        case "part": self = .part(try PartInstance(from: decoder))
+        case "wire": self = .wire(try Wire(from: decoder))
         default: throw DocumentError.corrupt("unknown object type '\(type)'")
         }
     }
@@ -61,6 +78,8 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case .shape(let o): try c.encode("shape", forKey: .type); try o.encode(to: encoder)
         case .text(let o): try c.encode("text", forKey: .type); try o.encode(to: encoder)
         case .image(let o): try c.encode("image", forKey: .type); try o.encode(to: encoder)
+        case .part(let o): try c.encode("part", forKey: .type); try o.encode(to: encoder)
+        case .wire(let o): try c.encode("wire", forKey: .type); try o.encode(to: encoder)
         }
     }
 }

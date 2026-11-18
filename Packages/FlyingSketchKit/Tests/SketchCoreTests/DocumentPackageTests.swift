@@ -29,7 +29,7 @@ import Testing
 }
 
 @Test func rejectsUnknownObjectType() {
-    let json = #"{"formatVersion":1,"objects":[{"type":"wire"}],"viewport":{"center":{"x":0,"y":0},"zoom":1}}"#
+    let json = #"{"formatVersion":1,"objects":[{"type":"bogus"}],"viewport":{"center":{"x":0,"y":0},"zoom":1}}"#
     let w = FileWrapper(directoryWithFileWrappers: ["document.json": FileWrapper(regularFileWithContents: Data(json.utf8))])
     #expect(throws: DocumentError.self) { try DocumentPackage.read(w) }
 }

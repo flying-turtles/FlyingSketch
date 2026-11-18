@@ -34,6 +34,20 @@ extension SketchDocument {
         return SketchDocument(objects: objects)
     }
 
+    /// Resistor part + two-leg definition, a mini breadboard definition and a wire between them.
+    public static func fixtureWithPartsAndWire() -> SketchDocument {
+        let resistor = PartDefinition.fixtureResistor()
+        let board = PartDefinition.fixtureBreadboardMini()
+        let r = PartInstance(definitionKey: resistor.key, center: Vec2(x: 0, y: 0), label: "R1",
+                             legEnds: ["a": Vec2(x: -7, y: 3)])
+        let b = PartInstance(definitionKey: board.key, center: Vec2(x: 40, y: 0), quarterTurns: 1)
+        let wire = Wire(start: WireEnd(position: Vec2(x: 5, y: 0), attachment: .connector(part: r.id, connector: "b")),
+                        end: WireEnd(position: Vec2(x: 30, y: 5)), bends: [Vec2(x: 5, y: 5)])
+        return SketchDocument(objects: [.part(r), .part(b), .wire(wire)],
+                              assets: [resistor.graphicAsset: Data([1]), board.graphicAsset: Data([2])],
+                              parts: [resistor.key: resistor, board.key: board])
+    }
+
     private static func fixtureStroke(origin: Vec2, tool: InkTool) -> InkStroke {
         var points: [InkPoint] = []
         for i in 0..<5 {
@@ -44,6 +58,56 @@ extension SketchDocument {
                                    time: t * 0.016))
         }
         return InkStroke(points: points, tool: tool, color: .black, baseWidth: 0.5)
+    }
+}
+
+extension PartDefinition {
+    private static let legColor = RGBAColor(r: 0.7, g: 0.7, b: 0.7)
+
+    /// 2 male legged connectors 10.16 mm apart.
+    public static func fixtureResistor() -> PartDefinition {
+        func conn(_ id: String, x: Double, end: Vec2) -> ConnectorDef {
+            let pos = Vec2(x: x, y: 1.25)
+            return ConnectorDef(id: id, name: id, kind: .male, position: pos,
+                                leg: LegSpec(origin: pos, defaultEnd: end, color: legColor, width: 0.6))
+        }
+        return PartDefinition(libraryID: "fixture-resistor", versionHash: "v1", title: "Resistor", family: "resistor",
+                              labelPrefix: "R", size: Vec2(x: 10.16, y: 2.5), graphicAsset: "resistor.svg",
+                              graphicKind: .svg,
+                              connectors: [conn("a", x: 0, end: Vec2(x: -3, y: 1.25)),
+                                           conn("b", x: 10.16, end: Vec2(x: 13.16, y: 1.25))])
+    }
+
+    /// Female 5x4 grid at 2.54 mm; one bus per column of 5 (ids `c<col>r<row>`).
+    public static func fixtureBreadboardMini() -> PartDefinition {
+        let pitch = 2.54
+        var connectors: [ConnectorDef] = []
+        var buses: [[String]] = []
+        for col in 0..<4 {
+            var bus: [String] = []
+            for row in 0..<5 {
+                let id = "c\(col)r\(row)"
+                connectors.append(ConnectorDef(id: id, name: id, kind: .female,
+                                               position: Vec2(x: 2.54 + Double(col) * pitch, y: 2.54 + Double(row) * pitch)))
+                bus.append(id)
+            }
+            buses.append(bus)
+        }
+        return PartDefinition(libraryID: "fixture-breadboard-mini", versionHash: "v1", title: "Mini Breadboard",
+                              family: "breadboard", labelPrefix: "BB", size: Vec2(x: 12.7, y: 15.24),
+                              graphicAsset: "breadboard.svg", graphicKind: .svg, connectors: connectors, buses: buses)
+    }
+
+    /// 4 male pins in a row: VCC power, GND ground, SDA i2cSDA, SCL i2cSCL.
+    public static func fixtureModule() -> PartDefinition {
+        let pins: [(String, PinRole)] = [("VCC", .power), ("GND", .ground), ("SDA", .i2cSDA), ("SCL", .i2cSCL)]
+        let connectors = pins.enumerated().map { i, pin in
+            ConnectorDef(id: pin.0, name: pin.0, kind: .male, position: Vec2(x: 1.27 + Double(i) * 2.54, y: 1.27),
+                         role: pin.1)
+        }
+        return PartDefinition(libraryID: "fixture-module", versionHash: "v1", title: "I2C Module", family: "module",
+                              labelPrefix: "U", size: Vec2(x: 10.16, y: 12), graphicAsset: "module.png",
+                              graphicKind: .png, connectors: connectors)
     }
 }
 #endif

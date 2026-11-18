@@ -8,6 +8,8 @@ public enum SceneEdit: Sendable {
     /// Inverse of a multi-object `remove`: puts each object back at its original index.
     /// A single `insert(_, at:)` cannot restore non-adjacent removals, hence this fourth case.
     case reinsert([IndexedObject])
+    /// Adds/replaces definitions by key; `nil` removes. Inverse restores previous values (including absence).
+    case setDefinitions([String: PartDefinition?])
 
     public struct IndexedObject: Sendable {
         public var index: Int
@@ -53,6 +55,14 @@ public enum SceneEdit: Sendable {
                 }
             }
             return .replace(previous)
+
+        case .setDefinitions(let changes):
+            var previous: [String: PartDefinition?] = [:]
+            for (key, new) in changes {
+                previous[key] = .some(doc.parts[key])
+                doc.parts[key] = new
+            }
+            return .setDefinitions(previous)
         }
     }
 }

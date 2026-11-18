@@ -29,7 +29,17 @@ private func rotatedFrame(of object: SceneObject) -> (frame: Rect, rotation: Dou
     }
 }
 
+/// Doc-less fallback for a part: a square of this side (mm) centred on `PartInstance.center`.
+private let fallbackPartSize = 10.0
+
+private func fallbackPartRect(_ p: PartInstance) -> Rect {
+    Rect(origin: p.center - Vec2(x: fallbackPartSize / 2, y: fallbackPartSize / 2),
+         size: Vec2(x: fallbackPartSize, y: fallbackPartSize))
+}
+
 /// Axis-aligned world bounds. Ink and shapes include half the line width. Image rotates around its centre.
+/// A part without a document is a 10 mm square at its centre (fallback); a wire spans its polyline plus half width.
+/// Use `bounds(of:in:)` for definition-accurate part bounds.
 public func bounds(of object: SceneObject) -> Rect {
     switch object {
     case .ink(let s):
@@ -40,7 +50,22 @@ public func bounds(of object: SceneObject) -> Rect {
     case .text, .image:
         let (frame, rotation, pivot) = rotatedFrame(of: object)!
         return Rect.bounding(rotatedCorners(frame, by: rotation, around: pivot))!
+    case .part(let p):
+        return fallbackPartRect(p)
+    case .wire(let w):
+        return Rect.bounding(w.polyline)!.insetBy(-w.width / 2)
     }
+}
+
+/// Like `bounds(of:)`, but a part uses its definition: rotated body rect plus leg segments (with half leg width).
+public func bounds(of object: SceneObject, in doc: SketchDocument) -> Rect {
+    guard case .part(let p) = object, let def = doc.parts[p.definitionKey] else { return bounds(of: object) }
+    var r = p.bodyRect(in: def)
+    for c in def.connectors {
+        guard let seg = p.legSegment(for: c, in: def), let leg = c.leg else { continue }
+        r = r.union(Rect.bounding([seg.origin, seg.end])!.insetBy(-leg.width / 2))
+    }
+    return r
 }
 
 private func distance(from p: Vec2, toSegment a: Vec2, _ b: Vec2) -> Double {
@@ -101,7 +126,26 @@ public func hitTest(_ object: SceneObject, point: Vec2, tolerance: Double) -> Bo
         let (frame, rotation, pivot) = rotatedFrame(of: object)!
         let local = pivot + (point - pivot).rotated(by: -rotation)
         return frame.insetBy(-tolerance).contains(local)
+
+    case .part(let p):
+        return fallbackPartRect(p).insetBy(-tolerance).contains(point)
+
+    case .wire(let w):
+        return distance(from: point, toPolyline: w.polyline) <= tolerance + w.width / 2
     }
+}
+
+/// Like `hitTest(_:point:tolerance:)`, but a part uses its definition: rotated body rect or any leg segment.
+public func hitTest(_ object: SceneObject, point: Vec2, tolerance: Double, in doc: SketchDocument) -> Bool {
+    guard case .part(let p) = object, let def = doc.parts[p.definitionKey] else {
+        return hitTest(object, point: point, tolerance: tolerance)
+    }
+    if p.bodyRect(in: def).insetBy(-tolerance).contains(point) { return true }
+    for c in def.connectors {
+        guard let seg = p.legSegment(for: c, in: def), let leg = c.leg else { continue }
+        if distance(from: point, toSegment: seg.origin, seg.end) <= tolerance + leg.width / 2 { return true }
+    }
+    return false
 }
 
 private func polygonContains(_ polygon: [Vec2], _ p: Vec2) -> Bool {
@@ -123,6 +167,13 @@ public func lassoContains(_ polygon: [Vec2], object: SceneObject) -> Bool {
         let inside = s.points.filter { polygonContains(polygon, $0.position) }.count
         return Double(inside) >= Double(s.points.count) / 2
     }
-    let b = bounds(of: object)
-    return polygonContains(polygon, Vec2(x: b.minX + b.size.x / 2, y: b.minY + b.size.y / 2))
+    return polygonContains(polygon, centre(of: bounds(of: object)))
+}
+
+private func centre(of b: Rect) -> Vec2 { Vec2(x: b.minX + b.size.x / 2, y: b.minY + b.size.y / 2) }
+
+/// Like `lassoContains(_:object:)`, but parts use definition-aware bounds.
+public func lassoContains(_ polygon: [Vec2], object: SceneObject, in doc: SketchDocument) -> Bool {
+    guard case .part = object else { return lassoContains(polygon, object: object) }
+    return polygonContains(polygon, centre(of: bounds(of: object, in: doc)))
 }

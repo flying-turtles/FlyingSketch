@@ -11,12 +11,14 @@ public enum DocumentPackage {
         var formatVersion: Int
         var objects: [SceneObject]
         var viewport: Viewport
+        /// Absent in v1 documents.
+        var parts: [String: PartDefinition]?
     }
 
     public static func fileWrapper(for doc: SketchDocument) throws -> FileWrapper {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        let body = Body(formatVersion: doc.formatVersion, objects: doc.objects, viewport: doc.viewport)
+        let body = Body(formatVersion: doc.formatVersion, objects: doc.objects, viewport: doc.viewport, parts: doc.parts)
         let json = try encoder.encode(body)
 
         var assets: [String: FileWrapper] = [:]
@@ -41,7 +43,7 @@ public enum DocumentPackage {
         do {
             // Version first: newer documents may have a different object schema.
             let version = try decoder.decode(VersionProbe.self, from: json).formatVersion
-            if version > 1 { throw DocumentError.unsupportedVersion(version) }
+            if version > 2 { throw DocumentError.unsupportedVersion(version) }
             body = try decoder.decode(Body.self, from: json)
         } catch let e as DocumentError {
             throw e
@@ -49,20 +51,23 @@ public enum DocumentPackage {
             throw DocumentError.corrupt(String(describing: error))
         }
 
-        try validate(body.objects, body.viewport)
+        let parts = body.parts ?? [:]
+        try validate(body.objects, body.viewport, parts)
 
         var assets: [String: Data] = [:]
         for (name, w) in wrapper.fileWrappers?[assetsName]?.fileWrappers ?? [:] {
             if let data = w.regularFileContents { assets[name] = data }
         }
-        return SketchDocument(formatVersion: body.formatVersion, objects: body.objects,
-                              viewport: body.viewport, assets: assets)
+        // Reading upgrades to v2; the next write is always v2.
+        return SketchDocument(formatVersion: 2, objects: body.objects,
+                              viewport: body.viewport, assets: assets, parts: parts)
     }
 
     /// Rejects values that would trap or exhaust memory downstream (index cells, layer sizes).
     private static let maxCoordinate = 1e7
 
-    private static func validate(_ objects: [SceneObject], _ viewport: Viewport) throws {
+    private static func validate(_ objects: [SceneObject], _ viewport: Viewport,
+                                 _ parts: [String: PartDefinition]) throws {
         func coord(_ v: Double) -> Bool { v.isFinite && abs(v) <= maxCoordinate }
         func vec(_ p: Vec2) -> Bool { coord(p.x) && coord(p.y) }
         func size(_ v: Double) -> Bool { v.isFinite && v >= 0 && v <= maxCoordinate }
@@ -74,8 +79,19 @@ public enum DocumentPackage {
             case .text(let t): ok = vec(t.position) && size(t.fontSize) && t.rotation.isFinite
             case .image(let i):
                 ok = vec(i.frame.origin) && size(i.frame.size.x) && size(i.frame.size.y) && i.rotation.isFinite
+            case .part(let p):
+                ok = vec(p.center) && (0...3).contains(p.quarterTurns) && p.legEnds.values.allSatisfy(vec)
+            case .wire(let w):
+                ok = vec(w.start.position) && vec(w.end.position) && w.bends.allSatisfy(vec) && size(w.width)
             }
             if !ok { throw DocumentError.corrupt("object \(o.id) has an out-of-range coordinate or size") }
+        }
+        for (key, d) in parts {
+            let ok = vec(d.size) && d.size.x >= 0 && d.size.y >= 0
+                && d.connectors.allSatisfy { c in
+                    vec(c.position) && (c.leg.map { vec($0.origin) && vec($0.defaultEnd) && size($0.width) } ?? true)
+                }
+            if !ok { throw DocumentError.corrupt("part definition \(key) has an out-of-range coordinate or size") }
         }
         if !vec(viewport.center) { throw DocumentError.corrupt("viewport centre out of range") }
     }

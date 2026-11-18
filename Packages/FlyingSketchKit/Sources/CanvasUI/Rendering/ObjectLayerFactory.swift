@@ -29,7 +29,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         switch object {
         case .ink, .shape: layer = CAShapeLayer()
         case .text: layer = CATextLayer()
-        case .image: layer = CALayer()
+        case .image, .part, .wire: layer = CALayer() // part/wire rendering arrives in Plan 2 Task 9
         }
         layer.contentsScale = screenScale
         update(layer, for: object, viewport: viewport, viewSize: viewSize)
@@ -42,6 +42,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         case .shape(let s): updateShape(layer, s, viewport, viewSize)
         case .text(let t): updateText(layer, t, viewport, viewSize)
         case .image(let i): updateImage(layer, i, viewport, viewSize)
+        case .part, .wire: break
         }
     }
 
