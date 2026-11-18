@@ -18,7 +18,7 @@ public enum DocumentPackage {
     public static func fileWrapper(for doc: SketchDocument) throws -> FileWrapper {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        let body = Body(formatVersion: doc.formatVersion, objects: doc.objects, viewport: doc.viewport, parts: doc.parts)
+        let body = Body(formatVersion: 2, objects: doc.objects, viewport: doc.viewport, parts: doc.parts)
         let json = try encoder.encode(body)
 
         var assets: [String: FileWrapper] = [:]
@@ -44,6 +44,7 @@ public enum DocumentPackage {
             // Version first: newer documents may have a different object schema.
             let version = try decoder.decode(VersionProbe.self, from: json).formatVersion
             if version > 2 { throw DocumentError.unsupportedVersion(version) }
+            if version < 1 { throw DocumentError.corrupt("invalid formatVersion \(version)") }
             body = try decoder.decode(Body.self, from: json)
         } catch let e as DocumentError {
             throw e

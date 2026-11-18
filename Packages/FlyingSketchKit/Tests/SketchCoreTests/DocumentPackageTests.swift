@@ -76,3 +76,18 @@ import Testing
     #expect(throws: DocumentError.self) { try DocumentPackage.read(wrapper("", center: "1e300")) }
     #expect(throws: Never.self) { try DocumentPackage.read(wrapper("")) }
 }
+
+@Test func writesV2EvenFromV1Value() throws {
+    var doc = SketchDocument.fixtureWithEveryKind()
+    doc.formatVersion = 1
+    let w = try DocumentPackage.fileWrapper(for: doc)
+    let json = try #require(w.fileWrappers?["document.json"]?.regularFileContents)
+    let obj = try #require(try JSONSerialization.jsonObject(with: json) as? [String: Any])
+    #expect(obj["formatVersion"] as? Int == 2)
+}
+
+@Test func rejectsVersionZero() {
+    let json = #"{"formatVersion":0,"objects":[],"viewport":{"center":{"x":0,"y":0},"zoom":1}}"#
+    let w = FileWrapper(directoryWithFileWrappers: ["document.json": FileWrapper(regularFileWithContents: Data(json.utf8))])
+    #expect(throws: DocumentError.self) { try DocumentPackage.read(w) }
+}
