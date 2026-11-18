@@ -62,8 +62,10 @@ extension CanvasView {
 
     /// Embeds the definition (once) and its graphic asset, inserts an instance at the viewport centre (plug-snapped
     /// when a male connector lands within the snap radius of a female) and selects it. One edit "Add Part".
+    /// A definition failing `validate()` is refused (no edit).
     public func placePart(_ part: LibraryPart) {
         let def = part.definition
+        guard (try? def.validate()) != nil else { return }
         var doc = model.document
         var edits: [SceneEdit] = []
         if doc.parts[def.key] == nil {

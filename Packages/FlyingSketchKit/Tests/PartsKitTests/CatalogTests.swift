@@ -72,6 +72,7 @@ private func part(_ id: String) throws -> PartDefinition {
             let graphic = try Data(contentsOf: catalogDir.appendingPathComponent("graphics/\(def.graphicAsset)"))
             #expect(try PartHash.versionHash(definitionWithoutHash: def, graphic: graphic) == def.versionHash, "\(row.id)")
             #expect(def.graphicAsset == "part-\(def.versionHash).svg")
+            #expect(throws: Never.self, "\(row.id) fails validation") { try def.validate() } // placeable
         }
     }
 

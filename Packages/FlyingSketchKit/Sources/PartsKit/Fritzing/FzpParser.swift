@@ -172,7 +172,14 @@ public struct FzpParser {
             libraryID: doc.moduleId, versionHash: "", title: doc.title, family: family,
             labelPrefix: doc.label.isEmpty ? "U" : doc.label, tags: doc.tags, properties: doc.properties,
             size: geometry.sizeMM, graphicAsset: "", graphicKind: .svg, connectors: connectors, buses: doc.buses)
-        let hash = try PartHash.versionHash(definitionWithoutHash: def, graphic: breadboardSVG)
+        // Bounded geometry: an accepted definition must never make a saved document unopenable.
+        do { try def.validateGeometry() } catch { throw PartImportError.invalidSVG("geometry out of range") }
+        let hash: String
+        do {
+            hash = try PartHash.versionHash(definitionWithoutHash: def, graphic: breadboardSVG)
+        } catch {
+            throw PartImportError.invalidFzp("definition not encodable: \(error)")
+        }
         def.versionHash = hash
         def.graphicAsset = "part-\(hash).svg"
         return def

@@ -52,14 +52,15 @@ enum Clipboard {
     }
 
     /// Pasteboard data is untrusted: drops assets with unsafe names, images referencing one, definitions that are
-    /// mis-keyed or have an unsafe graphic asset, and the parts that would use such a dropped definition.
+    /// mis-keyed or fail `PartDefinition.validate()` (geometry, graphic asset name), and the parts that would use
+    /// such a dropped definition.
     static func sanitized(_ objects: [SceneObject], assets: [String: Data], definitions: [String: PartDefinition])
         -> (objects: [SceneObject], assets: [String: Data], definitions: [String: PartDefinition]) {
         let safeAssets = assets.filter { isSafeAssetName($0.key) }
         var safeDefinitions: [String: PartDefinition] = [:]
         var rejected: Set<String> = []
         for (key, def) in definitions {
-            if key == def.key, isSafeAssetName(def.graphicAsset) { safeDefinitions[key] = def } else { rejected.insert(key) }
+            if key == def.key, (try? def.validate()) != nil { safeDefinitions[key] = def } else { rejected.insert(key) }
         }
         let safeObjects = objects.filter { o in
             switch o {

@@ -23,7 +23,7 @@ public enum PersonalLibraryError: Error, Equatable {
 
 /// A per-part problem found while loading; the rest of the library still loads.
 public struct LoadIssue: Hashable, Sendable {
-    /// `invalidDefinition`: decoded, but fails `PartDefinition` validation (e.g. unsafe graphic asset name).
+    /// `invalidDefinition`: decoded, but fails `PartDefinition.validate()` (out-of-range geometry, unsafe graphic name).
     public enum Reason: String, Sendable { case unreadableMetadata, invalidDefinition, missingGraphic, notDownloaded, rootUnreadable }
     public var directory: URL
     public var reason: Reason
@@ -112,7 +112,7 @@ public struct PersonalLibraryStore: Sendable {
                   let meta = try? JSONDecoder().decode(Meta.self, from: json) else {
                 issues.append(LoadIssue(directory: dir, reason: .unreadableMetadata)); continue
             }
-            guard isSafeAssetName(meta.definition.graphicAsset) else {
+            guard (try? meta.definition.validate()) != nil else {
                 issues.append(LoadIssue(directory: dir, reason: .invalidDefinition)); continue
             }
             let graphicURL = dir.appendingPathComponent(Self.graphicFileName(meta.definition.graphicKind))

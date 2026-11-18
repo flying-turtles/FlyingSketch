@@ -36,6 +36,26 @@ private func makeZip(_ files: [(String, Data)]) -> Data {
 }
 
 @Suite struct FzpParserTests {
+    @Test func rejectsOutOfRangeGeometry() throws {
+        let fzp = try fixture("resistor.fzp")
+        let svg = try #require(String(data: fixture("resistor_220.svg"), encoding: .utf8))
+        let variants = [
+            svg.replacingOccurrences(of: "width=\"0.42917in\"", with: "width=\"1000in\""), // 25.4 m wide
+            svg.replacingOccurrences(of: "<rect id=\"connector0pin\" x=\"0.5\"", with: "<rect id=\"connector0pin\" x=\"1e9\""),
+            svg.replacingOccurrences(of: "x1=\"1.455\"", with: "x1=\"-1e9\""),
+            svg.replacingOccurrences(of: "width=\"0.42917in\"", with: "width=\"1e308in\""), // overflows to +inf mm
+        ]
+        for v in variants {
+            #expect(v != svg)
+            #expect(throws: PartImportError.invalidSVG("geometry out of range")) {
+                try FzpParser.parse(fzp: fzp, breadboardSVG: Data(v.utf8), svgFileName: "r.svg")
+            }
+        }
+        // A literal infinity is already rejected by the SVG geometry reader.
+        let inf = svg.replacingOccurrences(of: "x2=\"2.91\"", with: "x2=\"1e400\"")
+        #expect(throws: PartImportError.self) { try FzpParser.parse(fzp: fzp, breadboardSVG: Data(inf.utf8), svgFileName: "r.svg") }
+    }
+
     @Test func parsesResistorWithLegs() throws {
         let d = try resistor()
         #expect(d.libraryID == "ResistorModuleID")

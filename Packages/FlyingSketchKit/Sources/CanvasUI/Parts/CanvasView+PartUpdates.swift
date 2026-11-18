@@ -26,9 +26,10 @@ extension CanvasView {
     /// Repoints every instance of an older version of `libraryID` to `newer`. Legs on vanished connectors reset to
     /// their default end (others kept), wires follow surviving connectors and go free on vanished ones, labels and
     /// properties stay, old definitions are dropped. One edit "Update Part"; nothing when nothing is outdated.
+    /// A definition failing `validate()` is refused (no edit).
     public func updatePart(libraryID: String, to newer: LibraryPart) {
         let new = newer.definition
-        guard new.libraryID == libraryID else { return }
+        guard new.libraryID == libraryID, (try? new.validate()) != nil else { return }
         let oldKeys = Set(model.document.parts.filter { $0.value.libraryID == libraryID && $0.key != new.key }.keys)
         guard !oldKeys.isEmpty else { return }
 

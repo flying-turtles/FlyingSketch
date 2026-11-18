@@ -161,6 +161,17 @@ private func makePart(id: String, title: String = "Mine", family: String = "cust
         #expect(loaded.issues.map(\.reason) == [.invalidDefinition])
     }
 
+    @Test func outOfRangeGeometryReported() throws {
+        let store = PersonalLibraryStore(rootURL: tempRoot())
+        try store.write(makePart(id: "good"))
+        var huge = makePart(id: "huge")
+        huge.definition.size = Vec2(x: 1e6, y: 5) // the definition would make documents unopenable
+        try store.write(huge)
+        let loaded = try store.load()
+        #expect(loaded.parts.map(\.definition.libraryID) == ["good"])
+        #expect(loaded.issues.map(\.reason) == [.invalidDefinition])
+    }
+
     @Test func iCloudPlaceholderReportedNotDownloaded() throws {
         let root = tempRoot()
         let store = PersonalLibraryStore(rootURL: root)

@@ -72,6 +72,17 @@ private func pluggedScene() -> (objects: [SceneObject], board: PartInstance, res
     #expect(!m.undoManager.canUndo)
 }
 
+@Test @MainActor func placePartRefusesInvalidDefinition() {
+    let (v, m) = canvas([], parts: [])
+    var huge = resistorDef
+    huge.size = Vec2(x: 2e4, y: 1)
+    var unsafe = resistorDef
+    unsafe.graphicAsset = "../x.svg"
+    for def in [huge, unsafe] { v.placePart(LibraryPart(definition: def, graphic: svg, source: .bundled)) }
+    #expect(m.document.objects.isEmpty && m.document.parts.isEmpty && m.document.assets.isEmpty)
+    #expect(!m.undoManager.canUndo)
+}
+
 @Test @MainActor func placePartWithoutPrefixHasNoLabel() {
     var def = resistorDef
     def.labelPrefix = ""
@@ -211,6 +222,26 @@ private func pluggedScene() -> (objects: [SceneObject], board: PartInstance, res
         #expect(prepared.objects.count == 1)
         #expect(prepared.definitions.isEmpty)
         #expect(Array(prepared.assets.keys) == ["fine.png"])
+    }
+
+    @Test func readDropsInvalidDefinitionsAndTheirParts() throws {
+        clear()
+        let s = pluggedScene()
+        var huge = resistorDef
+        huge.libraryID = "huge"
+        huge.connectors[0].position = Vec2(x: 5e7, y: 0)
+        let hugePart = PartInstance(definitionKey: huge.key, center: .zero, label: "X1")
+        Clipboard.write([.part(s.resistor), .part(hugePart)], assets: [resistorDef.graphicAsset: svg],
+                        definitions: [resistorDef.key: resistorDef, huge.key: huge])
+        let clip = try #require(Clipboard.read())
+        #expect(clip.objects.map(\.id) == [s.resistor.id])
+        #expect(Array(clip.definitions.keys) == [resistorDef.key])
+        let prepared = Clipboard.prepare([.part(hugePart)], assets: [:], definitions: [huge.key: huge],
+                                         for: .empty, centeredAt: .zero)
+        #expect(prepared.objects.isEmpty && prepared.definitions.isEmpty)
+        // Mis-keyed definition (key != def.key) is dropped too.
+        Clipboard.write([.part(s.resistor)], assets: [:], definitions: [resistorDef.key: huge])
+        #expect(try #require(Clipboard.read()).objects.isEmpty)
     }
 
     @Test func oldPayloadWithoutDefinitionsDecodes() throws {

@@ -117,6 +117,17 @@ private func wire(_ o: SceneObject) -> Wire? { if case .wire(let w) = o { w } el
     #expect(m.document.objects.compactMap(wire).first { $0.id == s.wireA.id } == s.wireA)
 }
 
+@Test @MainActor func updateRefusesInvalidDefinition() {
+    let s = Scene()
+    let (v, m) = canvas(s.objects)
+    var bad = newResistor()
+    bad.connectors[0].leg?.defaultEnd = Vec2(x: .nan, y: 0)
+    v.updatePart(libraryID: oldDef.libraryID, to: libPart(bad))
+    #expect(m.document.parts[oldDef.key] == oldDef && m.document.parts.count == 2)
+    #expect(m.document.assets[bad.graphicAsset] == nil)
+    #expect(!m.undoManager.canUndo)
+}
+
 @Test @MainActor func updateKeepsDefinitionUsedByOtherVersion() throws {
     // Document already holds the newest version next to an old one: old instances move, new ones stay.
     let newDef = newResistor()
