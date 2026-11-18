@@ -113,6 +113,14 @@ private func near(_ a: Vec2?, _ x: Double, _ y: Double, _ tol: Double = 1e-6) ->
         #expect(g.lineMM(ofElement: "r") == nil)
     }
 
+    @Test func groupBoundsAreUnionOfDescendants() throws {
+        let g = try svg(#"<svg width="100mm" height="100mm" viewBox="0 0 100 100"><g id="p" transform="translate(10,10)"><title>t</title><rect x="0" y="0" width="4" height="2"/><circle cx="8" cy="5" r="1"/></g></svg>"#)
+        #expect(near(g.centerMM(ofElement: "p"), 10 + 4.5, 10 + 3))
+        let bad = try svg(#"<svg width="100mm" height="100mm"><g id="p"><rect width="4" height="2"/><text>x</text></g><g id="e"/></svg>"#)
+        #expect(bad.centerMM(ofElement: "p") == nil)
+        #expect(bad.centerMM(ofElement: "e") == nil)
+    }
+
     @Test func fixtureFile() throws {
         let url = try #require(Bundle.module.url(forResource: "Fixtures/connectors.svg", withExtension: nil))
         let g = try SVGGeometry(data: Data(contentsOf: url))

@@ -28,10 +28,12 @@ public struct SVGGeometry: Sendable {
         var name: String
         var attrs: [String: String]
         var ctm: SVGAffine?  // nil = unparseable transform on self/ancestor; element's user space -> root user space
+        var children: [Int] = []  // indices into `nodes`
     }
 
     private let userToMM: SVGAffine
-    private let elements: [String: Element]
+    private let nodes: [Element]
+    private let ids: [String: Int]
 
     public init(data: Data) throws {
         let collector = Collector()
@@ -71,7 +73,16 @@ public struct SVGGeometry: Sendable {
             map = .translate(tx, ty) * .scale(sx, sy) * .translate(-vb.x, -vb.y)
         }
         userToMM = map
-        elements = collector.elements
+        nodes = collector.nodes
+        ids = collector.ids
+    }
+
+    /// Millimetres per user unit of the root coordinate system (geometric mean of the x/y scales).
+    public var userUnitToMM: Double { abs(userToMM.a * userToMM.d - userToMM.b * userToMM.c).squareRoot() }
+
+    /// Raw attribute of the element with `id` (no inheritance, no unit handling).
+    public func attribute(_ name: String, ofElement id: String) -> String? {
+        node(id)?.attrs[name]
     }
 
     /// Center of the transformed bounding box of the element with `id`.
@@ -83,7 +94,7 @@ public struct SVGGeometry: Sendable {
 
     /// Endpoints of a `<line>`, or of a `<path>` made of a single `M` + straight segment.
     public func lineMM(ofElement id: String) -> (Vec2, Vec2)? {
-        guard let el = elements[id], let ctm = el.ctm else { return nil }
+        guard let el = node(id), let ctm = el.ctm else { return nil }
         let m = userToMM * ctm
         switch el.name {
         case "line":
@@ -108,9 +119,33 @@ public struct SVGGeometry: Sendable {
         return rest.isEmpty || rest == "px" ? v : nil
     }
 
-    /// Transformed (mm) points whose bounding box is the element's bounds.
+    private func node(_ id: String) -> Element? { ids[id].map { nodes[$0] } }
+
+    private static let nonDrawing: Set<String> = [
+        "title", "desc", "metadata", "defs", "style", "linearGradient", "radialGradient", "stop", "clipPath",
+        "mask", "pattern", "marker", "symbol", "filter",
+    ]
+
+    /// Transformed (mm) points whose bounding box is the element's bounds. A `<g>` is the union of
+    /// its drawable descendants; any descendant of unknown geometry makes the whole group nil.
     private func points(of id: String) -> [Vec2]? {
-        guard let el = elements[id], let ctm = el.ctm else { return nil }
+        guard let idx = ids[id] else { return nil }
+        return points(ofNode: idx)
+    }
+
+    private func points(ofNode idx: Int) -> [Vec2]? {
+        let el = nodes[idx]
+        if el.name == "g" || el.name == "svg" {
+            var all: [Vec2] = []
+            for c in el.children {
+                let child = nodes[c]
+                if Self.nonDrawing.contains(child.name) { continue }
+                guard let pts = points(ofNode: c) else { return nil }
+                all += pts
+            }
+            return all.isEmpty ? nil : all
+        }
+        guard let ctm = el.ctm else { return nil }
         let m = userToMM * ctm
         var local: [Vec2]
         switch el.name {
@@ -185,7 +220,9 @@ public struct SVGGeometry: Sendable {
     /// One-pass collector: root attributes plus id -> element with accumulated transform.
     private final class Collector: NSObject, XMLParserDelegate {
         var rootAttrs: [String: String]?
-        var elements: [String: Element] = [:]
+        var nodes: [Element] = []
+        var ids: [String: Int] = [:]
+        private var nodeStack: [Int] = []
         private var stack: [SVGAffine?] = []
         private var depth = 0
 
@@ -206,9 +243,11 @@ public struct SVGGeometry: Sendable {
                     }
                 }
                 stack.append(ctm)
-                if let id = attrs["id"], elements[id] == nil {
-                    elements[id] = Element(name: name, attrs: attrs, ctm: ctm)
-                }
+                let index = nodes.count
+                nodes.append(Element(name: name, attrs: attrs, ctm: ctm))
+                if let parent = nodeStack.last { nodes[parent].children.append(index) }
+                nodeStack.append(index)
+                if let id = attrs["id"], ids[id] == nil { ids[id] = index }
             }
             depth += 1
         }
@@ -216,6 +255,7 @@ public struct SVGGeometry: Sendable {
         func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?,
                     qualifiedName qName: String?) {
             if !stack.isEmpty { stack.removeLast() }
+            if depth > 1 { nodeStack.removeLast() }
             depth -= 1
         }
     }
