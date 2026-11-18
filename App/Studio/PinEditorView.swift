@@ -83,27 +83,39 @@ struct PinsStepControls: View {
         }
         .buttonStyle(.plain)
         .listRowBackground(editingPinID == pin.id ? Color.accentColor.opacity(0.15) : nil)
-        .popover(isPresented: presented(pin.id), arrowEdge: .trailing) {
-            if let binding = binding(for: pin) {
-                PinEditorView(pin: binding, issue: session.draft.pinIssues()[pin.id]) {
+        .id(pin.id) // scroll target when a pin is selected on the canvas
+    }
+}
+
+/// Presents `PinEditorView` for `editingPinID` from a stable anchor (the pins panel), so a canvas tap
+/// always opens it — a lazily-built list row may not exist when the pin is scrolled out of view.
+struct PinEditorPresenter: ViewModifier {
+    let session: StudioSession
+    @Binding var editingPinID: String?
+
+    func body(content: Content) -> some View {
+        content.popover(isPresented: presented, arrowEdge: .trailing) {
+            if let id = editingPinID, let binding = binding(for: id) {
+                PinEditorView(pin: binding, issue: session.draft.pinIssues()[id]) {
                     editingPinID = nil
-                    session.draft.removePin(pin.id)
+                    session.draft.removePin(id)
                 }
             }
         }
     }
 
-    private func presented(_ id: String) -> Binding<Bool> {
-        Binding(get: { editingPinID == id }, set: { if !$0, editingPinID == id { editingPinID = nil } })
+    private var presented: Binding<Bool> {
+        Binding(get: { editingPinID.map { id in session.draft.pins.contains { $0.id == id } } ?? false },
+                set: { if !$0 { editingPinID = nil } })
     }
 
     /// Looks the pin up by id on every access (indices shift when pins are deleted).
-    private func binding(for pin: DraftPin) -> Binding<DraftPin>? {
-        guard session.draft.pins.contains(where: { $0.id == pin.id }) else { return nil }
+    private func binding(for id: String) -> Binding<DraftPin>? {
+        guard let pin = session.draft.pins.first(where: { $0.id == id }) else { return nil }
         return Binding(
-            get: { session.draft.pins.first(where: { $0.id == pin.id }) ?? pin },
+            get: { session.draft.pins.first(where: { $0.id == id }) ?? pin },
             set: { new in
-                if let i = session.draft.pins.firstIndex(where: { $0.id == pin.id }) { session.draft.pins[i] = new }
+                if let i = session.draft.pins.firstIndex(where: { $0.id == id }) { session.draft.pins[i] = new }
             })
     }
 }

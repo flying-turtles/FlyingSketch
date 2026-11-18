@@ -29,9 +29,10 @@ private struct FakeCutout: CutoutProviding {
         return m
     }
 
-    /// 400×400 view: fit scale 2, image spans y 100…300.
-    static func canvas(_ session: StudioSession, mode: StudioCanvasMode) -> StudioCanvasView {
+    /// 400×400 view, no fit inset: fit scale 2, image spans y 100…300.
+    static func canvas(_ session: StudioSession, mode: StudioCanvasMode, inset: CGFloat = 0) -> StudioCanvasView {
         let v = StudioCanvasView(session: session)
+        v.fitInset = inset
         v.frame = CGRect(x: 0, y: 0, width: 400, height: 400)
         v.layoutIfNeeded()
         v.mode = mode
@@ -289,6 +290,68 @@ private struct FakeCutout: CutoutProviding {
         v.mode = .calibrate
         Self.drag(v, [CGPoint(x: 290, y: 150), CGPoint(x: 290, y: 170)]) // grab A from 10 pt left/below, move down 20 pt
         #expect(s.draft.scale == .twoPoints(Vec2(x: 150, y: 30), Vec2(x: 150, y: 80), mm: 5))
+    }
+
+    @Test func fitInsetKeepsCropCornersInside() {
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout())
+        let v = Self.canvas(s, mode: .crop, inset: 24)
+        #expect(v.fitInset == 24)
+        // (400 − 48) / 200 = 1.76; image centred: x 24…376.
+        #expect(abs(1 / v.viewToSource.a - 1.76) < 1e-9)
+        let topLeft = CGPoint.zero.applying(v.viewToSource.inverted())
+        let bottomRight = CGPoint(x: 200, y: 100).applying(v.viewToSource.inverted())
+        #expect(abs(topLeft.x - 24) < 1e-9 && abs(bottomRight.x - 376) < 1e-9)
+        let r = StudioOverlayLayers.handleRadius
+        #expect(topLeft.x - r >= 0 && bottomRight.x + r <= 400)
+        // A view smaller than the inset falls back to the full bounds.
+        v.frame = CGRect(x: 0, y: 0, width: 40, height: 40)
+        v.layoutIfNeeded()
+        #expect(abs(1 / v.viewToSource.a - 0.2) < 1e-9)
+    }
+
+    @Test func pinMarkerRadiusIsClamped() {
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout())
+        let v = Self.canvas(s, mode: .pins) // output == source, 2 pt per px
+        #expect(v.pinMarkerRadius == StudioCanvasView.pinFallbackRadius) // no scale
+        s.draft.scale = .width(mm: 200) // 1 mm = 1 px = 2 pt → clamped up to 4
+        #expect(v.pinMarkerRadius == 4)
+        s.draft.scale = .width(mm: 40) // 1 mm = 5 px = 10 pt
+        #expect(abs(v.pinMarkerRadius - 10) < 1e-9)
+        s.draft.scale = .width(mm: 4) // 1 mm = 50 px = 100 pt → clamped down to 12
+        #expect(v.pinMarkerRadius == 12)
+    }
+
+    @Test func crowdedPinLabelsHideExceptSelected() {
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout())
+        s.draft.gridSnap = false
+        let a = s.draft.addPin(atOutput: Vec2(x: 50, y: 50))
+        s.draft.addPin(atOutput: Vec2(x: 55, y: 50)) // 10 pt apart: labels collide
+        s.draft.addPin(atOutput: Vec2(x: 150, y: 50)) // isolated
+        let v = Self.canvas(s, mode: .pins)
+        let labels = v.overlays.pinLabels
+        #expect(labels[0].isHidden && labels[1].isHidden)
+        #expect(!labels[2].isHidden)
+        v.selectedPinID = a
+        #expect(!v.overlays.pinLabels[0].isHidden)
+        #expect(v.overlays.pinLabels[1].isHidden)
+
+        #expect(StudioOverlayLayers.showsLabel(labelWidth: 30, nearestNeighbour: 34, selected: false))
+        #expect(!StudioOverlayLayers.showsLabel(labelWidth: 30, nearestNeighbour: 33.9, selected: false))
+        #expect(StudioOverlayLayers.showsLabel(labelWidth: 30, nearestNeighbour: 1, selected: true))
+    }
+
+    @Test func overlappingMarkersHitNearestPin() {
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout())
+        s.draft.gridSnap = false
+        let a = s.draft.addPin(atOutput: Vec2(x: 50, y: 50)) // view (100, 200)
+        let b = s.draft.addPin(atOutput: Vec2(x: 54, y: 50)) // view (108, 200)
+        let v = Self.canvas(s, mode: .pins)
+        #expect(v.pinHit(CGPoint(x: 103, y: 200)) == a)
+        #expect(v.pinHit(CGPoint(x: 105, y: 200)) == b)
+        var selected: [String] = []
+        v.onPinSelected = { selected.append($0) }
+        Self.tap(v, CGPoint(x: 107, y: 201))
+        #expect(selected == [b])
     }
 
     @Test func smallCropShrinksCornerHitSoInsideDragWorks() {

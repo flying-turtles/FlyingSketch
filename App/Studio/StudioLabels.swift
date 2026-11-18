@@ -19,7 +19,9 @@ extension PhotoPartError {
         case .partTooLarge:
             return "The part is larger than \(Int(PartDefinition.maxExtent)) mm. Check the scale."
         case .pinOutside(let name): return "Pin \(name) is outside the part."
-        case .emptyPinName(let id): return "A pin (\(id)) has no name."
+        case .emptyPinName(let id):
+            guard let i = draft?.pins.firstIndex(where: { $0.id == id }) else { return "A pin has no name." }
+            return "Pin \(i + 1) has no name."
         case .duplicatePinName(let name): return "More than one pin is named \(name)."
         case .unknownBusMember(let id): return "A bus refers to a missing pin (\(id))."
         case .pinInTwoBuses(let id): return "Pin \(pinName(id)) is in more than one bus."

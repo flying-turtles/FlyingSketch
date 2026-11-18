@@ -51,7 +51,7 @@ struct PhotoPartStudioView: View {
         .interactiveDismissDisabled()
         .disabled(saving)
         .overlay { if saving { savingOverlay } }
-        .task { if session.cutoutState == .idle { await session.runAutoCutout() } }
+        .task { await runFirstCutout() }
         .onChange(of: session.step) { tracing = false; editingPinID = nil }
         .onChange(of: session.mask) { tracing = false } // one trace replaces the mask, then back to viewing
         .onChange(of: session.draft.scale) { old, new in adoptTypedDistance(old: old, new: new) }
@@ -102,6 +102,16 @@ struct PhotoPartStudioView: View {
     // MARK: Panel
 
     private var panel: some View {
+        ScrollViewReader { proxy in
+            panelForm
+                .onChange(of: editingPinID) { _, id in
+                    if let id { withAnimation { proxy.scrollTo(id, anchor: .center) } }
+                }
+        }
+        .modifier(PinEditorPresenter(session: session, editingPinID: $editingPinID))
+    }
+
+    private var panelForm: some View {
         Form {
             switch session.step {
             case .cutout: CutoutControls(session: session, tracing: $tracing)
@@ -144,6 +154,14 @@ struct PhotoPartStudioView: View {
     /// Compared only on Cancel (mask equality is a full-bitmap compare).
     private var hasChanges: Bool { session.draft != initialDraft || session.mask != initialMask }
 
+    /// The first automatic cutout is not a user change: re-baseline the mask for the Cancel confirmation.
+    private func runFirstCutout() async {
+        guard session.cutoutState == .idle else { return }
+        let before = session.mask
+        await session.runAutoCutout()
+        if initialMask == before { initialMask = session.mask }
+    }
+
     /// A calibration placed on the canvas starts at the default distance; apply the distance typed beforehand.
     private func adoptTypedDistance(old: ScaleSpec?, new: ScaleSpec?) {
         guard case let .twoPoints(a, b, mm)? = new else { return }
@@ -152,6 +170,7 @@ struct PhotoPartStudioView: View {
     }
 
     private func save() {
+        guard !saving else { return }
         saving = true
         Task {
             defer { saving = false }
@@ -169,7 +188,7 @@ struct PhotoPartStudioView: View {
     }
 
     #if DEBUG
-    /// Simulator screenshots: `-photoStudioStep <n>` opens step n, `-photoStudioPin` opens the first pin's editor,
+    /// Simulator screenshots: `-photoStudioStep <n>` opens step n, `-photoStudioPin` opens the last pin's editor,
     /// `-photoStudioBuses` the bus sheet, `-photoStudioSave` saves.
     private func applyDemoArguments() {
         let args = ProcessInfo.processInfo.arguments
@@ -180,7 +199,7 @@ struct PhotoPartStudioView: View {
         // After the step's onChange (which clears the pin editor) and the panel's first layout.
         Task {
             try? await Task.sleep(for: .milliseconds(800))
-            if args.contains("-photoStudioPin") { editingPinID = session.draft.pins.first?.id }
+            if args.contains("-photoStudioPin") { editingPinID = session.draft.pins.last?.id }
             if args.contains("-photoStudioBuses") { showsBuses = true }
             if args.contains("-photoStudioSave"), session.blockingError == nil { save() }
         }

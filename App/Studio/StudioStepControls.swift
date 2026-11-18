@@ -24,6 +24,7 @@ struct CutoutControls: View {
                 tracing = false
                 session.useWholePhoto()
             }
+            .disabled(session.cutoutState == .running)
             Button("Retry auto", systemImage: "wand.and.stars") {
                 tracing = false
                 Task { await session.runAutoCutout() }

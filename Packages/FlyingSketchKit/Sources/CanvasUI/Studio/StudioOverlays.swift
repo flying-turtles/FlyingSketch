@@ -36,7 +36,7 @@ final class StudioOverlayLayers {
     private let cropHandles = CAShapeLayer()
     private let calibration = CAShapeLayer()
     private var pinMarkers: [CAShapeLayer] = []
-    private var pinLabels: [CATextLayer] = []
+    private(set) var pinLabels: [CATextLayer] = []
     private var pinCrosses: [CAShapeLayer] = []
     private var labelSizes: [String: CGSize] = [:]
 
@@ -47,6 +47,13 @@ final class StudioOverlayLayers {
         var outOfBounds: Bool
         var selected: Bool
         var name: String
+        /// View-pt distance to the nearest other pin (infinity when alone).
+        var nearestNeighbour: CGFloat = .infinity
+    }
+
+    /// Labels are hidden when they would run into the neighbouring marker; the selected pin always shows its label.
+    static func showsLabel(labelWidth: CGFloat, nearestNeighbour: CGFloat, selected: Bool) -> Bool {
+        selected || nearestNeighbour >= labelWidth + 4
     }
 
     init() {
@@ -126,7 +133,6 @@ final class StudioOverlayLayers {
             guard i < pins.count else { m.isHidden = true; x.isHidden = true; t.isHidden = true; continue }
             let pin = pins[i]
             m.isHidden = false
-            t.isHidden = false
             m.path = Self.circle(pin.center, pin.radius).cgPath
             // Out of bounds: faint fill, red ring and red X (distinct from a solid red power pin).
             m.fillColor = pin.color.withAlphaComponent(pin.outOfBounds ? 0.3 : 0.85).cgColor
@@ -135,10 +141,13 @@ final class StudioOverlayLayers {
             x.isHidden = !pin.outOfBounds
             if pin.outOfBounds { x.path = Self.cross(pin.center, pin.radius * 0.75).cgPath }
             let size = labelSize(pin.name)
+            let labelWidth = ceil(size.width) + 8
+            t.isHidden = !Self.showsLabel(labelWidth: labelWidth, nearestNeighbour: pin.nearestNeighbour,
+                                          selected: pin.selected)
             t.string = pin.name
             t.contentsScale = scale
             t.frame = CGRect(x: pin.center.x + pin.radius + 4, y: pin.center.y - (size.height + 2) / 2,
-                             width: ceil(size.width) + 8, height: ceil(size.height) + 2)
+                             width: labelWidth, height: ceil(size.height) + 2)
         }
     }
 
@@ -182,6 +191,7 @@ extension StudioCanvasView {
     static let handleHitRadius: CGFloat = 22 // 44 pt hit area
     static let pinMinHitRadius: CGFloat = 22
     static let pinFallbackRadius: CGFloat = 10
+    static let pinRadiusRange: ClosedRange<CGFloat> = 4...12
     static let dragThreshold: CGFloat = 4
     static let minCropSide: Double = 16
     static let defaultCalibrationMM = 2.54
@@ -213,14 +223,25 @@ extension StudioCanvasView {
         return pendingCalibrationA.map { [$0] } ?? []
     }
 
-    /// 1 mm in view pt when the draft has a scale, never below 10 pt.
+    /// 1 mm in view pt when the draft has a scale, clamped to 4…12 pt; 10 pt without a scale.
     var pinMarkerRadius: CGFloat {
         guard let mmPerPixel = try? session.draft.mmPerPixel() else { return Self.pinFallbackRadius }
         let t = contentToView
-        return max(hypot(t.a, t.b) / mmPerPixel, Self.pinFallbackRadius)
+        let r = hypot(t.a, t.b) / mmPerPixel
+        guard r.isFinite else { return Self.pinFallbackRadius }
+        return min(max(r, Self.pinRadiusRange.lowerBound), Self.pinRadiusRange.upperBound)
     }
 
     private func dist(_ a: CGPoint, _ b: CGPoint) -> CGFloat { hypot(a.x - b.x, a.y - b.y) }
+
+    /// O(n²); pin counts are small.
+    static func nearestNeighbourDistance(_ i: Int, in points: [CGPoint]) -> CGFloat {
+        var best = CGFloat.infinity
+        for (j, q) in points.enumerated() where j != i {
+            best = min(best, hypot(points[i].x - q.x, points[i].y - q.y))
+        }
+        return best
+    }
 
     // MARK: Hit-testing
 
@@ -252,7 +273,7 @@ extension StudioCanvasView {
             .min { $0.1 < $1.1 }?.0
     }
 
-    /// Nearest pin within max(marker radius, 22 pt).
+    /// Nearest pin centre within max(marker radius, 22 pt), so overlapping markers resolve to the closest one.
     func pinHit(_ p: CGPoint) -> String? {
         let r = max(pinMarkerRadius, Self.pinMinHitRadius)
         return session.draft.pins
@@ -390,12 +411,14 @@ extension StudioCanvasView {
             overlays.showCalibration(calibrationPoints.map(toView))
         case .pins:
             let r = pinMarkerRadius, out = draft.outputSize()
-            let styles = draft.pins.map { pin in
+            let centers = draft.pins.map { toView($0.position) }
+            let styles = draft.pins.enumerated().map { i, pin in
                 let o = draft.toOutput(pin.position)
                 return StudioOverlayLayers.PinStyle(
-                    center: toView(pin.position), radius: r, color: StudioOverlayLayers.color(for: pin.role),
+                    center: centers[i], radius: r, color: StudioOverlayLayers.color(for: pin.role),
                     outOfBounds: o.x < 0 || o.y < 0 || o.x > out.x || o.y > out.y,
-                    selected: pin.id == selectedPinID, name: pin.name)
+                    selected: pin.id == selectedPinID, name: pin.name,
+                    nearestNeighbour: Self.nearestNeighbourDistance(i, in: centers))
             }
             let scale = traitCollection.displayScale
             overlays.showPins(styles, scale: scale > 0 ? scale : 2)

@@ -138,10 +138,17 @@ public final class StudioCanvasView: UIView, UIGestureRecognizerDelegate {
         return CGAffineTransform(a: ex.x - o.x, b: ex.y - o.y, c: ey.x - o.x, d: ey.y - o.y, tx: o.x, ty: o.y)
     }
 
+    /// Fit margin (pt) on each side so edge handles and markers are not clipped; ignored when the view is too small.
+    public var fitInset: CGFloat = 24 {
+        didSet { if fitInset != oldValue { updateTransforms() } }
+    }
+
     private var fitScale: CGFloat {
         let c = contentSize
         guard bounds.width > 0, bounds.height > 0, c.width > 0, c.height > 0 else { return 1 }
-        return min(bounds.width / c.width, bounds.height / c.height)
+        var w = bounds.width - 2 * fitInset, h = bounds.height - 2 * fitInset
+        if w <= 0 || h <= 0 { w = bounds.width; h = bounds.height }
+        return min(w / c.width, h / c.height)
     }
 
     /// Aspect-fit × zoom, centred at bounds centre + offset.
