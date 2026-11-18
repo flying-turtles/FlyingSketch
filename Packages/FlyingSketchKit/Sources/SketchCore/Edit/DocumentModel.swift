@@ -27,6 +27,13 @@ public final class DocumentModel {
         onChange?(document)
     }
 
+    /// Merges binary assets (images). Not undoable and fires no `onChange`: unreferenced assets are harmless;
+    /// callers follow up with a `perform` that references them.
+    public func addAssets(_ assets: [String: Data]) {
+        guard !assets.isEmpty else { return }
+        document.assets.merge(assets) { _, new in new }
+    }
+
     private func run(_ edit: SceneEdit, actionName: String) {
         let inverse = edit.apply(to: &document)
         undoManager.registerUndo(withTarget: self) { model in

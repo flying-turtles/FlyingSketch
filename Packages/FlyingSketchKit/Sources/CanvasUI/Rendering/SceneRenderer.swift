@@ -33,6 +33,52 @@ final class SceneRenderer {
     /// Object layers only (no grid or container layers).
     var liveLayerCount: Int { entries.count }
 
+    // MARK: Visual-only feedback (erase hiding, move preview)
+
+    /// Layers hidden immediately while an eraser gesture runs. Document is untouched.
+    var hiddenIDs: Set<ObjectID> = [] { didSet { if hiddenIDs != oldValue { applyFeedback() } } }
+    /// Objects previewed translated by `moveOffset` view points. Document is untouched.
+    private(set) var movingIDs: Set<ObjectID> = []
+    private(set) var moveOffset: CGPoint = .zero
+    private var feedbackBase: [ObjectID: (layer: CALayer, transform: CATransform3D)] = [:]
+
+    func setMovePreview(ids: Set<ObjectID>, offset: CGPoint) {
+        movingIDs = ids
+        moveOffset = offset
+        applyFeedback()
+    }
+
+    private func clearFeedback() {
+        for (_, b) in feedbackBase {
+            b.layer.isHidden = false
+            b.layer.transform = b.transform
+        }
+        feedbackBase.removeAll(keepingCapacity: true)
+    }
+
+    private func applyFeedback() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        clearFeedback()
+        for id in hiddenIDs.union(movingIDs) {
+            guard let e = entries[id] else { continue }
+            feedbackBase[id] = (e.layer, e.layer.transform)
+            if hiddenIDs.contains(id) { e.layer.isHidden = true }
+            if movingIDs.contains(id) {
+                e.layer.transform = CATransform3DConcat(e.layer.transform,
+                                                        CATransform3DMakeTranslation(moveOffset.x, moveOffset.y, 0))
+            }
+        }
+    }
+
+    // MARK: Queries (as of the last settle)
+
+    /// Objects whose bounds intersect `rect`, bottom to top.
+    func objects(in rect: Rect) -> [SceneObject] {
+        index.query(rect).compactMap { objectsByID[$0] }.sorted { (zIndex[$0.id] ?? 0) < (zIndex[$1.id] ?? 0) }
+    }
+
     init(rootLayer: CALayer, factory: any ObjectLayerFactory = CALayerObjectFactory()) {
         self.factory = factory
         content.anchorPoint = .zero
@@ -70,6 +116,8 @@ final class SceneRenderer {
 
     private func settle(_ document: SketchDocument, _ vp: Viewport, _ size: Vec2) {
         settleCount += 1
+        clearFeedback()
+        defer { applyFeedback() }
         syncIndex(document.objects)
         factory.prepare(assets: document.assets)
         content.sublayerTransform = CATransform3DIdentity

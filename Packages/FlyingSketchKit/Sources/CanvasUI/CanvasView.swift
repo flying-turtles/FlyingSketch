@@ -17,7 +17,21 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     public var toolState = ToolState()
     private let ink: InkInputController
     private let liveStroke = LiveStrokeLayer()
-    private var activeInkTouch: UITouch?
+    var activeTouch: UITouch?
+    var interaction: Interaction?
+    private(set) var eraser: EraserController!
+    private(set) var lasso: LassoController!
+    let lassoPath = LassoPathLayer()
+    let selectionOverlay = SelectionOverlay()
+    /// Selected objects; the app may observe or set it.
+    public let selection = SelectionState()
+    /// Move gesture in progress: world delta applied so far (visual only until release).
+    var moveStart: Vec2?
+    var moveDelta: Vec2 = .zero
+    var moveEngaged = false
+    var editMenu: UIEditMenuInteraction!
+    let longPress = UILongPressGestureRecognizer()
+    var menuAnchor: CGPoint?
     private var activeInkStyle: (tool: InkTool, color: RGBAColor, width: Double) = (.pen, .black, 0.5)
 
     public var viewport: Viewport {
@@ -44,12 +58,20 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         backgroundColor = .white
         isMultipleTouchEnabled = true
         layer.addSublayer(liveStroke.layer)
+        layer.addSublayer(selectionOverlay.layer)
+        layer.addSublayer(lassoPath.layer)
+
+        let lookup: (Rect) -> [SceneObject] = { [weak self] rect in self?.renderer.objects(in: rect) ?? [] }
+        eraser = EraserController(model: model, candidates: lookup)
+        eraser.onHiddenChange = { [weak self] ids in self?.renderer.hiddenIDs = ids }
+        lasso = LassoController(model: model, candidates: lookup)
 
         let previous = model.onChange
         model.onChange = { [weak self] doc in
             previous?(doc)
-            self?.render(settled: true)
+            self?.documentChanged(doc)
         }
+        setUpSelectionUI()
 
         pan.minimumNumberOfTouches = 2
         pan.maximumNumberOfTouches = 2
@@ -68,73 +90,174 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         super.layoutSubviews()
         factory.screenScale = traitCollection.displayScale
         liveStroke.setFrame(bounds)
+        selectionOverlay.setFrame(bounds)
+        lassoPath.layer.frame = bounds
         render(settled: true)
     }
 
-    private var viewSize: Vec2 { Vec2(x: bounds.width, y: bounds.height) }
+    var viewSize: Vec2 { Vec2(x: bounds.width, y: bounds.height) }
 
-    private func render(settled: Bool) {
+    func render(settled: Bool) {
         guard bounds.width > 0, bounds.height > 0 else { return }
         renderer.update(document: model.document, viewport: liveViewport ?? viewport, viewSize: viewSize, settled: settled)
+        updateSelectionOverlay()
     }
 
-    // MARK: Ink touches
+    // MARK: Touches
 
     /// Viewport the user currently sees (includes an in-flight pan/pinch).
-    private var currentViewport: Viewport { liveViewport ?? viewport }
+    var currentViewport: Viewport { liveViewport ?? viewport }
 
-    private func acceptsInk(_ touch: UITouch) -> Bool {
-        guard case .ink = toolState.kind else { return false }
-        return touch.type == .pencil || !toolState.pencilOnly
+    /// What a touch does. Pencil (or any touch when `pencilOnly` is false) uses the active tool; with
+    /// `pencilOnly` a finger selects: tap selects/clears, drag in the selection moves, drag elsewhere lassos.
+    enum Interaction {
+        case ink, erase, lasso, move
+        /// Finger down outside the selection; becomes a lasso once it travels, else a tap on release.
+        case pending(start: CGPoint)
     }
 
+    private func interaction(for touch: UITouch) -> Interaction? {
+        if touch.type == .pencil || !toolState.pencilOnly {
+            switch toolState.kind {
+            case .ink: return .ink
+            case .eraser: return .erase
+            case .lasso: return .lasso
+            default: return nil
+            }
+        }
+        let p = location(of: touch)
+        if let rect = selectionViewRect, rect.insetBy(dx: -Self.hitSlop, dy: -Self.hitSlop).contains(p) { return .move }
+        return .pending(start: p)
+    }
+
+    static let hitSlop: CGFloat = 8
+
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard activeInkTouch == nil, case .ink(let tool) = toolState.kind,
-              let touch = touches.first(where: acceptsInk) else { return }
-        activeInkTouch = touch
-        activeInkStyle = (tool, toolState.color, toolState.inkWidth)
-        // Coalesced list at began already includes the began touch: start with its first, move with the rest.
+        if let active = activeTouch, active.type != .pencil, !touches.contains(active),
+           touches.contains(where: { $0.type == .direct }) {
+            cancelInteraction() // second finger: pan/pinch takes over
+            return
+        }
+        guard activeTouch == nil else { return }
+        for touch in touches {
+            guard let kind = interaction(for: touch) else { continue }
+            activeTouch = touch
+            interaction = kind
+            begin(kind, touch, event)
+            return
+        }
+    }
+
+    private func begin(_ kind: Interaction, _ touch: UITouch, _ event: UIEvent?) {
         let coalesced = coalescedSamples(touch, event)
-        ink.begin(coalesced.first ?? sample(touch), tool: tool, color: toolState.color,
-                  width: toolState.inkWidth, params: toolState.params)
-        drawLive(ink.move(coalesced: Array(coalesced.dropFirst()), predicted: predictedSamples(touch, event)))
+        switch kind {
+        case .ink:
+            guard case .ink(let tool) = toolState.kind else { return }
+            activeInkStyle = (tool, toolState.color, toolState.inkWidth)
+            // Coalesced list at began already includes the began touch: start with its first, move with the rest.
+            ink.begin(coalesced.first ?? sample(touch), tool: tool, color: toolState.color,
+                      width: toolState.inkWidth, params: toolState.params)
+            drawLive(ink.move(coalesced: Array(coalesced.dropFirst()), predicted: predictedSamples(touch, event)))
+        case .erase:
+            let first = coalesced.first ?? sample(touch)
+            eraser.begin(at: first.position, radius: EraserController.worldRadius(zoom: currentViewport.zoom))
+            for s in coalesced.dropFirst() { eraser.move(to: s.position) }
+        case .lasso:
+            lasso.begin(at: (coalesced.first ?? sample(touch)).position)
+            for s in coalesced.dropFirst() { lasso.move(to: s.position) }
+            drawLasso()
+        case .move:
+            beginMove(at: sample(touch).position)
+        case .pending:
+            break
+        }
     }
 
     public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = activeInkTouch, touches.contains(touch) else { return }
-        drawLive(ink.move(coalesced: coalescedSamples(touch, event), predicted: predictedSamples(touch, event)))
+        guard let touch = activeTouch, touches.contains(touch), let kind = interaction else { return }
+        switch kind {
+        case .ink:
+            drawLive(ink.move(coalesced: coalescedSamples(touch, event), predicted: predictedSamples(touch, event)))
+        case .erase:
+            for s in coalescedSamples(touch, event) { eraser.move(to: s.position) }
+        case .lasso:
+            for s in coalescedSamples(touch, event) { lasso.move(to: s.position) }
+            drawLasso()
+        case .move:
+            updateMove(to: sample(touch).position)
+        case .pending(let start):
+            let p = location(of: touch)
+            guard hypot(p.x - start.x, p.y - start.y) > Self.hitSlop else { return }
+            interaction = .lasso
+            lasso.begin(at: worldPoint(start))
+            lasso.move(to: worldPoint(p))
+            drawLasso()
+        }
     }
 
     public override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = activeInkTouch, touches.contains(touch) else { return }
-        _ = ink.move(coalesced: coalescedSamples(touch, event), predicted: [])
-        activeInkTouch = nil
-        // One transaction: committed layer appears and live path disappears together.
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        ink.end()
-        liveStroke.clear()
-        CATransaction.commit()
+        guard let touch = activeTouch, touches.contains(touch), let kind = interaction else { return }
+        activeTouch = nil
+        interaction = nil
+        switch kind {
+        case .ink:
+            _ = ink.move(coalesced: coalescedSamples(touch, event), predicted: [])
+            // One transaction: committed layer appears and live path disappears together.
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            ink.end()
+            liveStroke.clear()
+            CATransaction.commit()
+        case .erase:
+            for s in coalescedSamples(touch, event) { eraser.move(to: s.position) }
+            eraser.end()
+            renderer.hiddenIDs = []
+        case .lasso:
+            for s in coalescedSamples(touch, event) { lasso.move(to: s.position) }
+            finishLasso()
+        case .move:
+            endMove()
+        case .pending(let start):
+            tap(at: start)
+        }
     }
 
     public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = activeInkTouch, touches.contains(touch) else { return }
-        activeInkTouch = nil
-        ink.cancel()
-        liveStroke.clear()
+        guard let touch = activeTouch, touches.contains(touch) else { return }
+        cancelInteraction()
     }
 
     public override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
-        guard newWindow == nil, activeInkTouch != nil else { return }
-        activeInkTouch = nil
-        ink.cancel()
-        liveStroke.clear()
+        if newWindow == nil { cancelInteraction() }
+    }
+
+    func cancelInteraction() {
+        guard let kind = interaction else { return }
+        activeTouch = nil
+        interaction = nil
+        switch kind {
+        case .ink: ink.cancel(); liveStroke.clear()
+        case .erase: eraser.cancel(); renderer.hiddenIDs = []
+        case .lasso: lasso.cancel(); lassoPath.clear()
+        case .move: cancelMove()
+        case .pending: break
+        }
     }
 
     private func drawLive(_ points: [InkPoint]) {
         liveStroke.update(points: points, tool: activeInkStyle.tool, color: activeInkStyle.color,
                           width: activeInkStyle.width, viewport: currentViewport, viewSize: viewSize)
+    }
+
+    private func drawLasso() {
+        lassoPath.update(lasso.points, viewport: currentViewport, viewSize: viewSize)
+    }
+
+    private func location(of touch: UITouch) -> CGPoint { touch.preciseLocation(in: self) }
+
+    func worldPoint(_ p: CGPoint) -> Vec2 {
+        currentViewport.viewToWorld(Vec2(x: p.x, y: p.y), viewSize: viewSize)
     }
 
     private func coalescedSamples(_ touch: UITouch, _ event: UIEvent?) -> [InkSample] {
@@ -186,6 +309,14 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         liveViewport = nil
         storedViewport = v
         model.setViewport(v)
+    }
+
+    public override func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+        guard g === longPress else { return super.gestureRecognizerShouldBegin(g) }
+        switch interaction {
+        case nil, .pending: return true
+        default: return false
+        }
     }
 
     public func gestureRecognizer(_ a: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith b: UIGestureRecognizer) -> Bool {
