@@ -7,13 +7,13 @@ private func pt(_ x: Double, _ y: Double, _ p: Double = 1) -> InkPoint {
 }
 
 @Test func singleSampleProducesDot() {
-    let poly = StrokeOutline.polygon([pt(0, 0)], baseWidth: 2, tool: .pen)
+    let poly = StrokeOutline.polygon([pt(0, 0)], baseWidth: 2, tool: .pen, pixelSize: 0.16)
     #expect(poly.count >= 12)
     #expect(poly.allSatisfy { abs($0.length - 1) < 1e-6 })
 }
 
-@Test func outlineIsClosedAndContainsCenterline() {
-    let poly = StrokeOutline.polygon([pt(0, 0), pt(10, 0)], baseWidth: 2, tool: .pen)
+@Test func outlineBoundsStraightStroke() {
+    let poly = StrokeOutline.polygon([pt(0, 0), pt(10, 0)], baseWidth: 2, tool: .pen, pixelSize: 0.16)
     let r = 1.0
     let xs = poly.map(\.x), ys = poly.map(\.y)
     #expect(abs(xs.min()! - (-r)) < 1e-6)
@@ -30,13 +30,40 @@ private func pt(_ x: Double, _ y: Double, _ p: Double = 1) -> InkPoint {
     #expect(StrokeOutline.widthAt(low, baseWidth: 2, tool: .highlighter) == 2)
 }
 
-@Test func curveSubdivisionKeepsSamplePoints() {
+@Test func curveSubdivisionAddsPointsAndStaysFinite() {
     let pts = [pt(0, 0), pt(5, 3), pt(10, 0), pt(15, 4)]
-    let poly = StrokeOutline.polygon(pts, baseWidth: 1, tool: .marker)
+    let poly = StrokeOutline.polygon(pts, baseWidth: 1, tool: .marker, pixelSize: 0.16)
     #expect(poly.count > 8 * 2)
     #expect(poly.allSatisfy { $0.x.isFinite && $0.y.isFinite })
 }
 
 @Test func emptyInputEmptyPolygon() {
-    #expect(StrokeOutline.polygon([], baseWidth: 1, tool: .pen).isEmpty)
+    #expect(StrokeOutline.polygon([], baseWidth: 1, tool: .pen, pixelSize: 0.16).isEmpty)
+}
+
+@Test func highZoomKeepsAllSamplesAndReachesEnd() {
+    let pts = (0..<20).map { pt(Double($0) * 0.02, 0) }
+    let poly = StrokeOutline.polygon(pts, baseWidth: 0.01, tool: .marker, pixelSize: 0.005)
+    let r = 0.005
+    #expect(poly.map(\.x).max()! >= 0.38 + r - 1e-9)
+    // each sample 0.02 apart > dedupe 0.0025: all kept, so left edge has >= 20 points
+    #expect(poly.count >= 20 * 2)
+}
+
+@Test func lowZoomBoundsVertexCount() {
+    let pts = (0..<30).map { pt(Double($0) * 10, Double($0 % 2) * 5) }
+    let poly = StrokeOutline.polygon(pts, baseWidth: 1, tool: .marker, pixelSize: 20)
+    #expect(poly.count <= 30 * 8 * 2 + 2 * 11)
+}
+
+@Test func endpointPreservedWhenLastSampleWithinDedupe() {
+    let pts = [pt(0, 0), pt(5, 0), pt(5.001, 0)]
+    let poly = StrokeOutline.polygon(pts, baseWidth: 2, tool: .marker, pixelSize: 0.5)
+    #expect(poly.map(\.x).max()! >= 5.001 + 1 - 1e-6)
+}
+
+@Test func outlineIsClosedLoop() {
+    let poly = StrokeOutline.polygon([pt(0, 0), pt(10, 0)], baseWidth: 2, tool: .pen, pixelSize: 0.16)
+    // implicit closure: last->first gap is one cap step, not a jump across the stroke
+    #expect(poly.last!.distance(to: poly.first!) < 1.0)
 }

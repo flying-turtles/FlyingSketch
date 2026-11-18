@@ -12,8 +12,10 @@ public enum StrokeOutline {
     }
 
     /// Closed outline polygon with round caps; fill with nonzero winding.
-    public static func polygon(_ points: [InkPoint], baseWidth: Double, tool: InkTool, gamma: Double = 1.0) -> [Vec2] {
-        let nodes = smooth(points.map { Node(pos: $0.position, r: widthAt($0, baseWidth: baseWidth, tool: tool, gamma: gamma) / 2) })
+    /// `pixelSize` = mm per screen point (1 / (pointsPerMillimetre * zoom)); scales dedupe and subdivision.
+    public static func polygon(_ points: [InkPoint], baseWidth: Double, tool: InkTool, gamma: Double = 1.0, pixelSize: Double) -> [Vec2] {
+        let nodes = smooth(points.map { Node(pos: $0.position, r: widthAt($0, baseWidth: baseWidth, tool: tool, gamma: gamma) / 2) },
+                           pixelSize: pixelSize)
         guard let first = nodes.first else { return [] }
         guard nodes.count > 1 else {
             return (0..<16).map { i in
@@ -34,13 +36,17 @@ public enum StrokeOutline {
 
     private struct Node { var pos: Vec2; var r: Double }
 
-    /// Catmull-Rom subdivision; drops near-duplicates (< 0.08 mm). Adds points between samples only.
-    private static func smooth(_ input: [Node]) -> [Node] {
+    /// Catmull-Rom subdivision; drops near-duplicates (< 0.5 px, floor 0.001 mm), always keeps the last
+    /// sample. Adds points between samples only.
+    private static func smooth(_ input: [Node], pixelSize: Double) -> [Node] {
+        let dedupe = max(0.5 * pixelSize, 0.001)
+        let stepLength = max(2 * pixelSize, 1e-9)
         var points: [Node] = []
         for n in input {
-            if let l = points.last, l.pos.distance(to: n.pos) < 0.08 { continue }
+            if let l = points.last, l.pos.distance(to: n.pos) < dedupe { continue }
             points.append(n)
         }
+        if let last = input.last, let kept = points.last, kept.pos != last.pos { points.append(last) }
         guard points.count > 2 else { return points }
         var out: [Node] = []
         out.reserveCapacity(points.count * 4)
@@ -50,7 +56,7 @@ public enum StrokeOutline {
             let p2 = points[i + 1].pos
             let p3 = points[min(i + 2, points.count - 1)].pos
             let r1 = points[i].r, r2 = points[i + 1].r
-            let steps = min(8, max(1, Int(p1.distance(to: p2) / 0.3)))
+            let steps = min(8, max(1, Int(p1.distance(to: p2) / stepLength)))
             for k in 0..<steps {
                 let t = Double(k) / Double(steps)
                 out.append(Node(pos: catmullRom(p0, p1, p2, p3, t), r: r1 + (r2 - r1) * t))
