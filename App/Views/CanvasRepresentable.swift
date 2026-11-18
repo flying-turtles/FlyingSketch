@@ -2,19 +2,24 @@ import SwiftUI
 import SketchCore
 import CanvasUI
 
+/// SwiftUI-owned but unobserved reference to the live canvas.
+final class CanvasHandle {
+    weak var view: CanvasView?
+}
+
 /// Hosts `CanvasView`; pushes SwiftUI tool state into it on every update.
 struct CanvasRepresentable: UIViewRepresentable {
     let model: DocumentModel
     var toolState: ToolState
     var showsGrid: Bool
     var snapsToGrid: Bool
-    var onCanvas: (CanvasView) -> Void
+    let handle: CanvasHandle
     var onPencilDoubleTap: () -> Void
 
     func makeUIView(context: Context) -> CanvasView {
         let view = CanvasView(model: model)
         view.onPencilDoubleTap = onPencilDoubleTap
-        onCanvas(view)
+        handle.view = view // plain reference, not SwiftUI state: no mutation during a view update
         return view
     }
 

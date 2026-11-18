@@ -72,7 +72,13 @@ struct ToolPalette: View {
         .onChange(of: photo) { _, item in
             guard let item else { return }
             Task {
-                if let data = try? await item.loadTransferable(type: Data.self) { insertImage(data) }
+                if let data = try? await item.loadTransferable(type: Data.self) {
+                    insertImage(data)
+                } else {
+                    #if DEBUG
+                    print("ToolPalette: loadTransferable(Data) returned nil for picked photo")
+                    #endif
+                }
                 photo = nil
             }
         }

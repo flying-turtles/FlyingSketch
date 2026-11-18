@@ -10,14 +10,14 @@ struct SketchEditorView: View {
     @State private var previousKind: ToolKind = .ink(.pen)
     @State private var showsGrid = true
     @State private var snapsToGrid = false
-    @State private var canvas: CanvasView?
+    @State private var canvasHandle = CanvasHandle()
     /// Bumped on undo-manager changes so the buttons re-read canUndo/canRedo.
     @State private var undoTick = 0
 
     var body: some View {
         CanvasRepresentable(
             model: document.model, toolState: toolState, showsGrid: showsGrid, snapsToGrid: snapsToGrid,
-            onCanvas: { canvas = $0 }, onPencilDoubleTap: togglePencilEraser
+            handle: canvasHandle, onPencilDoubleTap: togglePencilEraser
         )
         .ignoresSafeArea()
         .overlay(alignment: .top) {
@@ -25,7 +25,7 @@ struct SketchEditorView: View {
                 toolState: $toolState, showsGrid: $showsGrid, snapsToGrid: $snapsToGrid,
                 canUndo: canUndo, canRedo: canRedo,
                 undo: { undoManager?.undo() }, redo: { undoManager?.redo() },
-                insertImage: { _ = canvas?.insertImage($0) },
+                insertImage: { _ = canvasHandle.view?.insertImage($0) },
                 insertStress: insertStress
             )
             .padding(.top, 8)
