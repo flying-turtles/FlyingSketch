@@ -66,3 +66,28 @@ private func stroke(_ x: Double, _ y: Double, length: Double = 4) -> SceneObject
     #expect(abs(r1 * Viewport.pointsPerMillimetre - 8) < 1e-9)
     #expect(abs(r4 * 4 - r1) < 1e-9)
 }
+
+@Test @MainActor func sweptSegmentHitsObjectJustInsideRadiusBetweenSamples() {
+    // Point-like stroke 0.99*radius from the segment, halfway between two samples (0.5 apart).
+    let near = SceneObject.ink(InkStroke(points: [
+        InkPoint(position: Vec2(x: 0.25, y: 0.99), pressure: 0.5, time: 0),
+    ], tool: .pen, baseWidth: 0))
+    let m = DocumentModel(document: SketchDocument(objects: [near]))
+    let e = EraserController(model: m)
+    e.begin(at: Vec2(x: -50, y: 0), radius: 1)
+    e.move(to: Vec2(x: 50, y: 0))
+    #expect(e.hit == [near.id])
+}
+
+@Test @MainActor func undoMidEraseDoesNotLeaveEmptyEntry() {
+    let a = stroke(0, 0)
+    let m = DocumentModel(document: SketchDocument(objects: [a]))
+    m.perform(.remove([a.id]), actionName: "Other")
+    let e = EraserController(model: m)
+    m.undoManager.undo()
+    e.begin(at: Vec2(x: 1, y: 0), radius: 1) // hits a
+    m.perform(.remove([a.id]), actionName: "Other")
+    m.undoManager.removeAllActions()
+    e.end()
+    #expect(!m.undoManager.canUndo)
+}

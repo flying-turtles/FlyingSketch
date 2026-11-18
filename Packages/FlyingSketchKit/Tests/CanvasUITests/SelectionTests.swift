@@ -119,6 +119,39 @@ private func firstPoint(_ o: SceneObject) -> Vec2 {
     #expect(v.selectionOverlay.viewRect == nil)
 }
 
+@Test @MainActor func lassoToolDragInsideSelectionMoves() {
+    let objs = [stroke(0, 0)]
+    let (v, _) = canvas(objs)
+    v.selection.ids = [objs[0].id]
+    let inside = v.currentViewport.worldToView(Vec2(x: 2, y: 0), viewSize: v.viewSize)
+    let p = CGPoint(x: inside.x, y: inside.y)
+    for pencilOnly in [true, false] {
+        v.toolState = ToolState(kind: .lasso, pencilOnly: pencilOnly)
+        guard case .move? = v.route(isPencil: true, at: p) else { Issue.record("pencil should move"); return }
+        guard case .lasso? = v.route(isPencil: true, at: CGPoint(x: 5, y: 5)) else { Issue.record("expected lasso"); return }
+    }
+    v.toolState = ToolState(kind: .lasso, pencilOnly: true)
+    guard case .move? = v.route(isPencil: false, at: p) else { Issue.record("finger should move"); return }
+}
+
+@Test @MainActor func unengagedMoveInsideSelectionReselectsOrClears() {
+    let a = stroke(0, 0), b = stroke(0, 1) // b overlaps a's selection bounds
+    let (v, _) = canvas([a, b])
+    v.selection.ids = [a.id, b.id]
+    func tapInside(_ w: Vec2) {
+        v.beginMove(at: w)
+        v.endMove()
+    }
+    tapInside(Vec2(x: 2, y: 0.0)) // on a selected object: stays
+    #expect(v.selection.ids == [a.id, b.id])
+    tapInside(Vec2(x: 2, y: 0.5 + 100)) // far from any object but outside; selection cleared
+    #expect(v.selection.ids.isEmpty)
+}
+
+@Test @MainActor func multiTouchEventIsDetected() {
+    #expect(!CanvasView.isMultiTouch(nil))
+}
+
 @Suite(.serialized) @MainActor struct ClipboardTests {
     /// Private pasteboard: the general one is not authorised in the test host.
     private func clear() {

@@ -68,11 +68,15 @@ extension CanvasView {
 
     // MARK: Tap and lasso
 
-    func tap(at viewPoint: CGPoint) {
+    private func topObject(at viewPoint: CGPoint) -> SceneObject? {
         let w = worldPoint(viewPoint)
         let tol = Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
         let box = Rect(origin: w - Vec2(x: tol, y: tol), size: Vec2(x: 2 * tol, y: 2 * tol))
-        let hit = renderer.objects(in: box).last { objectHit($0, w, tol) }
+        return renderer.objects(in: box).last { objectHit($0, w, tol) }
+    }
+
+    func tap(at viewPoint: CGPoint) {
+        let hit = topObject(at: viewPoint)
         selection.ids = hit.map { [$0.id] } ?? []
         updateSelectionOverlay()
         if hit != nil { presentEditMenu() }
@@ -111,9 +115,18 @@ extension CanvasView {
     func endMove() {
         let delta = moveDelta
         let engaged = moveEngaged
+        let start = moveStart
         resetMove()
         guard engaged, delta.length > 0 else {
-            if !selection.ids.isEmpty { presentEditMenu() }
+            // Unengaged = a tap: re-target the selection unless it landed on an already selected object.
+            guard let start else { return }
+            let v = currentViewport.worldToView(start, viewSize: viewSize)
+            let point = CGPoint(x: v.x, y: v.y)
+            if let hit = topObject(at: point), selection.ids.contains(hit.id) {
+                presentEditMenu()
+            } else {
+                tap(at: point)
+            }
             return
         }
         model.perform(.replace(selectedObjects.map { $0.translated(by: delta) }), actionName: "Move")

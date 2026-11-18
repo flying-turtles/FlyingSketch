@@ -42,7 +42,8 @@ final class EraserController {
 
     func end() {
         guard isActive else { return }
-        let ids = hit
+        let existing = Set(model.document.objects.map(\.id))
+        let ids = hit.intersection(existing) // an undo mid-gesture may have removed some
         reset()
         guard !ids.isEmpty else { return }
         model.perform(.remove(ids), actionName: "Erase")
@@ -62,18 +63,20 @@ final class EraserController {
         if hadHits { onHiddenChange?([]) }
     }
 
-    /// Tests the swept capsule by sampling the segment at <= radius/2 spacing, so fast strokes cannot skip objects.
+    /// Tests the swept capsule. Samples are <= radius/2 apart; the tolerance is widened to the worst-case gap
+    /// distance, so every object within `radius` of the segment is hit (over-reach <= ~3 %).
     private func sweep(from a: Vec2, to b: Vec2) {
         let box = Rect.bounding([a, b])!.insetBy(-radius)
         let pending = candidates(box).filter { !hit.contains($0.id) }
         guard !pending.isEmpty else { return }
         let step = max(radius / 2, 1e-6)
+        let tolerance = (radius * radius + step * step / 4).squareRoot()
         let n = max(Int((a.distance(to: b) / step).rounded(.up)), 1)
         var newHits: Set<ObjectID> = []
         for object in pending {
             for i in 0...n {
                 let p = a + (b - a) * (Double(i) / Double(n))
-                if hitTest(object, point: p, tolerance: radius) {
+                if hitTest(object, point: p, tolerance: tolerance) {
                     newHits.insert(object.id)
                     break
                 }

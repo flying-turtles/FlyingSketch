@@ -117,25 +117,39 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     }
 
     private func interaction(for touch: UITouch) -> Interaction? {
-        if touch.type == .pencil || !toolState.pencilOnly {
+        route(isPencil: touch.type == .pencil, at: location(of: touch))
+    }
+
+    /// Routing seam. A drag starting inside the selection moves it for the finger (pencilOnly) and the lasso tool.
+    func route(isPencil: Bool, at p: CGPoint) -> Interaction? {
+        let insideSelection = selectionViewRect?
+            .insetBy(dx: -Self.hitSlop, dy: -Self.hitSlop).contains(p) == true
+        if isPencil || !toolState.pencilOnly {
             switch toolState.kind {
             case .ink: return .ink
             case .eraser: return .erase
-            case .lasso: return .lasso
+            case .lasso: return insideSelection ? .move : .lasso
             default: return nil
             }
         }
-        let p = location(of: touch)
-        if let rect = selectionViewRect, rect.insetBy(dx: -Self.hitSlop, dy: -Self.hitSlop).contains(p) { return .move }
-        return .pending(start: p)
+        return insideSelection ? .move : .pending(start: p)
+    }
+
+    /// Two or more fingers down means pan/pinch/tap gestures own the touches.
+    static func isMultiTouch(_ event: UIEvent?) -> Bool {
+        (event?.allTouches?.filter { $0.type == .direct }.count ?? 0) > 1
     }
 
     static let hitSlop: CGFloat = 8
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if Self.isMultiTouch(event) {
+            cancelInteraction() // two fingers: pan/pinch/tap gestures take over
+            return
+        }
         if let active = activeTouch, active.type != .pencil, !touches.contains(active),
            touches.contains(where: { $0.type == .direct }) {
-            cancelInteraction() // second finger: pan/pinch takes over
+            cancelInteraction()
             return
         }
         guard activeTouch == nil else { return }
