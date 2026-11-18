@@ -21,6 +21,12 @@ public final class DocumentModel {
         run(edit, actionName: actionName)
     }
 
+    /// Persists the viewport (pan/zoom). Fires `onChange`; registers no undo.
+    public func setViewport(_ v: Viewport) {
+        document.viewport = v
+        onChange?(document)
+    }
+
     private func run(_ edit: SceneEdit, actionName: String) {
         let inverse = edit.apply(to: &document)
         undoManager.registerUndo(withTarget: self) { model in

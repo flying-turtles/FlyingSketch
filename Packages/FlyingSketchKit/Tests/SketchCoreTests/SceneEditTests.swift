@@ -89,3 +89,14 @@ private func ids(_ doc: SketchDocument) -> [ObjectID] { doc.objects.map(\.id) }
     injected.undo()
     #expect(m.document.objects.isEmpty)
 }
+
+@MainActor @Test func setViewportNoUndoFiresOnChange() {
+    let model = DocumentModel(document: .empty)
+    var seen: Viewport?
+    model.onChange = { seen = $0.viewport }
+    let v = Viewport(center: Vec2(x: 5, y: 6), zoom: 2)
+    model.setViewport(v)
+    #expect(model.document.viewport == v)
+    #expect(seen == v)
+    #expect(!model.undoManager.canUndo)
+}
