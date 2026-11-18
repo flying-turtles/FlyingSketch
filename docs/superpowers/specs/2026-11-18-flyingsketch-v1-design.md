@@ -1,7 +1,7 @@
 # FlyingSketch v1 — Design
 
 Date: 2026-11-18
-Status: approved scope, pending builder review
+Status: approved scope, builder-reviewed, awaiting doc approval
 
 ## Intent
 
@@ -91,7 +91,7 @@ Document = ordered list of objects (z-order), each with stable UUID:
 - **InkStroke**: points (x, y in mm, pressure, optional tilt/azimuth, time offset), tool (pen, pencil, marker, highlighter), color, base width.
 - **Shape**: line, arrow, rectangle, ellipse; stroke/fill style.
 - **Text**: string, font size (mm), position, rotation.
-- **PartInstance**: reference to part definition (library id + version hash), position, rotation (90° steps in v1; my call), optional label (e.g. "R1"), property values (e.g. resistance 10 kΩ).
+- **PartInstance**: reference to part definition (library id + version hash), position, rotation (90° steps in v1; my call), optional label (e.g. "R1"), property values (e.g. resistance 10 kΩ), and for bendable-leg parts the per-instance leg end positions (see "Bendable legs").
 - **Wire**: two endpoints + ordered bend points (mm), color. Each endpoint is either attached `(partInstanceID, connectorID)` or free (position).
 - **Image**: placed raster image (reference photos, screenshots).
 
@@ -107,12 +107,15 @@ Mirrors Fritzing's model so import/export is lossless for what v1 uses:
 - Breadboard graphic: SVG (Fritzing) or raster image with alpha mask (photo parts), size in mm.
 - Connectors: id, name, description, type (`male` | `female` | `pad`), position + small hit area in part-local mm, optional pin role (power, ground, digital, analog, I²C SDA/SCL, SPI, UART, other).
 - **Buses**: groups of connector ids that are electrically connected inside the part (breadboard rows/rails; ESP32 multiple GND pins).
+- **Bendable legs** (Fritzing `legId` connectors): a connector may be a leg with an origin on the part body and a movable end point. Decided by Lars: supported in v1 (resistor, LED, capacitor, diode use them).
 
 Parts embedded into the document on first use (copy of definition + graphics), so documents open on any device without the library.
 
+**Library edits vs documents** (my call): a document's embedded copy is frozen. If the library version differs, the document shows "update available" per part; updating replaces the definition for all instances in that document as one undo step. Wires attached to connectors that no longer exist become free endpoints at their last position. Copy-paste between documents carries the source part definition; if the target already holds a different version of the same part, both versions coexist (keyed by version hash).
+
 ### Parts library
 
-- **Bundled catalog**: curated subset of [fritzing-parts](https://github.com/fritzing/fritzing-parts), converted at build time by a script in the repo. Minimum set: ESP32 dev boards (DevKitC, common 30/38-pin variants), full + half breadboard, resistor, LED, push button, potentiometer, common sensors (DHT22, BME280, HC-SR04, PIR, photoresistor), jumper-friendly modules. Attribution file included.
+- **Bundled catalog**: curated subset of [fritzing-parts](https://github.com/fritzing/fritzing-parts), converted at build time by a script in the repo. Minimum set: **ESP32-S3-DevKitC-1 and ESP32-C3-DevKitM-1** (Lars' boards — must be correct; pin names/positions verified against Espressif docs), full + half breadboard, resistor, LED, push button, potentiometer, common sensors (DHT22, BME280, HC-SR04, PIR, photoresistor), jumper-friendly modules. Attribution file included. Gaps in fritzing-parts (missing or poor quality, e.g. S3/C3 boards, BME280): fill from the Adafruit Fritzing library (CC-BY-SA), else author the part ourselves (photo-part tool or hand-made SVG). Never ship a minimum-set part with wrong pinout.
 - **Import**: `.fzpz` via Files / share sheet.
 - **Personal library**: photo parts + imported parts, stored in the app's iCloud container so they're on all devices.
 - Library sidebar: search by title/tag/family, drag (or tap-to-place) onto canvas.
@@ -124,6 +127,8 @@ Parts embedded into the document on first use (copy of definition + graphics), s
 - Moving/rotating a part moves attached wire endpoints; bend points stay.
 - Dragging a wire endpoint off a connector detaches it.
 - **Plugging**: when a part is dropped, each of its `male` connectors within snap tolerance (~1 mm, my call) of a `female` connector on another part (breadboard, header) snaps the part so the pins align and creates a contact. Moving the part away breaks contacts.
+- **Moving a female part carries plugged parts** (my call; Fritzing behavior): at drag start, collect parts plugged into it (transitively) and move them together; wires attached to them follow. One undo command. Contacts stay derived from geometry, not stored — computed at drag start only to choose what moves.
+- **Bendable legs**: dragging a leg end moves only that leg; the end snaps to female connectors like any male pin. The leg renders as a line (Fritzing leg color/width) from body origin to end. Moving the body keeps leg ends where they are if plugged, otherwise moves them with the body.
 - Tap a connector → highlight its whole net and show pin name + role.
 
 ### Nets
@@ -140,7 +145,7 @@ Union-find over connectors, edges from: wires (both ends attached), plugged cont
 6. Scale calibration: mark two points and enter their real distance (default 2.54 mm), or enter overall width in mm.
 7. Pins: tap to place; name, type and role per pin; optional snap to a 2.54 mm grid anchored at the first pin; define buses (e.g. multiple GND).
 8. Metadata: title, family, tags, properties.
-9. Save to personal library. Stored as our own format; export as `.fzpz` (breadboard SVG embedding the PNG).
+9. Save to personal library. Stored as our own format; export as `.fzpz` (breadboard SVG embedding the PNG). v1 `.fzpz` export only needs to round-trip within FlyingSketch (my call); loading in desktop Fritzing (needs schematic/PCB views) is future work.
 
 Perspective correction: not in v1 (my call); user should shoot top-down.
 
