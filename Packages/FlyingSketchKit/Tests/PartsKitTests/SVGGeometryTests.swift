@@ -116,9 +116,22 @@ private func near(_ a: Vec2?, _ x: Double, _ y: Double, _ tol: Double = 1e-6) ->
     @Test func groupBoundsAreUnionOfDescendants() throws {
         let g = try svg(#"<svg width="100mm" height="100mm" viewBox="0 0 100 100"><g id="p" transform="translate(10,10)"><title>t</title><rect x="0" y="0" width="4" height="2"/><circle cx="8" cy="5" r="1"/></g></svg>"#)
         #expect(near(g.centerMM(ofElement: "p"), 10 + 4.5, 10 + 3))
-        let bad = try svg(#"<svg width="100mm" height="100mm"><g id="p"><rect width="4" height="2"/><text>x</text></g><g id="e"/></svg>"#)
+        let bad = try svg(#"<svg width="100mm" height="100mm"><g id="p"><rect width="4" height="2"/><path d="M zz"/></g><g id="e"/></svg>"#)
         #expect(bad.centerMM(ofElement: "p") == nil)
         #expect(bad.centerMM(ofElement: "e") == nil)
+    }
+
+    @Test func groupEdgeCases() throws {
+        let bad = try svg(#"<svg width="100mm" height="100mm" viewBox="0 0 100 100"><g id="p" transform="bogus(1)"><rect width="4" height="2"/></g></svg>"#)
+        #expect(bad.centerMM(ofElement: "p") == nil)
+        let nested = try svg(#"<svg width="100mm" height="100mm" viewBox="0 0 100 100"><g id="o" transform="translate(10,20)"><g id="i" transform="translate(5,5)"><rect width="4" height="2"/></g></g></svg>"#)
+        #expect(near(nested.centerMM(ofElement: "o"), 17, 26))
+        #expect(near(nested.centerMM(ofElement: "i"), 17, 26))
+        let mixed = try svg(##"<svg width="100mm" height="100mm" viewBox="0 0 100 100"><g id="m"><rect x="2" y="2" width="4" height="2"/><text x="50" y="50">L</text><use href="#x"/></g><g id="t"><text>only</text></g></svg>"##)
+        #expect(near(mixed.centerMM(ofElement: "m"), 4, 3))
+        #expect(mixed.centerMM(ofElement: "t") == nil)
+        let badShape = try svg(#"<svg width="100mm" height="100mm"><g id="b"><rect width="4" height="2"/><path d="M zz"/></g></svg>"#)
+        #expect(badShape.centerMM(ofElement: "b") == nil)
     }
 
     @Test func fixtureFile() throws {

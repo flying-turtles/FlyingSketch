@@ -126,8 +126,12 @@ public struct SVGGeometry: Sendable {
         "mask", "pattern", "marker", "symbol", "filter",
     ]
 
+    /// Group children that carry no measurable shape; skipped inside a group.
+    private static let decoration: Set<String> = ["text", "tspan", "use", "image", "a", "switch", "foreignObject"]
+
     /// Transformed (mm) points whose bounding box is the element's bounds. A `<g>` is the union of
-    /// its drawable descendants; any descendant of unknown geometry makes the whole group nil.
+    /// its shape descendants (text/use/image/a/switch are skipped as decoration); an unparseable shape or
+    /// transform, or no shape at all, makes the group nil.
     private func points(of id: String) -> [Vec2]? {
         guard let idx = ids[id] else { return nil }
         return points(ofNode: idx)
@@ -139,7 +143,7 @@ public struct SVGGeometry: Sendable {
             var all: [Vec2] = []
             for c in el.children {
                 let child = nodes[c]
-                if Self.nonDrawing.contains(child.name) { continue }
+                if Self.nonDrawing.contains(child.name) || Self.decoration.contains(child.name) { continue }
                 guard let pts = points(ofNode: c) else { return nil }
                 all += pts
             }

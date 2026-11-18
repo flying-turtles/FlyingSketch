@@ -144,15 +144,16 @@ public struct FzpParser {
             }
             connectors.append(ConnectorDef(
                 id: c.id, name: c.name, description: c.description, kind: kind(c.type), position: position,
-                role: role(forName: c.name), leg: leg))
+                role: kind(c.type) == .female ? nil : role(forName: c.name), leg: leg))
         }
 
-        let family = doc.properties.first { $0.key.lowercased() == "family" }?.value ?? ""
+        let family = doc.properties["family"]
+            ?? doc.properties.filter { $0.key.lowercased() == "family" }.sorted { $0.key < $1.key }.first?.value ?? ""
         var def = PartDefinition(
             libraryID: doc.moduleId, versionHash: "", title: doc.title, family: family,
             labelPrefix: doc.label.isEmpty ? "U" : doc.label, tags: doc.tags, properties: doc.properties,
             size: geometry.sizeMM, graphicAsset: "", graphicKind: .svg, connectors: connectors, buses: doc.buses)
-        let hash = PartHash.versionHash(definitionWithoutHash: def, graphic: breadboardSVG)
+        let hash = try PartHash.versionHash(definitionWithoutHash: def, graphic: breadboardSVG)
         def.versionHash = hash
         def.graphicAsset = "part-\(hash).svg"
         return def
@@ -201,10 +202,10 @@ public struct FzpParser {
 
     private static let rolePatterns: [(PinRole, String)] = [
         (.ground, #"^(A|D|P)?GND\d*$|^VSS\d*$"#),
-        (.power, #"^(3V3|3\.3V|5V|VIN|VCC|VDD)\w*$"#),
+        (.power, #"^(3V3|3\.3V|5V|VIN|VCC|VDD)\d*$"#),
         (.i2cSDA, #"^SDA\d*$"#),
         (.i2cSCL, #"^SCL\d*$"#),
-        (.spi, #"^(MOSI|MISO|SCLK|SCK|CS)\w*$"#),
+        (.spi, #"^(MOSI|MISO|SCLK|SCK|CS)\d*$"#),
         (.uart, #"^(U\d*)?(TX|RX)D?\d*$"#),
         (.digital, #"^(GPIO|IO|D)\d+$"#),
         (.analog, #"^(A\d+|ADC\d*)$"#),

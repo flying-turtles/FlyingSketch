@@ -26,15 +26,9 @@ public struct FzpzImporter {
         return (def, svg)
     }
 
-    /// Fritzing names the entry `svg.breadboard.<basename>`; accept the bare basename too, case-insensitively.
+    /// Fritzing names the entry `svg.breadboard.<basename>`; match case-insensitively.
     private static func svgEntry(named base: String, in names: [String]) -> String? {
-        let wanted = ["svg.breadboard." + base, base]
-        for w in wanted {
-            if names.contains(w) { return w }
-        }
-        for w in wanted.map({ $0.lowercased() }) {
-            if let n = names.first(where: { ($0 as NSString).lastPathComponent.lowercased() == w }) { return n }
-        }
-        return nil
+        let wanted = ("svg.breadboard." + base).lowercased()
+        return names.first { ($0 as NSString).lastPathComponent.lowercased() == wanted }
     }
 }

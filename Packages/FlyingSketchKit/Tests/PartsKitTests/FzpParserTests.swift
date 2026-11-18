@@ -88,7 +88,7 @@ private func makeZip(_ files: [(String, Data)]) -> Data {
         #expect(d.buses.count == 4)
         #expect(d.labelPrefix == "U")
         #expect(!graphic.isEmpty)
-        #expect(d.versionHash == PartHash.versionHash(definitionWithoutHash: d, graphic: graphic))
+        #expect(try d.versionHash == PartHash.versionHash(definitionWithoutHash: d, graphic: graphic))
     }
 
     @Test func missingConnectorGeometryIsAnError() throws {
@@ -112,6 +112,9 @@ private func makeZip(_ files: [(String, Data)]) -> Data {
         }
         #expect(throws: PartImportError.missingBreadboardSVG("resistor_220.svg")) {
             try FzpzImporter.importPart(makeZip([("part.r.fzp", fzp)]))
+        }
+        #expect(throws: PartImportError.missingBreadboardSVG("resistor_220.svg")) {
+            try FzpzImporter.importPart(makeZip([("part.r.fzp", fzp), ("resistor_220.svg", svg)]))
         }
         #expect(throws: PartImportError.self) { try FzpzImporter.importPart(Data("nope".utf8)) }
         let ok = try FzpzImporter.importPart(makeZip([("part.r.fzp", fzp), ("svg.breadboard.RESISTOR_220.svg", svg)]))
@@ -141,15 +144,15 @@ private func makeZip(_ files: [(String, Data)]) -> Data {
 
     @Test func hashChangesWithGraphic() throws {
         let d = try resistor()
-        let a = PartHash.versionHash(definitionWithoutHash: d, graphic: Data("a".utf8))
-        let b = PartHash.versionHash(definitionWithoutHash: d, graphic: Data("b".utf8))
+        let a = try PartHash.versionHash(definitionWithoutHash: d, graphic: Data("a".utf8))
+        let b = try PartHash.versionHash(definitionWithoutHash: d, graphic: Data("b".utf8))
         #expect(a != b)
-        #expect(a == PartHash.versionHash(definitionWithoutHash: d, graphic: Data("a".utf8)))
+        #expect(try a == PartHash.versionHash(definitionWithoutHash: d, graphic: Data("a".utf8)))
         var d2 = d; d2.title = "other"
-        #expect(a != PartHash.versionHash(definitionWithoutHash: d2, graphic: Data("a".utf8)))
+        #expect(try a != PartHash.versionHash(definitionWithoutHash: d2, graphic: Data("a".utf8)))
         // independent of the hash/asset fields themselves
         var d3 = d; d3.versionHash = "zzz"; d3.graphicAsset = "q"
-        #expect(a == PartHash.versionHash(definitionWithoutHash: d3, graphic: Data("a".utf8)))
+        #expect(try a == PartHash.versionHash(definitionWithoutHash: d3, graphic: Data("a".utf8)))
     }
 
     @Test(arguments: [
@@ -168,5 +171,51 @@ private func makeZip(_ files: [(String, Data)]) -> Data {
     @Test func unknownNamesHaveNoRole() {
         #expect(FzpParser.role(forName: "Pin 0") == nil)
         #expect(FzpParser.role(forName: "RST") == nil)
+        for n in ["CSS", "AREF", "A", "D", "VINXXX", "SCKFOO"] { #expect(FzpParser.role(forName: n) == nil, "\(n)") }
+        #expect(FzpParser.role(forName: "CS0") == .spi)
+    }
+
+    @Test func femaleConnectorsGetNoRole() throws {
+        let d = try FzpParser.parse(fzp: fixture("miniBreadboard.fzp"), breadboardSVG: fixture("miniBreadboard.svg"),
+                                    svgFileName: "miniBreadboard.svg")
+        #expect(d.connectors.allSatisfy { $0.role == nil })
+        let fzp = try #require(String(data: fixture("resistor.fzp"), encoding: .utf8))
+            .replacingOccurrences(of: "name=\"Pin 0\"", with: "name=\"A0\"")
+        let r = try FzpParser.parse(fzp: Data(fzp.utf8), breadboardSVG: fixture("resistor_220.svg"), svgFileName: "x.svg")
+        #expect(r.connectors[0].role == .analog)
+    }
+}
+
+/// One-off real-catalog sweep; skipped unless `Vendor/fritzing-parts` exists.
+@Suite struct CatalogSweep {
+    @Test func coreCatalog() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Vendor/fritzing-parts")
+        let core = root.appendingPathComponent("core")
+        guard let files = try? FileManager.default.contentsOfDirectory(atPath: core.path) else { return }
+        var counts: [String: Int] = [:]
+        var samples: [String: String] = [:]
+        for f in files where f.hasSuffix(".fzp") {
+            do {
+                let data = try Data(contentsOf: core.appendingPathComponent(f))
+                let doc = try FzpDocument.read(data)
+                guard let img = doc.breadboardImage,
+                      let svg = try? Data(contentsOf: root.appendingPathComponent("svg/core/" + img))
+                else { counts["missingBreadboardSVG", default: 0] += 1; continue }
+                _ = try FzpParser.parse(fzp: data, breadboardSVG: svg, svgFileName: img)
+                counts["ok", default: 0] += 1
+            } catch let e as PartImportError {
+                let k: String
+                switch e {
+                case .missingConnectorGeometry: k = "missingConnectorGeometry"
+                case .invalidSVG: k = "invalidSVG"
+                case .invalidFzp: k = "invalidFzp"
+                default: k = "other"
+                }
+                counts[k, default: 0] += 1; samples[k] = "\(f): \(e)"
+            } catch { counts["otherError", default: 0] += 1 }
+        }
+        print("SWEEP \(counts.sorted { $0.key < $1.key }) samples \(samples)")
     }
 }
