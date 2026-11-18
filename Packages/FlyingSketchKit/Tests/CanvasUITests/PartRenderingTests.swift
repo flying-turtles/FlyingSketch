@@ -313,3 +313,39 @@ private func doc(_ def: PartDefinition, turns: Int = 0) -> (SketchDocument, Part
     huge.append(Data("--><rect width=\"10\" height=\"10\"/></svg>".utf8))
     #expect(CALayerObjectFactory.rasterize(data: huge, isSVG: true, width: 8, height: 8).image == nil)
 }
+
+@Test @MainActor func photoPartsShowConnectorMarkersSvgPartsDoNot() {
+    let connectors = [
+        ConnectorDef(id: "a", name: "+", kind: .female, position: Vec2(x: 2, y: 3), role: .power),
+        ConnectorDef(id: "b", name: "-", kind: .female, position: Vec2(x: 18, y: 7), role: .ground),
+        ConnectorDef(id: "c", name: "S", kind: .female, position: Vec2(x: 10, y: 5)),
+    ]
+    let png = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 2)).pngData { ctx in
+        UIColor.red.setFill()
+        ctx.fill(CGRect(x: 0, y: 0, width: 4, height: 2))
+    }
+    let photo = PartDefinition(libraryID: "photo", versionHash: "1", title: "P", size: Vec2(x: 20, y: 10),
+                               graphicAsset: "p.png", graphicKind: .png, connectors: connectors)
+    let inst = PartInstance(definitionKey: photo.key, center: .zero, quarterTurns: 1, label: "B1")
+    let d = SketchDocument(objects: [.part(inst)], assets: ["p.png": png], parts: [photo.key: photo])
+    let (_, root, _) = render(d, zoom: 1)
+    let part = objectsLayer(root).sublayers!.first as! PartLayer
+    #expect(part.connectorMarkers.count == connectors.count)
+    #expect(part.connectorMarkers.allSatisfy { $0.superlayer === part })
+    // Rotation followed: local (2,3) -> rel (-8,-2) turned once -> world (2,-8).
+    let first = part.connectorMarkers[0]
+    #expect(abs(first.position.x - (viewSize.x / 2 + 2 * ppm)) < 0.5)
+    #expect(abs(first.position.y - (viewSize.y / 2 - 8 * ppm)) < 0.5)
+    // At least 3 pt radius on screen even when zoomed out.
+    #expect(first.path!.boundingBox.width >= 6 - 0.01)
+    let ring = first.sublayers!.first as! CAShapeLayer
+    #expect(ring.strokeColor == UIColor.systemRed.cgColor)
+
+    let (svgDoc, _) = doc(definition(20, 10))
+    var svgDef = definition(20, 10)
+    svgDef.connectors = connectors
+    var svgD = svgDoc
+    svgD.parts = [svgDef.key: svgDef]
+    let (_, svgRoot, _) = render(svgD, zoom: 1)
+    #expect((objectsLayer(svgRoot).sublayers!.first as! PartLayer).connectorMarkers.isEmpty)
+}

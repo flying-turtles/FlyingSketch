@@ -68,9 +68,24 @@ public actor PartsLibrary {
     }
 
     public func save(_ part: LibraryPart) async throws {
+        try await save(part, studio: nil)
+    }
+
+    public func save(_ part: LibraryPart, studio: [String: Data]?) async throws {
         var stored = part
         stored.source = .personal
-        try personalStore.write(stored)
+        try personalStore.write(stored, studio: studio)
+        reload()
+    }
+
+    public func studioFiles(libraryID: String) async throws -> [String: Data]? {
+        try personalStore.studioFiles(forLibraryID: libraryID)
+    }
+
+    /// Deletes a personal part; ids not in the personal index (incl. bundled) throw `notPersonal`.
+    public func delete(libraryID: String) async throws {
+        guard loadPersonal()[libraryID] != nil else { throw PersonalLibraryError.notPersonal(libraryID) }
+        try personalStore.delete(libraryID: libraryID)
         reload()
     }
 
