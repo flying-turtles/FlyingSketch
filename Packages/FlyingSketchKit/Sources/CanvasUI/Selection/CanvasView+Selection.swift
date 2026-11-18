@@ -68,7 +68,7 @@ extension CanvasView {
 
     // MARK: Tap and lasso
 
-    private func topObject(at viewPoint: CGPoint) -> SceneObject? {
+    func topObject(at viewPoint: CGPoint) -> SceneObject? {
         let w = worldPoint(viewPoint)
         let tol = Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
         let box = Rect(origin: w - Vec2(x: tol, y: tol), size: Vec2(x: 2 * tol, y: 2 * tol))

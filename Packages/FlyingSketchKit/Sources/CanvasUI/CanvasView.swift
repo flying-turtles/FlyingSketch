@@ -5,7 +5,7 @@ import InkEngine
 /// Infinite canvas. Two-finger pan + pinch navigate; the viewport persists to the model on gesture end.
 public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     let model: DocumentModel
-    private let factory = CALayerObjectFactory()
+    let factory = CALayerObjectFactory()
     private(set) var renderer: SceneRenderer!
     private let pan = UIPanGestureRecognizer()
     private let pinch = UIPinchGestureRecognizer()
@@ -14,7 +14,17 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     private var storedViewport: Viewport
 
-    public var toolState = ToolState()
+    public var toolState = ToolState() {
+        didSet { if toolState.kind != oldValue.kind { endTextEditing() } }
+    }
+    /// Snap shape endpoints and text/image placement to the 10 mm grid.
+    public var snapsToGrid = false
+    /// Font size in mm for newly placed text.
+    public var textFontSize: Double = 5
+    private(set) var shapes: ShapeController!
+    private(set) var textController: TextController!
+    var shapePreview: CALayer?
+    var textSession: TextSession?
     private let ink: InkInputController
     private let liveStroke = LiveStrokeLayer()
     var activeTouch: UITouch?
@@ -65,6 +75,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         eraser = EraserController(model: model, candidates: lookup)
         eraser.onHiddenChange = { [weak self] ids in self?.renderer.hiddenIDs = ids }
         lasso = LassoController(model: model, candidates: lookup)
+        shapes = ShapeController(model: model)
+        textController = TextController(model: model)
 
         let previous = model.onChange
         model.onChange = { [weak self] doc in
@@ -101,6 +113,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         guard bounds.width > 0, bounds.height > 0 else { return }
         renderer.update(document: model.document, viewport: liveViewport ?? viewport, viewSize: viewSize, settled: settled)
         updateSelectionOverlay()
+        if settled { layoutTextEditor() }
     }
 
     // MARK: Touches
@@ -111,7 +124,9 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     /// What a touch does. Pencil (or any touch when `pencilOnly` is false) uses the active tool; with
     /// `pencilOnly` a finger selects: tap selects/clears, drag in the selection moves, drag elsewhere lassos.
     enum Interaction {
-        case ink, erase, lasso, move
+        case ink, erase, lasso, move, shape
+        /// Text tool tap; the editor opens on release.
+        case text(start: CGPoint)
         /// Finger down outside the selection; becomes a lasso once it travels, else a tap on release.
         case pending(start: CGPoint)
     }
@@ -129,7 +144,9 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             case .ink: return .ink
             case .eraser: return .erase
             case .lasso: return insideSelection ? .move : .lasso
-            default: return nil
+            case .shape: return .shape
+            case .text: return .text(start: p)
+            case .image: return nil
             }
         }
         return insideSelection ? .move : .pending(start: p)
@@ -150,6 +167,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     static let hitSlop: CGFloat = 8
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if textSession != nil {
+            endTextEditing() // tap elsewhere commits; the tap itself is consumed
+            return
+        }
         let directCount = event?.allTouches?.filter { $0.type == .direct }.count ?? 0
         if Self.shouldCancelForMultiTouch(activeIsPencil: activeTouch.map { $0.type == .pencil },
                                           newTouchIsPencil: touches.contains { $0.type == .pencil },
@@ -194,7 +215,9 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             drawLasso()
         case .move:
             beginMove(at: sample(touch).position)
-        case .pending:
+        case .shape:
+            beginShape(at: sample(touch).position, event: event)
+        case .pending, .text:
             break
         }
     }
@@ -211,6 +234,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             drawLasso()
         case .move:
             updateMove(to: sample(touch).position)
+        case .shape:
+            moveShape(to: sample(touch).position, event: event)
+        case .text:
+            break
         case .pending(let start):
             let p = location(of: touch)
             guard hypot(p.x - start.x, p.y - start.y) > Self.hitSlop else { return }
@@ -243,6 +270,11 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             finishLasso()
         case .move:
             endMove()
+        case .shape:
+            moveShape(to: sample(touch).position, event: event)
+            endShape()
+        case .text(let start):
+            beginTextEditing(at: start)
         case .pending(let start):
             tap(at: start)
         }
@@ -267,7 +299,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .erase: eraser.cancel(); renderer.hiddenIDs = []
         case .lasso: lasso.cancel(); lassoPath.clear()
         case .move: cancelMove()
-        case .pending: break
+        case .shape: cancelShape()
+        case .pending, .text: break
         }
     }
 
@@ -280,7 +313,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         lassoPath.update(lasso.points, viewport: currentViewport, viewSize: viewSize)
     }
 
-    private func location(of touch: UITouch) -> CGPoint { touch.preciseLocation(in: self) }
+    func location(of touch: UITouch) -> CGPoint { touch.preciseLocation(in: self) }
 
     func worldPoint(_ p: CGPoint) -> Vec2 {
         currentViewport.viewToWorld(Vec2(x: p.x, y: p.y), viewSize: viewSize)
