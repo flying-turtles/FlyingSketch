@@ -24,7 +24,7 @@
 - Signing: `DEVELOPMENT_TEAM: WDJPX25GFC`, bundle id `com.flyingturtle.flyingsketch`.
 - No GPL dependencies. No third-party dependencies at all in Plan 1.
 - No `.metal` files (Metal toolchain not installed).
-- License: MIT.
+- License: MIT, copyright "Lars Grof". Remote (later): `github.com/flying-turtles/FlyingSketch`.
 - World units: millimetres, `Double`. Canvas unbounded.
 - Zoom range: 0.05 … 32 (5 %–3200 %). Base mapping at zoom 1: 1 mm = `pointsPerMillimetre` = 160/25.4 pt (≈ 6.3 pt, real size on a 160 pt/inch basis).
 - Ink smoothing default: off.
@@ -59,7 +59,7 @@
 
 - [ ] **Step 1:** `Package.swift`: `// swift-tools-version: 6.2`, platforms `.iOS(.v26)`, three targets + three test targets as above, `swiftLanguageModes: [.v6]`; `CanvasUI` gets `swiftSettings: [.defaultIsolation(MainActor.self)]`.
 - [ ] **Step 2:** `project.yml`: app target `FlyingSketch` (sources `App`), local package `FlyingSketchKit`, dependencies on the three products, settings from Global Constraints, `GENERATE_INFOPLIST_FILE: YES`, `INFOPLIST_KEY_UILaunchScreen_Generation: YES`, all four iPad orientations.
-- [ ] **Step 3:** `.gitignore`: `*.xcodeproj`, `DerivedData/`, `.build/`, `.DS_Store`, `xcuserdata/`, `spikes/**/*.xcodeproj`. `LICENSE`: MIT, "Copyright (c) 2026 Lars". `README.md`: one paragraph + build steps (`xcodegen generate`, open project).
+- [ ] **Step 3:** `.gitignore`: `*.xcodeproj`, `DerivedData/`, `.build/`, `.DS_Store`, `xcuserdata/`, `spikes/**/*.xcodeproj`. `LICENSE`: MIT, "Copyright (c) 2026 Lars Grof". `README.md`: one paragraph + build steps (`xcodegen generate`, open project).
 - [ ] **Step 4:** Smoke tests: each test target has `@Test func moduleLinks() { #expect(SketchCore.version == "0.1") }` (and equivalent per module, `public enum <Module> { public static let version = "0.1" }`).
 - [ ] **Step 5:** Run the test command. Expected: 3 tests pass. Run `xcodegen generate && xcodebuild -project FlyingSketch.xcodeproj -scheme FlyingSketch -destination 'platform=iOS Simulator,id=08D1B7B4-263D-4479-8F34-C24730978306' -quiet build`. Expected: build succeeds.
 - [ ] **Step 6:** Commit: `chore: scaffold app and FlyingSketchKit package`. Also add `spikes/InkSpike` sources (not its xcodeproj) in this commit.
