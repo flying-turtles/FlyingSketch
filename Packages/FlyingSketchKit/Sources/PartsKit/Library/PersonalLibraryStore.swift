@@ -9,16 +9,21 @@ public struct LibraryPart: Hashable, Sendable {
     public var definition: PartDefinition
     public var graphic: Data
     public var source: Source
+    /// True when the part has re-editable studio files (`studio/draft.json`); set by `PersonalLibraryStore.load()`.
+    public var isEditable: Bool
 
-    public init(definition: PartDefinition, graphic: Data, source: Source) {
+    public init(definition: PartDefinition, graphic: Data, source: Source, isEditable: Bool = false) {
         self.definition = definition
         self.graphic = graphic
         self.source = source
+        self.isEditable = isEditable
     }
 }
 
 public enum PersonalLibraryError: Error, Equatable {
     case escapesRoot(String)
+    case invalidStudioFile(String)
+    case notPersonal(String)
 }
 
 /// A per-part problem found while loading; the rest of the library still loads.
@@ -122,13 +127,20 @@ public struct PersonalLibraryStore: Sendable {
             guard let graphic = try? Data(contentsOf: graphicURL) else {
                 issues.append(LoadIssue(directory: dir, reason: .missingGraphic)); continue
             }
-            parts.append(LibraryPart(definition: meta.definition, graphic: graphic, source: meta.source))
+            let editable = fm.fileExists(atPath: dir.appendingPathComponent("studio/draft.json").path)
+            parts.append(LibraryPart(definition: meta.definition, graphic: graphic, source: meta.source, isEditable: editable))
         }
         return (parts, issues)
     }
 
     /// Writes into a temp directory (outside the synced root), then swaps it in; replaces the same ID.
-    public func write(_ part: LibraryPart) throws {
+    /// `studio` files (opaque names -> bytes) go in `studio/`; nil drops any existing `studio/`.
+    public func write(_ part: LibraryPart, studio: [String: Data]? = nil) throws {
+        if let studio {
+            for name in studio.keys where !Self.isValidStudioFileName(name) {
+                throw PersonalLibraryError.invalidStudioFile(name)
+            }
+        }
         let fm = FileManager.default
         let dest = try directory(forLibraryID: part.definition.libraryID)
         try fm.createDirectory(at: rootURL, withIntermediateDirectories: true)
@@ -144,11 +156,47 @@ public struct PersonalLibraryStore: Sendable {
         try encoder.encode(meta).write(to: tmp.appendingPathComponent("part.json"), options: .atomic)
         try part.graphic.write(to: tmp.appendingPathComponent(Self.graphicFileName(part.definition.graphicKind)),
                                options: .atomic)
+        if let studio {
+            let studioDir = tmp.appendingPathComponent("studio", isDirectory: true)
+            try fm.createDirectory(at: studioDir, withIntermediateDirectories: true)
+            for (name, data) in studio { try data.write(to: studioDir.appendingPathComponent(name), options: .atomic) }
+        }
 
         if fm.fileExists(atPath: dest.path) {
             _ = try fm.replaceItemAt(dest, withItemAt: tmp)
         } else {
             try fm.moveItem(at: tmp, to: dest)
         }
+    }
+
+    private static let studioReadNames = ["draft.json", "source.png", "mask.png"]
+    private static let maxStudioFileBytes = 20 * 1024 * 1024
+
+    static func isValidStudioFileName(_ name: String) -> Bool {
+        name.range(of: "^[a-z]+\\.(json|png)$", options: .regularExpression) != nil
+    }
+
+    /// Studio files of a part; nil when absent, `draft.json` missing, or still downloading from iCloud.
+    /// An oversize (> 20 MB) file is treated as unreadable (nil).
+    public func studioFiles(forLibraryID id: String) throws -> [String: Data]? {
+        let fm = FileManager.default
+        let studioDir = try directory(forLibraryID: id).appendingPathComponent("studio", isDirectory: true)
+        var result: [String: Data] = [:]
+        for name in Self.studioReadNames {
+            let url = studioDir.appendingPathComponent(name)
+            if Self.requestDownloadIfPlaceholder(url) { return nil }
+            guard fm.fileExists(atPath: url.path) else { continue }
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            guard size <= Self.maxStudioFileBytes, let data = try? Data(contentsOf: url) else { return nil }
+            result[name] = data
+        }
+        return result["draft.json"] == nil ? nil : result
+    }
+
+    /// Removes the part's directory; a missing part is a no-op.
+    public func delete(libraryID id: String) throws {
+        let dir = try directory(forLibraryID: id)
+        guard FileManager.default.fileExists(atPath: dir.path) else { return }
+        try FileManager.default.removeItem(at: dir)
     }
 }

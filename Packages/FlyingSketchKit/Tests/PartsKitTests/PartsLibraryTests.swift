@@ -190,3 +190,58 @@ private func makePart(id: String, title: String = "Mine", family: String = "cust
         #expect(throws: (any Error).self) { try PersonalLibraryStore(rootURL: root).load() }
     }
 }
+
+@Suite struct PersonalStudioTests {
+    private let studio = ["draft.json": Data("{}".utf8), "source.png": Data([1, 2]), "mask.png": Data([3])]
+
+    @Test func studioFilesRoundTrip() throws {
+        let store = PersonalLibraryStore(rootURL: tempRoot())
+        try store.write(makePart(id: "a"), studio: studio)
+        #expect(try store.studioFiles(forLibraryID: "a") == studio)
+        #expect(try store.load().parts.first?.isEditable == true)
+        #expect(try store.studioFiles(forLibraryID: "none") == nil)
+    }
+
+    @Test func resaveWithoutStudioDropsFolder() throws {
+        let store = PersonalLibraryStore(rootURL: tempRoot())
+        try store.write(makePart(id: "a"), studio: studio)
+        try store.write(makePart(id: "a"))
+        #expect(try store.studioFiles(forLibraryID: "a") == nil)
+        #expect(try store.load().parts.first?.isEditable == false)
+    }
+
+    @Test func deleteRemovesPartAndCannotEscapeRoot() throws {
+        let root = tempRoot()
+        let store = PersonalLibraryStore(rootURL: root)
+        try store.write(makePart(id: "a"))
+        try store.delete(libraryID: "a")
+        #expect(try store.load().parts.isEmpty)
+        try store.delete(libraryID: "a")
+        try store.write(makePart(id: "b"))
+        try store.delete(libraryID: "../../b")
+        #expect(try store.load().parts.count == 1)
+    }
+
+    @Test func deleteBundledIsRejected() async throws {
+        let store = PersonalLibraryStore(rootURL: tempRoot())
+        let lib = PartsLibrary(bundledCatalogURL: catalogURL, personalStore: store)
+        let id = try #require(await lib.allParts().first { $0.source == .bundled }).definition.libraryID
+        await #expect(throws: PersonalLibraryError.notPersonal(id)) { try await lib.delete(libraryID: id) }
+        try await lib.save(makePart(id: "mine"), studio: studio)
+        #expect(await lib.allParts().first { $0.definition.libraryID == "mine" }?.isEditable == true)
+        #expect(try await lib.studioFiles(libraryID: "mine") == studio)
+        try await lib.delete(libraryID: "mine")
+        #expect(await lib.part(libraryID: "mine") == nil)
+    }
+
+    @Test func studioFileNamesAreValidated() throws {
+        let store = PersonalLibraryStore(rootURL: tempRoot())
+        #expect(throws: PersonalLibraryError.invalidStudioFile("../x.png")) {
+            try store.write(makePart(id: "a"), studio: ["../x.png": Data([1])])
+        }
+        #expect(throws: PersonalLibraryError.invalidStudioFile("Draft.json")) {
+            try store.write(makePart(id: "a"), studio: ["Draft.json": Data([1])])
+        }
+        #expect(try store.load().parts.isEmpty)
+    }
+}

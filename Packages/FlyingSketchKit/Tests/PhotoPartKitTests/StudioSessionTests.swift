@@ -1,6 +1,7 @@
 import Foundation
 import SketchCore
 import Testing
+import PartsKit
 @testable import PhotoPartKit
 
 private struct FakeCutout: CutoutProviding {
@@ -196,5 +197,19 @@ private struct SlowCutout: CutoutProviding {
         await s.runAutoCutout()
         s.chooseInstance(at: Vec2(x: 40, y: 5))  // no instance
         #expect(s.cutoutState == .choosing(count: 2) && !s.canUndoMask)
+    }
+}
+
+@Suite struct StudioCorruptFilesTests {
+    @Test func corruptStudioFilesAreNotEditable() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("StudioCorrupt-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = PersonalLibraryStore(rootURL: root)
+        let def = PartDefinition(libraryID: "p", versionHash: "h", title: "P", family: "photo", size: Vec2(x: 5, y: 5),
+                                 graphicAsset: "g.svg", graphicKind: .svg)
+        let part = LibraryPart(definition: def, graphic: Data("<svg/>".utf8), source: .personal)
+        try store.write(part, studio: ["draft.json": Data("garbage".utf8), "source.png": Data([1]), "mask.png": Data([2])])
+        let files = try #require(try store.studioFiles(forLibraryID: "p"))
+        #expect(throws: PhotoPartError.self) { try StudioFiles.decode(files) }
     }
 }
