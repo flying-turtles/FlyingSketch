@@ -37,6 +37,29 @@ import Testing
         }
     }
 
+    @Test func nonFiniteAndHugeCoordinatesDoNotTrap() throws {
+        var m = MaskBitmap(width: 100, height: 100, filled: false)
+        #expect(!m.value(at: v(.nan, 5)))
+        #expect(!m.value(at: v(1e30, 5)))
+        #expect(!m.value(at: v(5, -.infinity)))
+        m.stroke([v(.infinity, 5), v(.nan, .nan)], radius: 5, add: true)
+        #expect(m.boundingBox == nil)
+        m.stroke([v(10, 50), v(1e30, 50)], radius: 5, add: true)
+        #expect(m.value(at: v(50, 50)))
+        #expect(m.value(at: v(99, 50)))
+        #expect(!m.value(at: v(50, 70)))
+        m.stroke([v(1e30, 1e30), v(2e30, 1e30)], radius: 5, add: false)
+        #expect(m.value(at: v(50, 50)))
+        m.stroke([v(0, 0), v(1, 1)], radius: .infinity, add: true)
+        try m.fillPolygon([v(20, 20), v(1e30, 20), v(1e30, 80), v(20, 80)])
+        #expect(m.value(at: v(50, 50)))
+        #expect(m.value(at: v(99, 50)))
+        #expect(!m.value(at: v(10, 50)))
+        #expect(throws: PhotoPartError.traceTooShort) {
+            try m.fillPolygon([v(1, 1), v(.nan, 2), v(3, 3)])
+        }
+    }
+
     @Test func boundingBoxAndEmpty() {
         var m = MaskBitmap(width: 50, height: 40, filled: false)
         #expect(m.boundingBox == nil)

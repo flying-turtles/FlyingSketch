@@ -5,8 +5,8 @@ import Testing
 import UniformTypeIdentifiers
 @testable import PhotoPartKit
 
-enum Fixtures {
-    /// Left half red, right half blue... top half green, bottom half red/blue? Keep simple: per-pixel closure.
+enum PhotoFixtures {
+    /// Builds an 8-bit RGBA image, colouring each pixel via `color(x, y)`.
     static func rgbImage(width: Int, height: Int, color: (Int, Int) -> (UInt8, UInt8, UInt8)) -> CGImage {
         var px = [UInt8](repeating: 255, count: width * height * 4)
         for y in 0..<height { for x in 0..<width {
@@ -50,24 +50,24 @@ enum Fixtures {
 @Suite struct SourceImageTests {
     @Test func normalizesOrientationSizeAndFormat() throws {
         // 4000x1000 stored; top-left stored = red, bottom-left stored = blue, rest green.
-        let img = Fixtures.rgbImage(width: 4000, height: 1000) { x, y in
+        let img = PhotoFixtures.rgbImage(width: 4000, height: 1000) { x, y in
             if x < 100 && y < 100 { return (255, 0, 0) }
             if x < 100 && y >= 900 { return (0, 0, 255) }
             return (0, 255, 0)
         }
-        let jpeg = Fixtures.encode(img, type: .jpeg, orientation: 6)
+        let jpeg = PhotoFixtures.encode(img, type: .jpeg, orientation: 6)
         let loaded = try SourceImage.load(jpeg)
         #expect(loaded.pixelSize == PixelSize(width: 512, height: 2048))
         #expect(loaded.image.width == 512 && loaded.image.height == 2048)
         #expect(loaded.image.bitsPerComponent == 8)
         #expect(loaded.image.bitsPerPixel == 32)
         // Orientation 6 = rotate 90 CW: stored bottom-left ends up at top-left.
-        let p = Fixtures.pixel(loaded.image, x: 2, y: 2)
+        let p = PhotoFixtures.pixel(loaded.image, x: 2, y: 2)
         #expect(p[2] > 200 && p[0] < 60)
     }
 
     @Test func gray16PNGBecomesRGBA8() throws {
-        let loaded = try SourceImage.load(Fixtures.gray16PNG(width: 32, height: 16))
+        let loaded = try SourceImage.load(PhotoFixtures.gray16PNG(width: 32, height: 16))
         #expect(loaded.image.bitsPerComponent == 8)
         #expect(loaded.image.bitsPerPixel == 32)
         #expect(loaded.image.alphaInfo == .premultipliedLast)

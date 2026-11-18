@@ -32,20 +32,46 @@ public struct MaskBitmap: Hashable, Sendable {
     }
 
     public func value(at p: Vec2) -> Bool {
+        guard p.x.isFinite, p.y.isFinite,
+              p.x > -1, p.y > -1, p.x < Double(width), p.y < Double(height) else { return false }
         let x = Int(p.x.rounded(.down)), y = Int(p.y.rounded(.down))
         guard x >= 0, y >= 0, x < width, y < height else { return false }
         return bytes[y * width + x] != 0
     }
 
     public mutating func stroke(_ points: [Vec2], radius: Double, add: Bool) {
-        guard let first = points.first, radius > 0 else { return }
-        stamp(first, radius: radius, add: add)
-        let step = radius / 2
-        for (a, b) in zip(points, points.dropFirst()) {
-            let len = a.distance(to: b)
-            let n = max(1, Int((len / step).rounded(.up)))
-            for i in 1...n { stamp(a + (b - a) * (Double(i) / Double(n)), radius: radius, add: add) }
+        guard radius.isFinite, radius > 0 else { return }
+        let pts = points.filter { $0.x.isFinite && $0.y.isFinite }
+        guard let first = pts.first else { return }
+        let box = (minX: -radius, minY: -radius, maxX: Double(width) + radius, maxY: Double(height) + radius)
+        if first.x >= box.minX, first.x <= box.maxX, first.y >= box.minY, first.y <= box.maxY {
+            stamp(first, radius: radius, add: add)
         }
+        let step = max(radius / 2, 0.25)
+        for (a, b) in zip(pts, pts.dropFirst()) {
+            guard let (t0, t1) = Self.clip(a, b, box) else { continue }
+            let p0 = a + (b - a) * t0, p1 = a + (b - a) * t1
+            let n = max(1, Int((p0.distance(to: p1) / step).rounded(.up)))
+            for i in 0...n { stamp(p0 + (p1 - p0) * (Double(i) / Double(n)), radius: radius, add: add) }
+        }
+    }
+
+    /// Liang-Barsky: parameter range of segment a-b inside box, nil if outside.
+    private static func clip(
+        _ a: Vec2, _ b: Vec2, _ box: (minX: Double, minY: Double, maxX: Double, maxY: Double)
+    ) -> (Double, Double)? {
+        var t0 = 0.0, t1 = 1.0
+        let d = b - a
+        for (p, q) in [(-d.x, a.x - box.minX), (d.x, box.maxX - a.x), (-d.y, a.y - box.minY), (d.y, box.maxY - a.y)] {
+            if p == 0 {
+                if q < 0 { return nil }
+            } else {
+                let r = q / p
+                if p < 0 { if r > t1 { return nil }; t0 = max(t0, r) }
+                else { if r < t0 { return nil }; t1 = min(t1, r) }
+            }
+        }
+        return (t0, t1)
     }
 
     private mutating func stamp(_ c: Vec2, radius: Double, add: Bool) {
@@ -67,6 +93,7 @@ public struct MaskBitmap: Hashable, Sendable {
 
     /// Replaces the mask with the even-odd fill of `points`.
     public mutating func fillPolygon(_ points: [Vec2]) throws(PhotoPartError) {
+        let points = points.filter { $0.x.isFinite && $0.y.isFinite }
         guard points.count >= 3 else { throw .traceTooShort }
         bytes = [UInt8](repeating: 0, count: width * height)
         for y in 0..<height {
@@ -77,6 +104,7 @@ public struct MaskBitmap: Hashable, Sendable {
                 guard (a.y <= yc) != (b.y <= yc) else { continue }
                 xs.append(a.x + (yc - a.y) / (b.y - a.y) * (b.x - a.x))
             }
+            xs = xs.filter { !$0.isNaN }.map { min(max($0, -1), Double(width) + 1) }
             xs.sort()
             var i = 0
             while i + 1 < xs.count {
