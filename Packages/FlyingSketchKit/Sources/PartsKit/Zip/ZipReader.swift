@@ -133,13 +133,22 @@ public struct ZipReader: Sendable {
 
     // MARK: - Helpers
 
+    /// Byte-level check (immune to grapheme merging): rejects empty names, NUL, leading `/` or `\`,
+    /// drive-letter prefixes, and any `..` component split on either separator.
     private static func isUnsafe(_ name: String) -> Bool {
-        name.hasPrefix("/") || name.split(separator: "/", omittingEmptySubsequences: false).contains("..")
-            || name.contains("\\") && name.split(separator: "\\").contains("..")
+        let u = Array(name.utf8)
+        if u.isEmpty || u.contains(0) { return true }
+        if u[0] == 0x2F || u[0] == 0x5C { return true }
+        if u.count >= 2, u[1] == 0x3A, (u[0] | 0x20) >= 0x61, (u[0] | 0x20) <= 0x7A { return true }
+        return u.split(whereSeparator: { $0 == 0x2F || $0 == 0x5C }).contains(where: { Array($0) == [0x2E, 0x2E] })
     }
 
     private static func inflate(_ raw: Data, expected: Int) throws -> Data {
-        if expected == 0 { return Data() }
+        if expected == 0 {
+            // Only a trivial empty stream may declare size 0; anything bigger is suspect.
+            guard raw.count <= 2 else { throw ZipError.corrupt("inflate size mismatch") }
+            return Data()
+        }
         // One spare byte so an over-long stream is detected instead of silently truncated.
         let cap = expected + 1
         var dst = [UInt8](repeating: 0, count: cap)
@@ -166,8 +175,9 @@ public struct ZipReader: Sendable {
     }
 
     static func crc32(_ data: Data) -> UInt32 {
-        var c: UInt32 = 0xFFFF_FFFF
-        for b in data { c = crcTable[Int((c ^ UInt32(b)) & 0xFF)] ^ (c >> 8) }
+        let c = data.withUnsafeBytes { buf in
+            buf.reduce(UInt32(0xFFFF_FFFF)) { crcTable[Int(($0 ^ UInt32($1)) & 0xFF)] ^ ($0 >> 8) }
+        }
         return c ^ 0xFFFF_FFFF
     }
 }

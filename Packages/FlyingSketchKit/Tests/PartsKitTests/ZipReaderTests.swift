@@ -1,3 +1,4 @@
+import Compression
 import Foundation
 import Testing
 @testable import PartsKit
@@ -32,6 +33,42 @@ private func makeZip(_ items: [(name: String, data: Data, declared: UInt32?)], f
     out += le32(0x0605_4b50) + le16(0) + le16(0) + le16(items.count) + le16(items.count)
     out += le32(UInt32(central.count)) + le32(cdOffset) + le16(0)
     return out
+}
+
+private func rawDeflate(_ d: Data) -> Data {
+    var dst = [UInt8](repeating: 0, count: d.count + 4096)
+    let n = d.withUnsafeBytes { src in
+        compression_encode_buffer(&dst, dst.count, src.bindMemory(to: UInt8.self).baseAddress!, d.count, nil, COMPRESSION_ZLIB)
+    }
+    return Data(dst[0..<n])
+}
+
+/// Single-entry archive with arbitrary method/compressed bytes/declared sizes.
+private func makeRawZip(name: String = "d.bin", method: Int, comp: Data, crc: UInt32, usize: UInt32) -> Data {
+    let nm = Array(name.utf8)
+    var out = Data()
+    out += le32(0x0403_4b50) + le16(20) + le16(0) + le16(method) + le16(0) + le16(0x21)
+    out += le32(crc) + le32(UInt32(comp.count)) + le32(usize) + le16(nm.count) + le16(0) + nm + comp
+    var cd = Data()
+    cd += le32(0x0201_4b50) + le16(20) + le16(20) + le16(0) + le16(method) + le16(0) + le16(0x21)
+    cd += le32(crc) + le32(UInt32(comp.count)) + le32(usize)
+    cd += le16(nm.count) + le16(0) + le16(0) + le16(0) + le16(0) + le32(0) + le32(0) + nm
+    let off = UInt32(out.count)
+    out += cd
+    out += le32(0x0605_4b50) + le16(0) + le16(0) + le16(1) + le16(1)
+    out += le32(UInt32(cd.count)) + le32(off) + le16(0)
+    return out
+}
+
+private func mixedPayload(_ count: Int) -> Data {
+    var x: UInt32 = 12345
+    var d = Data()
+    let text = Array("<connector id=\"c1\" name=\"pin\"/>\n".utf8)
+    while d.count < count {
+        for _ in 0..<400 { x = x &* 1664525 &+ 1013904223; d.append(UInt8(x >> 24)) }
+        for _ in 0..<20 { d += text }
+    }
+    return d
 }
 
 private func patch(_ d: Data, at offset: Int, _ bytes: [UInt8]) -> Data {
@@ -99,7 +136,9 @@ private func centralHeaderOffset(_ d: Data) -> Int {
     }
 
     @Test func rejectsUnsafePaths() {
-        for bad in ["../evil", "a/../../evil", "/etc/passwd", "a/.."] {
+        let bads = ["../evil", "a/../../evil", "/etc/passwd", "a/..", "a/..\\b", "..\\x", "C:\\x", "C:/x",
+                    "\\\\srv\\x", "", "a\u{0}b", "../\u{301}evil", "/\u{301}etc", "\\evil"]
+        for bad in bads {
             let z = makeZip([(bad, Data("x".utf8), nil)])
             #expect(throws: ZipError.unsafePath(bad)) { try ZipReader(data: z) }
         }
@@ -131,7 +170,7 @@ private func centralHeaderOffset(_ d: Data) -> Int {
         // flip a byte inside the deflated payload of repeat.txt
         let local = try #require(d.range(of: Data("repeat.txt".utf8)))
         let r2 = try ZipReader(data: patch(d, at: local.upperBound + 4, [0xFF]))
-        #expect(throws: ZipError.self) { try r2.data(for: "repeat.txt") }
+        #expect(throws: ZipError.corrupt("inflate size mismatch")) { try r2.data(for: "repeat.txt") }
     }
 
     @Test func rejectsEncryptedZip64AndMethods() {
@@ -150,5 +189,36 @@ private func centralHeaderOffset(_ d: Data) -> Int {
     @Test func rejectsDuplicateNames() {
         let z = makeZip([("a", Data("x".utf8), nil), ("a", Data("y".utf8), nil)])
         #expect(throws: ZipError.corrupt("duplicate entry")) { try ZipReader(data: z) }
+    }
+
+    @Test func inflatesLargeMultiBlockStream() throws {
+        let payload = mixedPayload(300_000)
+        let comp = rawDeflate(payload)
+        #expect(comp.count < payload.count)
+        let z = makeRawZip(method: 8, comp: comp, crc: ZipReader.crc32(payload), usize: UInt32(payload.count))
+        #expect(try ZipReader(data: z).data(for: "d.bin") == payload)
+    }
+
+    @Test func rejectsDeflateSizeMismatch() throws {
+        let payload = mixedPayload(50_000)
+        let comp = rawDeflate(payload)
+        let crc = ZipReader.crc32(payload)
+        // stream decodes to MORE than declared
+        let less = try ZipReader(data: makeRawZip(method: 8, comp: comp, crc: crc, usize: UInt32(payload.count - 100)))
+        #expect(throws: ZipError.corrupt("inflate size mismatch")) { try less.data(for: "d.bin") }
+        // stream decodes to LESS than declared
+        let more = try ZipReader(data: makeRawZip(method: 8, comp: comp, crc: crc, usize: UInt32(payload.count + 100)))
+        #expect(throws: ZipError.corrupt("inflate size mismatch")) { try more.data(for: "d.bin") }
+        // garbage stream
+        let junk = try ZipReader(data: makeRawZip(method: 8, comp: Data(repeating: 0xFF, count: 40), crc: 0, usize: 100))
+        #expect(throws: ZipError.corrupt("inflate size mismatch")) { try junk.data(for: "d.bin") }
+    }
+
+    @Test func rejectsZeroSizeWithPayload() throws {
+        let comp = rawDeflate(mixedPayload(5_000))
+        let r = try ZipReader(data: makeRawZip(method: 8, comp: comp, crc: 0, usize: 0))
+        #expect(throws: ZipError.corrupt("inflate size mismatch")) { try r.data(for: "d.bin") }
+        let empty = try ZipReader(data: makeRawZip(method: 8, comp: Data(), crc: 0, usize: 0))
+        #expect(try empty.data(for: "d.bin") == Data())
     }
 }
