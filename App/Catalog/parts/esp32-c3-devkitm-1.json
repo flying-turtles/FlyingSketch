@@ -1,6 +1,25 @@
 {
   "buses" : [
-
+    [
+      "connector1",
+      "connector2"
+    ],
+    [
+      "connector12",
+      "connector13"
+    ],
+    [
+      "connector0",
+      "connector5",
+      "connector7",
+      "connector11",
+      "connector14",
+      "connector15",
+      "connector18",
+      "connector21",
+      "connector26",
+      "connector29"
+    ]
   ],
   "connectors" : [
     {
@@ -335,7 +354,7 @@
     }
   ],
   "family" : "microcontroller board (ESP32-C3)",
-  "graphicAsset" : "part-cc092049e29d3e4a.svg",
+  "graphicAsset" : "part-24306ecf6443d05a.svg",
   "graphicKind" : "svg",
   "labelPrefix" : "U",
   "libraryID" : "FlyingSketch-ESP32-C3-DevKitM-1-v1",
@@ -355,5 +374,5 @@
     "microcontroller"
   ],
   "title" : "ESP32-C3-DevKitM-1",
-  "versionHash" : "cc092049e29d3e4a"
+  "versionHash" : "24306ecf6443d05a"
 }

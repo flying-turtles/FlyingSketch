@@ -1,6 +1,15 @@
 {
   "buses" : [
-
+    [
+      "connector0",
+      "connector1"
+    ],
+    [
+      "connector21",
+      "connector22",
+      "connector42",
+      "connector43"
+    ]
   ],
   "connectors" : [
     {
@@ -489,7 +498,7 @@
     }
   ],
   "family" : "microcontroller board (ESP32-S3)",
-  "graphicAsset" : "part-4699cfa113072e16.svg",
+  "graphicAsset" : "part-1dc483a42fef94d1.svg",
   "graphicKind" : "svg",
   "labelPrefix" : "U",
   "libraryID" : "FlyingSketch-ESP32-S3-DevKitC-1-v1.1",
@@ -509,5 +518,5 @@
     "microcontroller"
   ],
   "title" : "ESP32-S3-DevKitC-1",
-  "versionHash" : "4699cfa113072e16"
+  "versionHash" : "1dc483a42fef94d1"
 }

@@ -378,4 +378,16 @@
       </views>
     </connector>
   </connectors>
+  <buses>
+    <bus id="bus0">
+      <nodeMember connectorId="connector0"/>
+      <nodeMember connectorId="connector1"/>
+    </bus>
+    <bus id="bus1">
+      <nodeMember connectorId="connector21"/>
+      <nodeMember connectorId="connector22"/>
+      <nodeMember connectorId="connector42"/>
+      <nodeMember connectorId="connector43"/>
+    </bus>
+  </buses>
 </module>

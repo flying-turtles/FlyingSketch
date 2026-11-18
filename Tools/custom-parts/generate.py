@@ -114,6 +114,8 @@ def board(b):
         svg += [f'<rect x="{num(x - 3.9)}" y="{num(H - 5.6)}" width="7.8" height="5.8" fill="#c0c4c8" stroke="#808488" stroke-width="0.1"/>',
                 f'<text x="{num(x)}" y="{num(H - 6.2)}" font-family="Helvetica" font-size="1.0" text-anchor="middle" fill="#ffffff">{name}</text>']
     connectors, n = [], 0
+    # Pins tied together on the PCB: every ground pin (type G, named G or GND), every 3V3, every 5V -> one bus each.
+    rails = {}
     for header, x, anchor, tx in (("J1", XL, "start", XL + 1.3), ("J3", XR, "end", XR - 1.3)):
         for i, pin in enumerate(table["headers"][header]):
             y = b["pin1_y"] + i * PITCH
@@ -122,6 +124,9 @@ def board(b):
                     f'<text x="{num(tx)}" y="{num(y + 0.38)}" font-family="Helvetica" font-size="1.05" text-anchor="{anchor}" fill="#ffffff">{escape(pin["name"])}</text>']
             connectors.append((f"connector{n}", pin["name"], f'{header} pin {i + 1}: {pin["function"]}', f"connector{n}pin",
                                ROLE_FOR_TYPE[pin["type"]]))
+            rail = "GND" if pin["type"] == "G" else pin["name"] if pin["name"] in ("3V3", "5V") else None
+            if rail:
+                rails.setdefault(rail, []).append(f"connector{n}")
             n += 1
     svg += ["</g>", "</svg>"]
     d = os.path.join(OUT, b["id"])
@@ -132,7 +137,8 @@ def board(b):
         f'Header pin names and types follow the Espressif user guide: {table["source"]}',
         [b["chip"], "ESP32", "Espressif", "microcontroller"],
         [("family", b["family"]), ("variant", table["revision"]), ("module", b["module_name"])],
-        f'breadboard/{b["id"]}.svg', connectors))
+        f'breadboard/{b["id"]}.svg', connectors,
+        buses=[members for _, members in sorted(rails.items()) if len(members) > 1]))
 
 
 def pushbutton():

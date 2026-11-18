@@ -266,4 +266,26 @@
       </views>
     </connector>
   </connectors>
+  <buses>
+    <bus id="bus0">
+      <nodeMember connectorId="connector1"/>
+      <nodeMember connectorId="connector2"/>
+    </bus>
+    <bus id="bus1">
+      <nodeMember connectorId="connector12"/>
+      <nodeMember connectorId="connector13"/>
+    </bus>
+    <bus id="bus2">
+      <nodeMember connectorId="connector0"/>
+      <nodeMember connectorId="connector5"/>
+      <nodeMember connectorId="connector7"/>
+      <nodeMember connectorId="connector11"/>
+      <nodeMember connectorId="connector14"/>
+      <nodeMember connectorId="connector15"/>
+      <nodeMember connectorId="connector18"/>
+      <nodeMember connectorId="connector21"/>
+      <nodeMember connectorId="connector26"/>
+      <nodeMember connectorId="connector29"/>
+    </bus>
+  </buses>
 </module>

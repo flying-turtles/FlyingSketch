@@ -108,6 +108,21 @@ private func part(_ id: String) throws -> PartDefinition {
         #expect(abs(j1[0].position.y - j3[0].position.y) < 0.01)
     }
 
+    /// Same-named power / ground header pins are tied on the PCB: each such name group is exactly one bus.
+    @Test(arguments: ["esp32-s3-devkitc-1", "esp32-c3-devkitm-1"])
+    func esp32PowerAndGroundPinsAreBused(id: String) throws {
+        let def = try part(id)
+        let groups = Dictionary(grouping: def.connectors.filter { $0.role == .power || $0.role == .ground }, by: \.name)
+        #expect(groups.keys.contains("3V3"))
+        for (name, pins) in groups where pins.count > 1 {
+            let ids = Set(pins.map(\.id))
+            let containing = def.buses.filter { !Set($0).isDisjoint(with: ids) }
+            #expect(containing.count == 1, "\(id) \(name): \(containing.count) buses")
+            #expect(Set(containing.first ?? []) == ids, "\(id) \(name)")
+        }
+        #expect(def.buses.allSatisfy { $0.count > 1 })
+    }
+
     @Test func pushbuttonPlugsAllFourLegsIntoFullBreadboard() throws {
         let board = try part("breadboard-full")
         let button = try part("pushbutton")
