@@ -1,4 +1,5 @@
 import Testing
+import SketchCore
 @testable import CanvasUI
 
 @Test @MainActor func fingersNeverCancelActivePencil() {
@@ -30,4 +31,30 @@ import Testing
     #expect(!CanvasView.togglesEraser(for: .ignore))
     #expect(!CanvasView.togglesEraser(for: .showColorPalette))
     #expect(!CanvasView.togglesEraser(for: .showInkAttributes))
+}
+
+@Test @MainActor func undoRedoTapsIgnoredDuringSingleTouchInteraction() {
+    let stroke = SceneObject.ink(InkStroke(points: [InkPoint(position: .zero, pressure: 0.5, time: 0)],
+                                           tool: .pen, baseWidth: 0.5))
+    let m = DocumentModel(document: .empty)
+    let v = CanvasView(model: m)
+    m.perform(.insert([stroke], at: nil), actionName: "Draw")
+    let busy: [CanvasView.Interaction] = [.ink, .erase, .lasso, .move, .shape, .wire, .wireEnd,
+                                          .leg(ConnectorRef(part: stroke.id, connector: "a"))]
+    for kind in busy {
+        v.interaction = kind
+        v.handleUndoTap()
+        #expect(m.document.objects == [stroke], "\(kind)")
+    }
+    v.interaction = nil
+    v.handleUndoTap()
+    #expect(m.document.objects.isEmpty)
+    for kind in busy {
+        v.interaction = kind
+        v.handleRedoTap()
+        #expect(m.document.objects.isEmpty, "\(kind)")
+    }
+    v.interaction = nil
+    v.handleRedoTap()
+    #expect(m.document.objects == [stroke])
 }

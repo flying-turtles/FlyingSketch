@@ -145,15 +145,24 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         addInteraction(UIPencilInteraction(delegate: self))
     }
 
+    /// Undo/redo taps are ignored while a single-touch interaction (typically the Pencil, which fingers never
+    /// cancel) is editing: undoing under a live move/leg drag/lasso/erase/shape/ink/wire would desync it.
+    static func allowsUndoTap(during interaction: Interaction?) -> Bool {
+        switch interaction {
+        case nil, .pending, .text, .ignored: true
+        case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd: false
+        }
+    }
+
     @objc func handleUndoTap() {
-        guard liveViewport == nil, activeGestures == 0 else { return }
+        guard liveViewport == nil, activeGestures == 0, Self.allowsUndoTap(during: interaction) else { return }
         // An open wire is finished (free end) instead of undone.
         if wires.isOpen { endWireSession(); return }
         if model.undoManager.canUndo { model.undoManager.undo() }
     }
 
-    @objc private func handleRedoTap() {
-        guard liveViewport == nil, activeGestures == 0 else { return }
+    @objc func handleRedoTap() {
+        guard liveViewport == nil, activeGestures == 0, Self.allowsUndoTap(during: interaction) else { return }
         if model.undoManager.canRedo { model.undoManager.redo() }
     }
 
