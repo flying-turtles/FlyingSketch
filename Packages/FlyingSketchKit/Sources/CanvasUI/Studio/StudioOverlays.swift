@@ -19,10 +19,13 @@ struct OverlayDrag {
     let start: CGPoint
     let startDraft: PhotoPartDraft
     let startPendingA: Vec2?
+    /// Marker centre minus touch start (view pt), so a dragged marker keeps its grab offset.
+    var grabOffset: CGPoint = .zero
     var moved = false
 }
 
-/// Crop, calibration and pin layers in view space, rebuilt from scratch on every layout.
+/// Crop, calibration and pin layers in view space. Layers are reused; paths and frames are
+/// recomputed on every layout.
 final class StudioOverlayLayers {
     static let handleRadius: CGFloat = 8
     static let calibrationRadius: CGFloat = 8
@@ -34,6 +37,8 @@ final class StudioOverlayLayers {
     private let calibration = CAShapeLayer()
     private var pinMarkers: [CAShapeLayer] = []
     private var pinLabels: [CATextLayer] = []
+    private var pinCrosses: [CAShapeLayer] = []
+    private var labelSizes: [String: CGSize] = [:]
 
     struct PinStyle {
         var center: CGPoint
@@ -98,29 +103,38 @@ final class StudioOverlayLayers {
 
     func showPins(_ pins: [PinStyle], scale: CGFloat) {
         while pinMarkers.count < pins.count {
-            let m = CAShapeLayer(), t = CATextLayer()
-            t.font = Self.labelFont
+            let m = CAShapeLayer(), t = CATextLayer(), x = CAShapeLayer()
+            t.font = Self.labelFont as CTFont
             t.fontSize = Self.labelFont.pointSize
             t.foregroundColor = UIColor.white.cgColor
             t.backgroundColor = UIColor.black.withAlphaComponent(0.55).cgColor
             t.cornerRadius = 3
             t.alignmentMode = .center
+            x.fillColor = nil
+            x.strokeColor = UIColor.systemRed.cgColor
+            x.lineWidth = 2.5
+            x.lineCap = .round
             layer.addSublayer(m)
+            layer.addSublayer(x)
             layer.addSublayer(t)
             pinMarkers.append(m)
+            pinCrosses.append(x)
             pinLabels.append(t)
         }
-        for (i, (m, t)) in zip(pinMarkers, pinLabels).enumerated() {
-            guard i < pins.count else { m.isHidden = true; t.isHidden = true; continue }
+        for i in pinMarkers.indices {
+            let m = pinMarkers[i], x = pinCrosses[i], t = pinLabels[i]
+            guard i < pins.count else { m.isHidden = true; x.isHidden = true; t.isHidden = true; continue }
             let pin = pins[i]
             m.isHidden = false
             t.isHidden = false
             m.path = Self.circle(pin.center, pin.radius).cgPath
-            m.fillColor = (pin.outOfBounds ? UIColor.systemRed : pin.color).withAlphaComponent(0.85).cgColor
+            // Out of bounds: faint fill, red ring and red X (distinct from a solid red power pin).
+            m.fillColor = pin.color.withAlphaComponent(pin.outOfBounds ? 0.3 : 0.85).cgColor
             m.strokeColor = (pin.selected ? UIColor.systemYellow : pin.outOfBounds ? UIColor.systemRed : .white).cgColor
             m.lineWidth = pin.selected ? 3 : 1.5
-            m.lineDashPattern = pin.outOfBounds && !pin.selected ? [3, 2] : nil
-            let size = (pin.name as NSString).size(withAttributes: [.font: Self.labelFont])
+            x.isHidden = !pin.outOfBounds
+            if pin.outOfBounds { x.path = Self.cross(pin.center, pin.radius * 0.75).cgPath }
+            let size = labelSize(pin.name)
             t.string = pin.name
             t.contentsScale = scale
             t.frame = CGRect(x: pin.center.x + pin.radius + 4, y: pin.center.y - (size.height + 2) / 2,
@@ -139,6 +153,22 @@ final class StudioOverlayLayers {
         case .uart: .systemTeal
         case .other, nil: .systemGray
         }
+    }
+
+    private func labelSize(_ name: String) -> CGSize {
+        if let s = labelSizes[name] { return s }
+        let s = (name as NSString).size(withAttributes: [.font: Self.labelFont])
+        labelSizes[name] = s
+        return s
+    }
+
+    private static func cross(_ c: CGPoint, _ h: CGFloat) -> UIBezierPath {
+        let p = UIBezierPath()
+        p.move(to: CGPoint(x: c.x - h, y: c.y - h))
+        p.addLine(to: CGPoint(x: c.x + h, y: c.y + h))
+        p.move(to: CGPoint(x: c.x + h, y: c.y - h))
+        p.addLine(to: CGPoint(x: c.x - h, y: c.y + h))
+        return p
     }
 
     private static func circle(_ c: CGPoint, _ r: CGFloat) -> UIBezierPath {
@@ -194,11 +224,18 @@ extension StudioCanvasView {
 
     // MARK: Hit-testing
 
+    /// 22 pt, shrunk to a third of the on-screen shorter crop side so a small crop stays movable.
+    var cropCornerHitRadius: CGFloat {
+        let crop = session.draft.crop, t = sourceToView
+        let side = CGFloat(min(crop.size.x, crop.size.y)) * hypot(t.a, t.b)
+        return min(Self.handleHitRadius, side / 3)
+    }
+
     private func cropCornerHit(_ p: CGPoint) -> Vec2? {
-        let crop = session.draft.crop
+        let crop = session.draft.crop, r = cropCornerHitRadius
         return Self.cornerSigns
             .map { ($0, dist(toView(cropCorner($0, of: crop)), p)) }
-            .filter { $0.1 <= Self.handleHitRadius }
+            .filter { $0.1 <= r }
             .min { $0.1 < $1.1 }?.0
     }
 
@@ -245,8 +282,15 @@ extension StudioCanvasView {
         case .view, .brush, .trace, .chooseInstance:
             return false
         }
-        overlayDrag = OverlayDrag(target: target, start: p, startDraft: session.draft,
-                                  startPendingA: pendingCalibrationA)
+        var drag = OverlayDrag(target: target, start: p, startDraft: session.draft,
+                               startPendingA: pendingCalibrationA)
+        let grabbed: Vec2? = switch target {
+        case let .calibration(i): calibrationPoints[i]
+        case let .pin(id): session.draft.pins.first { $0.id == id }?.position
+        default: nil
+        }
+        if let g = grabbed.map(toView) { drag.grabOffset = CGPoint(x: g.x - p.x, y: g.y - p.y) }
+        overlayDrag = drag
         return true
     }
 
@@ -256,6 +300,7 @@ extension StudioCanvasView {
         drag.moved = true
         overlayDrag = drag
         let start = drag.startDraft.crop
+        let grabbed = CGPoint(x: p.x + drag.grabOffset.x, y: p.y + drag.grabOffset.y)
         switch drag.target {
         case let .cropCorner(sign):
             let delta = (toSource(p) - toSource(drag.start)).rotated(by: -start.angle)
@@ -266,9 +311,9 @@ extension StudioCanvasView {
         case .cropMove:
             session.draft.crop.center = start.center + toSource(p) - toSource(drag.start)
         case let .calibration(i):
-            setCalibrationPoint(i, toSource(p))
+            setCalibrationPoint(i, toSource(grabbed))
         case let .pin(id):
-            session.draft.movePin(id, toOutput: toOutput(p))
+            session.draft.movePin(id, toOutput: toOutput(grabbed))
         case .empty:
             break
         }

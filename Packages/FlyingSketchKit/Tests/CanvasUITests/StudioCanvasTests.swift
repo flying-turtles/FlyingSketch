@@ -221,7 +221,7 @@ private struct FakeCutout: CutoutProviding {
         #expect(s.draft.scale == .twoPoints(Vec2(x: 50, y: 50), Vec2(x: 140, y: 60), mm: 2.54))
 
         s.draft.scale = .twoPoints(Vec2(x: 50, y: 50), Vec2(x: 140, y: 60), mm: 5)
-        Self.drag(v, [CGPoint(x: 103, y: 198), CGPoint(x: 115, y: 200), CGPoint(x: 120, y: 200)]) // drag A marker
+        Self.drag(v, [CGPoint(x: 100, y: 200), CGPoint(x: 115, y: 200), CGPoint(x: 120, y: 200)]) // drag A marker
         #expect(s.draft.scale == .twoPoints(Vec2(x: 60, y: 50), Vec2(x: 140, y: 60), mm: 5))
     }
 
@@ -274,6 +274,36 @@ private struct FakeCutout: CutoutProviding {
         Self.tap(v, CGPoint(x: 300, y: 200)) // empty space adds
         #expect(s.draft.pins.count == 2)
         #expect(selected == [id, id])
+    }
+
+    @Test func markerDragsKeepGrabOffset() {
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout())
+        s.draft.gridSnap = false
+        s.draft.addPin(atOutput: Vec2(x: 50, y: 50)) // view (100, 200)
+        s.draft.scale = .twoPoints(Vec2(x: 150, y: 20), Vec2(x: 150, y: 80), mm: 5) // view (300, 140), (300, 260)
+        let v = Self.canvas(s, mode: .pins)
+        // Grab 10 pt right of the pin; just past the threshold it must not jump to the finger.
+        Self.drag(v, [CGPoint(x: 110, y: 200), CGPoint(x: 115, y: 200)])
+        #expect(Self.closeV(s.draft.pins[0].position, Vec2(x: 52.5, y: 50)))
+
+        v.mode = .calibrate
+        Self.drag(v, [CGPoint(x: 290, y: 150), CGPoint(x: 290, y: 170)]) // grab A from 10 pt left/below, move down 20 pt
+        #expect(s.draft.scale == .twoPoints(Vec2(x: 150, y: 30), Vec2(x: 150, y: 80), mm: 5))
+    }
+
+    @Test func smallCropShrinksCornerHitSoInsideDragWorks() {
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout())
+        s.draft.crop = CropSpec(center: Vec2(x: 100, y: 50), size: Vec2(x: 20, y: 20)) // 40 pt on screen
+        let v = Self.canvas(s, mode: .crop)
+        #expect(abs(v.cropCornerHitRadius - 40.0 / 3) < 1e-9)
+        // 21 pt from the bottom-right corner (220, 220): a corner hit at 22 pt, inside at 13.3 pt.
+        Self.drag(v, [CGPoint(x: 205, y: 205), CGPoint(x: 215, y: 205)])
+        #expect(Self.closeV(s.draft.crop.center, Vec2(x: 105, y: 50)))
+        #expect(Self.closeV(s.draft.crop.size, Vec2(x: 20, y: 20)))
+        // Near the corner still resizes.
+        Self.drag(v, [CGPoint(x: 228, y: 218), CGPoint(x: 238, y: 228)])
+        #expect(Self.closeV(s.draft.crop.size, Vec2(x: 30, y: 30)))
+        #expect(abs(v.cropCornerHitRadius - 20) < 1e-9) // 60 pt / 3
     }
 
     @Test func inputControllerDropsClosePointsAndMaps() {
