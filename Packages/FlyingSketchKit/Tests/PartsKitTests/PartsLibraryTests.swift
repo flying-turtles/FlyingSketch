@@ -254,3 +254,16 @@ private func makePart(id: String, title: String = "Mine", family: String = "cust
         #expect(try store.load().parts.isEmpty)
     }
 }
+
+/// Device roots live under `/private/var/…`; standardizing an existing path drops `/private`,
+/// a not-yet-existing child keeps it. Writes must still work.
+@Test func writeWorksUnderPrivateSymlinkedRoot() throws {
+    let root = URL(fileURLWithPath: "/private/tmp/PartsLibraryTests-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let store = PersonalLibraryStore(rootURL: root)
+    try store.write(makePart(id: "photo-abc"))
+    #expect(try store.load().parts.map(\.definition.libraryID) == ["photo-abc"])
+    try store.delete(libraryID: "photo-abc")
+    #expect(try store.load().parts.isEmpty)
+}

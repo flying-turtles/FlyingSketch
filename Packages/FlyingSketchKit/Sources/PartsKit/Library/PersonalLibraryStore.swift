@@ -73,14 +73,15 @@ public struct PersonalLibraryStore: Sendable {
     static func graphicFileName(_ kind: GraphicKind) -> String { "graphic." + kind.rawValue }
 
     /// Directory for a part, verified to stay inside the root.
+    /// Checks the single path component instead of comparing standardized paths: standardizing drops
+    /// `/private` from existing paths only (device roots are under `/private/var/…`), so a prefix check
+    /// on a not-yet-created child wrongly fails.
     func directory(forLibraryID id: String) throws -> URL {
-        let dir = rootURL.appendingPathComponent(Self.directoryName(forLibraryID: id), isDirectory: true)
-            .standardizedFileURL
-        let rootPath = rootURL.standardizedFileURL.path
-        guard dir.path.hasPrefix(rootPath.hasSuffix("/") ? rootPath : rootPath + "/") else {
+        let name = Self.directoryName(forLibraryID: id)
+        guard !name.isEmpty, name != ".", name != "..", !name.contains("/") else {
             throw PersonalLibraryError.escapesRoot(id)
         }
-        return dir
+        return rootURL.appendingPathComponent(name, isDirectory: true)
     }
 
     private struct Meta: Codable {
