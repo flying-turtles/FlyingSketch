@@ -7,12 +7,14 @@ let package = Package(
     products: [
         .library(name: "SketchCore", targets: ["SketchCore"]),
         .library(name: "NetKit", targets: ["NetKit"]),
+        .library(name: "PartsKit", targets: ["PartsKit"]),
         .library(name: "InkEngine", targets: ["InkEngine"]),
         .library(name: "CanvasUI", targets: ["CanvasUI"]),
     ],
     targets: [
         .target(name: "SketchCore"),
         .target(name: "NetKit", dependencies: ["SketchCore"]),
+        .target(name: "PartsKit", dependencies: ["SketchCore"]),
         .target(name: "InkEngine", dependencies: ["SketchCore"]),
         .target(
             name: "CanvasUI",
@@ -21,6 +23,11 @@ let package = Package(
         ),
         .testTarget(name: "SketchCoreTests", dependencies: ["SketchCore"]),
         .testTarget(name: "NetKitTests", dependencies: ["NetKit", "SketchCore"]),
+        .testTarget(
+            name: "PartsKitTests",
+            dependencies: ["PartsKit"],
+            resources: [.copy("Fixtures")]
+        ),
         .testTarget(name: "InkEngineTests", dependencies: ["InkEngine"]),
         .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI"]),
     ],
