@@ -141,3 +141,31 @@ private func pngData(width: Int, height: Int) -> Data {
     #expect(v.insertImage(pngData(width: 50, height: 50)))
     #expect(v.selection.ids == [m.document.objects[0].id])
 }
+
+@Test @MainActor func rightOrientedImageStoredUpright() throws {
+    let raw = UIImage(data: pngData(width: 200, height: 100))!
+    let rotated = UIImage(cgImage: raw.cgImage!, scale: 1, orientation: .right) // displays 100 x 200
+    let m = DocumentModel(document: .empty)
+    let jpeg = try #require(rotated.jpegData(compressionQuality: 1))
+    #expect(ImagePlacement.insert(jpeg, into: m, at: .zero))
+    guard case .image(let i) = m.document.objects[0] else { Issue.record("image"); return }
+    let storedData = try #require(m.document.assets[i.assetName])
+    let stored = try #require(UIImage(data: storedData))
+    #expect(abs(i.frame.size.y / i.frame.size.x - 2) < 1e-6)
+    #expect(abs(stored.size.height * stored.scale / (stored.size.width * stored.scale) - 2) < 0.01)
+}
+
+@Test @MainActor func largeImageCappedTo4096() throws {
+    let m = DocumentModel(document: .empty)
+    #expect(ImagePlacement.insert(pngData(width: 6000, height: 1500), into: m, at: .zero))
+    guard case .image(let i) = m.document.objects[0] else { Issue.record("image"); return }
+    let storedData = try #require(m.document.assets[i.assetName])
+    let stored = try #require(UIImage(data: storedData))
+    #expect(stored.size.width * stored.scale == 4096 && stored.size.height * stored.scale == 1024)
+}
+
+@Test @MainActor func textBackingStoreScaleIsCapped() {
+    #expect(CALayerObjectFactory.cappedContentsScale(width: 100, height: 50, screenScale: 2) == 2)
+    let s = CALayerObjectFactory.cappedContentsScale(width: 7200, height: 1200, screenScale: 2)
+    #expect(7200 * s <= 4096 && 1200 * s <= 4096 && s < 2)
+}

@@ -1,9 +1,12 @@
 import Foundation
 
-/// Approximate text frame (renderer may refine later): width = fontSize * 0.6 * character count,
-/// height = fontSize * 1.2, `position` is the top-left, rotated by `rotation` around `position`.
-private func textFrame(_ t: TextObject) -> Rect {
-    Rect(origin: t.position, size: Vec2(x: t.fontSize * 0.6 * Double(t.text.count), y: t.fontSize * 1.2))
+/// Approximate text frame (renderer may refine later): split on newlines; width = fontSize * 0.6 * longest
+/// line's character count, height = lines * fontSize * 1.2. `position` is the top-left, rotated around `position`.
+func textFrame(_ t: TextObject) -> Rect {
+    let lines = t.text.split(separator: "\n", omittingEmptySubsequences: false)
+    let longest = lines.map(\.count).max() ?? 0
+    return Rect(origin: t.position, size: Vec2(x: t.fontSize * 0.6 * Double(longest),
+                                               y: t.fontSize * 1.2 * Double(max(lines.count, 1))))
 }
 
 private func corners(_ r: Rect) -> [Vec2] {

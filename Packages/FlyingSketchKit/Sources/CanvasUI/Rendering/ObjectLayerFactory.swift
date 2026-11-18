@@ -118,12 +118,21 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         layer.compositingFilter = nil
     }
 
+    /// Max backing-store edge (px) for one text layer; extreme zoom blurs instead of exhausting memory.
+    static let maxBackingEdge: CGFloat = 4096
+
+    static func cappedContentsScale(width: CGFloat, height: CGFloat, screenScale: CGFloat) -> CGFloat {
+        guard width > 0, height > 0 else { return screenScale }
+        return min(screenScale, maxBackingEdge / width, maxBackingEdge / height)
+    }
+
     private func updateText(_ layer: CALayer, _ t: TextObject, _ vp: Viewport, _ size: Vec2) {
         guard let layer = layer as? CATextLayer else { return }
         let fontSize = t.fontSize * mm(vp)
         let font = UIFont(name: "Helvetica", size: fontSize) ?? .systemFont(ofSize: fontSize)
         let measured = (t.text as NSString).size(withAttributes: [.font: font])
-        layer.contentsScale = screenScale
+        let width = ceil(measured.width) + 2, height = ceil(measured.height) + 2
+        layer.contentsScale = Self.cappedContentsScale(width: width, height: height, screenScale: screenScale)
         layer.string = t.text
         layer.font = "Helvetica" as CFString
         layer.fontSize = fontSize
@@ -131,7 +140,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         layer.alignmentMode = .left
         layer.isWrapped = false
         layer.anchorPoint = .zero
-        layer.bounds = CGRect(x: 0, y: 0, width: ceil(measured.width) + 2, height: ceil(measured.height) + 2)
+        layer.bounds = CGRect(x: 0, y: 0, width: width, height: height)
         layer.position = pt(t.position, vp, size)
         layer.transform = CATransform3DMakeRotation(t.rotation, 0, 0, 1)
     }

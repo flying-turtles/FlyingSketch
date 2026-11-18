@@ -16,3 +16,18 @@ import Testing
     #expect(CanvasView.shouldCancelForMultiTouch(activeIsPencil: nil, newTouchIsPencil: false, directTouchCount: 2))
     #expect(!CanvasView.shouldCancelForMultiTouch(activeIsPencil: false, newTouchIsPencil: false, directTouchCount: 1))
 }
+
+@Test @MainActor func pencilPreemptsActiveFingerOnly() {
+    #expect(CanvasView.pencilPreemptsFinger(activeIsPencil: false, newTouchIsPencil: true))
+    #expect(!CanvasView.pencilPreemptsFinger(activeIsPencil: true, newTouchIsPencil: true))
+    #expect(!CanvasView.pencilPreemptsFinger(activeIsPencil: nil, newTouchIsPencil: true))
+    #expect(!CanvasView.pencilPreemptsFinger(activeIsPencil: false, newTouchIsPencil: false))
+}
+
+@Test @MainActor func onlySwitchActionsToggleEraser() {
+    #expect(CanvasView.togglesEraser(for: .switchEraser))
+    #expect(CanvasView.togglesEraser(for: .switchPrevious))
+    #expect(!CanvasView.togglesEraser(for: .ignore))
+    #expect(!CanvasView.togglesEraser(for: .showColorPalette))
+    #expect(!CanvasView.togglesEraser(for: .showInkAttributes))
+}

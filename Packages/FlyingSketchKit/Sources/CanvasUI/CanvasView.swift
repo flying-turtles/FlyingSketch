@@ -58,6 +58,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     public var showsGrid: Bool = true {
         didSet {
+            guard showsGrid != oldValue else { return }
             renderer.showsGrid = showsGrid
             render(settled: true)
         }
@@ -192,6 +193,11 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         return directTouchCount > 1
     }
 
+    /// A Pencil touch-down while a finger interaction (palm, tap, lasso) is active takes over: the finger one is cancelled.
+    static func pencilPreemptsFinger(activeIsPencil: Bool?, newTouchIsPencil: Bool) -> Bool {
+        newTouchIsPencil && activeIsPencil == false
+    }
+
     static let hitSlop: CGFloat = 8
     /// Max travel (pt) for a text-tool touch to count as a tap.
     static let textTapSlop: CGFloat = 4
@@ -202,6 +208,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             return
         }
         let directCount = event?.allTouches?.filter { $0.type == .direct }.count ?? 0
+        if Self.pencilPreemptsFinger(activeIsPencil: activeTouch.map { $0.type == .pencil },
+                                     newTouchIsPencil: touches.contains { $0.type == .pencil }) {
+            cancelInteraction() // no edit; feedback restored, then the Pencil interaction starts below
+        }
         if Self.shouldCancelForMultiTouch(activeIsPencil: activeTouch.map { $0.type == .pencil },
                                           newTouchIsPencil: touches.contains { $0.type == .pencil },
                                           directTouchCount: directCount) {
@@ -421,7 +431,14 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
 extension CanvasView: UIPencilInteractionDelegate {
     public func pencilInteraction(_ interaction: UIPencilInteraction, didReceiveTap tap: UIPencilInteraction.Tap) {
-        if UIPencilInteraction.preferredTapAction == .ignore { return }
+        guard Self.togglesEraser(for: UIPencilInteraction.preferredTapAction) else { return }
         onPencilDoubleTap?()
+    }
+}
+
+extension CanvasView {
+    /// Only the system's "switch eraser" / "switch previous" preferences map to the eraser toggle.
+    static func togglesEraser(for action: UIPencilPreferredAction) -> Bool {
+        action == .switchEraser || action == .switchPrevious
     }
 }

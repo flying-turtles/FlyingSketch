@@ -40,3 +40,16 @@ private func r(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> Rect {
     #expect(idx.query(r(70, 0, 1, 1)) == [a])
     #expect(idx.query(r(0, 100, 5, 5)).isEmpty)
 }
+
+@Test func spatialIndexHugeBoundsDoNotTrap() {
+    var idx = SpatialIndex(cellSize: 50)
+    let a = ObjectID.new(), b = ObjectID.new(), c = ObjectID.new()
+    idx.insert(a, bounds: r(-1e300, -1e300, 2e300, 2e300))
+    idx.insert(b, bounds: r(0, 0, 1e9, 10))
+    idx.insert(c, bounds: r(5, 5, 1, 1))
+    #expect(idx.query(r(5, 5, 1, 1)) == [a, b, c])
+    #expect(idx.query(r(5e8, 0, 1, 1)) == [a, b])
+    #expect(idx.query(r(-1e300, -1e300, 2e300, 2e300)).count == 3)
+    idx.remove(a)
+    #expect(idx.query(r(5, 5, 1, 1)) == [b, c])
+}

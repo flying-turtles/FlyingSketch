@@ -49,11 +49,34 @@ public enum DocumentPackage {
             throw DocumentError.corrupt(String(describing: error))
         }
 
+        try validate(body.objects, body.viewport)
+
         var assets: [String: Data] = [:]
         for (name, w) in wrapper.fileWrappers?[assetsName]?.fileWrappers ?? [:] {
             if let data = w.regularFileContents { assets[name] = data }
         }
         return SketchDocument(formatVersion: body.formatVersion, objects: body.objects,
                               viewport: body.viewport, assets: assets)
+    }
+
+    /// Rejects values that would trap or exhaust memory downstream (index cells, layer sizes).
+    private static let maxCoordinate = 1e7
+
+    private static func validate(_ objects: [SceneObject], _ viewport: Viewport) throws {
+        func coord(_ v: Double) -> Bool { v.isFinite && abs(v) <= maxCoordinate }
+        func vec(_ p: Vec2) -> Bool { coord(p.x) && coord(p.y) }
+        func size(_ v: Double) -> Bool { v.isFinite && v >= 0 && v <= maxCoordinate }
+        for o in objects {
+            let ok: Bool
+            switch o {
+            case .ink(let s): ok = s.points.allSatisfy { vec($0.position) } && size(s.baseWidth)
+            case .shape(let s): ok = vec(s.start) && vec(s.end) && size(s.lineWidth)
+            case .text(let t): ok = vec(t.position) && size(t.fontSize) && t.rotation.isFinite
+            case .image(let i):
+                ok = vec(i.frame.origin) && size(i.frame.size.x) && size(i.frame.size.y) && i.rotation.isFinite
+            }
+            if !ok { throw DocumentError.corrupt("object \(o.id) has an out-of-range coordinate or size") }
+        }
+        if !vec(viewport.center) { throw DocumentError.corrupt("viewport centre out of range") }
     }
 }

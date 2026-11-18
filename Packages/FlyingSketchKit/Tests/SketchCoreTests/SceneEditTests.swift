@@ -100,3 +100,14 @@ private func ids(_ doc: SketchDocument) -> [ObjectID] { doc.objects.map(\.id) }
     #expect(seen == v)
     #expect(!model.undoManager.canUndo)
 }
+
+@MainActor @Test func noOpEditsRegisterNothing() {
+    let m = DocumentModel(document: .fixtureThreeStrokes())
+    var fired = 0
+    m.onChange = { _ in fired += 1 }
+    m.perform(.remove([ObjectID.new()]), actionName: "x")
+    m.perform(.replace([]), actionName: "x")
+    m.perform(.insert([], at: nil), actionName: "x")
+    m.perform(.replace([m.document.objects[0]]), actionName: "x")
+    #expect(fired == 0 && !m.undoManager.canUndo)
+}

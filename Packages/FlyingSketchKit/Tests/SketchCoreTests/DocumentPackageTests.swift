@@ -62,3 +62,17 @@ import Testing
     let r = Rect.bounding(pts)!
     #expect(abs((r.minX + r.maxX) / 2) < 1 && abs((r.minY + r.maxY) / 2) < 1)
 }
+
+@Test func rejectsAbsurdCoordinates() {
+    func wrapper(_ obj: String, center: String = "0") -> FileWrapper {
+        let json = #"{"formatVersion":1,"objects":[\#(obj)],"viewport":{"center":{"x":\#(center),"y":0},"zoom":1}}"#
+        return FileWrapper(directoryWithFileWrappers: ["document.json": FileWrapper(regularFileWithContents: Data(json.utf8))])
+    }
+    let id = #""id":"00000000-0000-0000-0000-000000000001""#
+    let huge = #"{"type":"shape",\#(id),"kind":"line","start":{"x":1e300,"y":0},"end":{"x":0,"y":0},"strokeColor":{"r":0,"g":0,"b":0,"a":1},"lineWidth":1}"#
+    #expect(throws: DocumentError.self) { try DocumentPackage.read(wrapper(huge)) }
+    let negFont = #"{"type":"text",\#(id),"text":"x","position":{"x":0,"y":0},"fontSize":-3,"rotation":0,"color":{"r":0,"g":0,"b":0,"a":1}}"#
+    #expect(throws: DocumentError.self) { try DocumentPackage.read(wrapper(negFont)) }
+    #expect(throws: DocumentError.self) { try DocumentPackage.read(wrapper("", center: "1e300")) }
+    #expect(throws: Never.self) { try DocumentPackage.read(wrapper("")) }
+}

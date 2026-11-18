@@ -35,7 +35,10 @@ public final class DocumentModel {
     }
 
     private func run(_ edit: SceneEdit, actionName: String) {
+        let before = document.objects
         let inverse = edit.apply(to: &document)
+        // No-op edit (e.g. remove of absent ids, replace with identical objects): no undo entry, no onChange.
+        guard document.objects != before else { return }
         undoManager.registerUndo(withTarget: self) { model in
             // While undoing this registers the redo; while redoing, the undo.
             model.run(inverse, actionName: actionName)

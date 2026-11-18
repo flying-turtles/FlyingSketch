@@ -73,3 +73,11 @@ private func v(_ x: Double, _ y: Double) -> Vec2 { Vec2(x: x, y: y) }
     let far = SceneObject.image(ImageObject(assetName: "a", frame: Rect(origin: v(20, 20), size: v(4, 4))))
     #expect(!lassoContains(square, object: far))
 }
+
+@Test func multiLineTextBoundsAndHit() {
+    let t = SceneObject.text(TextObject(text: "ab\nabcd\nx", position: .zero, fontSize: 10))
+    let b = bounds(of: t)
+    #expect(abs(b.size.x - 24) < 1e-9 && abs(b.size.y - 36) < 1e-9)
+    #expect(hitTest(t, point: Vec2(x: 3, y: 30), tolerance: 0))
+    #expect(!hitTest(t, point: Vec2(x: 3, y: 40), tolerance: 0))
+}

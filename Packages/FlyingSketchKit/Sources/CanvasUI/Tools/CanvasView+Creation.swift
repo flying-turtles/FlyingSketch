@@ -93,6 +93,11 @@ extension CanvasView {
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
         tv.isScrollEnabled = false
+        // No wrapping: the committed CATextLayer is unwrapped too, so editor and result agree.
+        tv.textContainer.widthTracksTextView = false
+        tv.textContainer.lineBreakMode = .byClipping
+        tv.textContainer.size = CGSize(width: 1_000_000, height: CGFloat.greatestFiniteMagnitude)
+        tv.clipsToBounds = false
         tv.autocorrectionType = .no
         tv.delegate = self
         tv.text = existing?.text ?? ""
@@ -111,9 +116,11 @@ extension CanvasView {
         let origin = currentViewport.worldToView(s.position, viewSize: viewSize)
         let font = UIFont(name: "Helvetica", size: s.fontSize * scale) ?? .systemFont(ofSize: s.fontSize * scale)
         s.view.font = font
-        let width = max(bounds.width - origin.x - 8, font.pointSize * 4)
-        let height = s.view.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height
-        s.view.frame = CGRect(x: origin.x, y: origin.y, width: width, height: max(height, font.lineHeight))
+        let lines = (s.view.text ?? "").components(separatedBy: "\n")
+        let longest = lines.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
+        let width = max(ceil(longest) + font.pointSize * 2, font.pointSize * 4)
+        let height = font.lineHeight * CGFloat(max(lines.count, 1))
+        s.view.frame = CGRect(x: origin.x, y: origin.y, width: width, height: height)
     }
 
     /// Commits (insert / replace / delete) and tears the editor down. No-op when not editing.
