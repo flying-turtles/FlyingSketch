@@ -9,6 +9,7 @@ let package = Package(
         .library(name: "NetKit", targets: ["NetKit"]),
         .library(name: "PartsKit", targets: ["PartsKit"]),
         .library(name: "InkEngine", targets: ["InkEngine"]),
+        .library(name: "PhotoPartKit", targets: ["PhotoPartKit"]),
         .library(name: "CanvasUI", targets: ["CanvasUI"]),
     ],
     dependencies: [
@@ -19,6 +20,7 @@ let package = Package(
         .target(name: "NetKit", dependencies: ["SketchCore"]),
         .target(name: "PartsKit", dependencies: ["SketchCore"]),
         .target(name: "InkEngine", dependencies: ["SketchCore"]),
+        .target(name: "PhotoPartKit", dependencies: ["SketchCore", "PartsKit"]),
         .target(
             name: "CanvasUI",
             dependencies: ["InkEngine", "SketchCore", "NetKit", "PartsKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
@@ -32,6 +34,7 @@ let package = Package(
             resources: [.copy("Fixtures")]
         ),
         .testTarget(name: "InkEngineTests", dependencies: ["InkEngine"]),
+        .testTarget(name: "PhotoPartKitTests", dependencies: ["PhotoPartKit", "SketchCore"]),
         .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI", "PartsKit"]),
     ],
     swiftLanguageModes: [.v6]
