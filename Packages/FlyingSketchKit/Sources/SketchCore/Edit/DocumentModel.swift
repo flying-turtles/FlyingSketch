@@ -34,14 +34,27 @@ public final class DocumentModel {
         document.assets.merge(assets) { _, new in new }
     }
 
+    /// Applies `edits` in order as ONE undo step (inverses applied in reverse). Skipped entirely when the
+    /// whole batch is a no-op; fires `onChange` once.
+    public func perform(_ edits: [SceneEdit], actionName: String) {
+        run(edits, actionName: actionName)
+    }
+
     private func run(_ edit: SceneEdit, actionName: String) {
+        run([edit], actionName: actionName)
+    }
+
+    private func run(_ edits: [SceneEdit], actionName: String) {
         let before = (objects: document.objects, parts: document.parts)
-        let inverse = edit.apply(to: &document)
+        var inverses: [SceneEdit] = []
+        inverses.reserveCapacity(edits.count)
+        for edit in edits { inverses.append(edit.apply(to: &document)) }
+        inverses.reverse()
         // No-op edit (e.g. remove of absent ids, replace with identical objects): no undo entry, no onChange.
         guard document.objects != before.objects || document.parts != before.parts else { return }
         undoManager.registerUndo(withTarget: self) { model in
             // While undoing this registers the redo; while redoing, the undo.
-            model.run(inverse, actionName: actionName)
+            model.run(inverses, actionName: actionName)
         }
         undoManager.setActionName(actionName)
         onChange?(document)
