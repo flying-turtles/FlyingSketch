@@ -238,3 +238,18 @@ private func hole(_ b: PartInstance, _ id: String) -> Vec2 { connectorPositions(
     #expect(after == before + Vec2(x: 10, y: 0))
     v.cancelMove()
 }
+
+@Test @MainActor func previewFollowsGrabOffset() {
+    let (m, r, _, _) = scene()
+    let v = canvas(m)
+    v.selection.ids = [r.id]
+    let a = connectorPositions(r, resistorDef)["a"]!
+    let grab = a + Vec2(x: 1.5, y: 0.5)
+    let touch = grab + Vec2(x: -8, y: 4)
+    v.beginLegDrag(ConnectorRef(part: r.id, connector: "a"), at: grab)
+    v.moveLeg(to: touch)
+    var shown: Vec2?
+    for case .part(let p) in v.legPreview { shown = p.legEnds["a"] }
+    #expect(shown!.distance(to: a + Vec2(x: -8, y: 4)) < 1e-9)
+    v.cancelLegDrag()
+}

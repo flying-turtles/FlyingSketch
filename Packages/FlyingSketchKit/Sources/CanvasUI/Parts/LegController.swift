@@ -39,7 +39,7 @@ final class LegController {
     func move(to world: Vec2) -> [SceneObject] {
         guard let id = part else { return [] }
         current = startEnd + (world - grab)
-        return Self.bent(id, connector, to: world, in: model.document)
+        return Self.bent(id, connector, to: current, in: model.document)
     }
 
     func end() {
