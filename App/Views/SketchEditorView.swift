@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import SketchCore
 import CanvasUI
 
@@ -31,9 +32,15 @@ struct SketchEditorView: View {
         }
         .onAppear(perform: injectUndoManager)
         .onChange(of: undoManager) { injectUndoManager() }
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerCheckpoint)) { _ in undoTick += 1 }
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidUndoChange)) { _ in undoTick += 1 }
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidRedoChange)) { _ in undoTick += 1 }
+        .onReceive(undoNotifications) { _ in undoTick += 1 }
+    }
+
+    private var undoNotifications: some Publisher<Notification, Never> {
+        let c = NotificationCenter.default
+        return Publishers.MergeMany([
+            .NSUndoManagerCheckpoint, .NSUndoManagerDidUndoChange,
+            .NSUndoManagerDidRedoChange, .NSUndoManagerDidCloseUndoGroup,
+        ].map { c.publisher(for: $0, object: undoManager) })
     }
 
     private var canUndo: Bool { _ = undoTick; return undoManager?.canUndo ?? false }
