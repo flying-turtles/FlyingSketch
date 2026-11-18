@@ -10,6 +10,26 @@ private struct FakeCutout: CutoutProviding {
     }
 }
 
+private final class Gate: @unchecked Sendable {
+    private var cont: CheckedContinuation<Void, Never>?
+    private var open = false
+    func wait() async {
+        await withCheckedContinuation { c in
+            if open { c.resume() } else { cont = c }
+        }
+    }
+    func release() { open = true; cont?.resume(); cont = nil }
+}
+
+private struct SlowCutout: CutoutProviding {
+    let gate: Gate
+    let result: [MaskBitmap]
+    func instances(in image: SourceImage) async throws(PhotoPartError) -> [MaskBitmap] {
+        await gate.wait()
+        return result
+    }
+}
+
 @MainActor @Suite struct StudioSessionTests {
     static let w = 100, h = 50
 
@@ -119,5 +139,62 @@ private struct FakeCutout: CutoutProviding {
         #expect(src.pixelSize == s.source.pixelSize)
         #expect(mask == s.mask)
         #expect(draft == s.draft)
+    }
+
+    @Test func emptyResultFails() async {
+        let s = Self.session(.success([]))
+        await s.runAutoCutout()
+        #expect(s.cutoutState == .failed(.noForeground))
+        #expect(s.instances.isEmpty)
+    }
+
+    @Test func failureClearsInstances() async {
+        let s = Self.session(.success([Self.block(x0: 0, x1: 10), Self.block(x0: 50, x1: 60)]))
+        await s.runAutoCutout()
+        #expect(s.instances.count == 2)
+        let s2 = StudioSession(source: Self.source(), cutout: FakeCutout(result: .failure(.cutoutUnavailable)))
+        await s2.runAutoCutout()
+        #expect(s2.instances.isEmpty)
+    }
+
+    @Test func wrongSizeMaskIgnored() {
+        let bad = MaskBitmap(width: 3, height: 3, filled: false)
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout(result: .success([])), mask: bad)
+        #expect(s.mask.width == Self.w && s.mask.height == Self.h)
+        #expect(s.mask.bytes.allSatisfy { $0 == 255 })
+    }
+
+    @Test func staleRunIsDiscarded() async {
+        let gate = Gate()
+        let s = StudioSession(source: Self.source(),
+                              cutout: SlowCutout(gate: gate, result: [Self.block(x0: 0, x1: 20)]))
+        let run = Task { @MainActor in await s.runAutoCutout() }
+        while s.cutoutState != .running { await Task.yield() }
+        s.useWholePhoto()
+        gate.release()
+        await run.value
+        #expect(s.cutoutState == .done)
+        #expect(s.mask.bytes.allSatisfy { $0 == 255 })
+    }
+
+    @Test func undoRedoRestoreContents() throws {
+        let s = Self.session(.success([]))
+        let full = s.mask
+        try s.applyTrace([Vec2(x: 0, y: 0), Vec2(x: 40, y: 0), Vec2(x: 40, y: 40), Vec2(x: 0, y: 40)])
+        let traced = s.mask
+        #expect(traced != full)
+        s.undoMask()
+        #expect(s.mask == full)
+        s.redoMask()
+        #expect(s.mask == traced)
+    }
+
+    @Test func chooseInstanceNoOps() async {
+        let s = Self.session(.success([Self.block(x0: 0, x1: 20), Self.block(x0: 60, x1: 80)]))
+        s.chooseInstance(at: Vec2(x: 5, y: 5))  // idle
+        #expect(s.cutoutState == .idle && !s.canUndoMask)
+        await s.runAutoCutout()
+        s.chooseInstance(at: Vec2(x: 40, y: 5))  // no instance
+        #expect(s.cutoutState == .choosing(count: 2) && !s.canUndoMask)
     }
 }

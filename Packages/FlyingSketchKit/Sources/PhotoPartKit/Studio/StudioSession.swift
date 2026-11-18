@@ -32,11 +32,17 @@ public final class StudioSession {
     private let cutout: CutoutProviding
     private var runToken = 0
 
+    /// A `mask` whose size differs from `source.pixelSize` is ignored (full mask instead).
     public init(source: SourceImage, cutout: CutoutProviding, draft: PhotoPartDraft? = nil, mask: MaskBitmap? = nil) {
         self.source = source
         self.cutout = cutout
         self.draft = draft ?? PhotoPartDraft(sourceSize: source.pixelSize)
-        self.mask = mask ?? MaskBitmap(width: source.pixelSize.width, height: source.pixelSize.height, filled: true)
+        let full = MaskBitmap(width: source.pixelSize.width, height: source.pixelSize.height, filled: true)
+        if let mask, mask.width == full.width, mask.height == full.height {
+            self.mask = mask
+        } else {
+            self.mask = full
+        }
     }
 
     // MARK: Cutout
@@ -45,10 +51,13 @@ public final class StudioSession {
         runToken += 1
         let token = runToken
         cutoutState = .running
+        instances = []
         do {
             let found = try await cutout.instances(in: source)
             guard token == runToken else { return }
-            if found.count == 1 {
+            if found.isEmpty {
+                cutoutState = .failed(.noForeground)
+            } else if found.count == 1 {
                 instances = found
                 apply(found[0])
                 cutoutState = .done
@@ -58,6 +67,7 @@ public final class StudioSession {
             }
         } catch {
             guard token == runToken else { return }
+            instances = []
             cutoutState = .failed(error)
         }
     }
