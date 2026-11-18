@@ -41,6 +41,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/FlyingSketch.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: App/Info.plist
+        INFOPLIST_KEY_NSCameraUsageDescription: "Take a photo of a part to turn it into a FlyingSketch part."
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
