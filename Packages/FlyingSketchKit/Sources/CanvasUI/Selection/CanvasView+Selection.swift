@@ -39,6 +39,9 @@ extension CanvasView {
             let existing = Set(doc.objects.map(\.id))
             if !selection.ids.isSubset(of: existing) { selection.ids.formIntersection(existing) }
         }
+        if let id = textSession?.existing?.id, !doc.objects.contains(where: { $0.id == id }) {
+            endTextEditing() // edited text vanished (undo etc.): drop the editor, commit is a no-op
+        }
         render(settled: true)
     }
 

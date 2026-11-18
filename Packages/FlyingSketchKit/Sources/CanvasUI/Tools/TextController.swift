@@ -12,12 +12,16 @@ final class TextController {
     func commit(_ text: String, existing: TextObject?, position: Vec2, fontSize: Double, color: RGBAColor) -> Bool {
         let blank = text.allSatisfy(\.isWhitespace)
         if let existing {
+            // Re-resolve against the live document: undo or other edits may have changed or removed it mid-edit.
+            guard let current = model.document.objects.lazy.compactMap({ o -> TextObject? in
+                if case .text(let t) = o, t.id == existing.id { return t } else { return nil }
+            }).first else { return false }
             if blank {
-                model.perform(.remove([existing.id]), actionName: "Delete Text")
+                model.perform(.remove([current.id]), actionName: "Delete Text")
                 return true
             }
-            guard text != existing.text else { return false }
-            var edited = existing
+            guard text != current.text else { return false }
+            var edited = current
             edited.text = text
             model.perform(.replace([.text(edited)]), actionName: "Edit Text")
             return true

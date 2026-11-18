@@ -127,6 +127,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case ink, erase, lasso, move, shape
         /// Text tool tap; the editor opens on release.
         case text(start: CGPoint)
+        /// Text-tool touch that travelled too far to be a tap; does nothing.
+        case ignored
         /// Finger down outside the selection; becomes a lasso once it travels, else a tap on release.
         case pending(start: CGPoint)
     }
@@ -165,6 +167,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     }
 
     static let hitSlop: CGFloat = 8
+    /// Max travel (pt) for a text-tool touch to count as a tap.
+    static let textTapSlop: CGFloat = 4
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if textSession != nil {
@@ -217,7 +221,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             beginMove(at: sample(touch).position)
         case .shape:
             beginShape(at: sample(touch).position, event: event)
-        case .pending, .text:
+        case .pending, .text, .ignored:
             break
         }
     }
@@ -236,7 +240,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             updateMove(to: sample(touch).position)
         case .shape:
             moveShape(to: sample(touch).position, event: event)
-        case .text:
+        case .text(let start):
+            let p = location(of: touch)
+            if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
+        case .ignored:
             break
         case .pending(let start):
             let p = location(of: touch)
@@ -275,6 +282,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             endShape()
         case .text(let start):
             beginTextEditing(at: start)
+        case .ignored:
+            break
         case .pending(let start):
             tap(at: start)
         }
@@ -300,7 +309,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .lasso: lasso.cancel(); lassoPath.clear()
         case .move: cancelMove()
         case .shape: cancelShape()
-        case .pending, .text: break
+        case .pending, .text, .ignored: break
         }
     }
 
@@ -341,6 +350,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     @objc private func handle(_ g: UIGestureRecognizer) {
         switch g.state {
         case .began:
+            endTextEditing() // editor would drift from the text during pan/pinch: commit first
             activeGestures += 1
             if liveViewport == nil { liveViewport = viewport }
         case .changed:
