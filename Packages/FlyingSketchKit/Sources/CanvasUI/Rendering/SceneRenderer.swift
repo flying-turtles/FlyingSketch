@@ -14,7 +14,9 @@ final class SceneRenderer {
     private let content = CALayer()
     private let grid = GridLayer()
     private let objects = CALayer()
-    let netLayers = NetOverlayLayers()
+    lazy var netLayers = NetOverlayLayers(glowParent: objects)
+    /// Container of object layers (and net glow layers).
+    var objectsLayer: CALayer { objects }
     private let factory: any ObjectLayerFactory
 
     private var index = SpatialIndex(cellSize: 50)
@@ -31,11 +33,13 @@ final class SceneRenderer {
     var netOverlay: NetOverlay? { didSet { repaintNetOverlay() } }
     var screenScale: CGFloat = 2 { didSet { repaintNetOverlay() } }
 
+    private var glowZ: (ObjectID) -> CGFloat { { [unowned self] in CGFloat(zIndex[$0] ?? 0) } }
+
     private func repaintNetOverlay() {
         guard let vp = settledViewport else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        netLayers.update(netOverlay, viewport: vp, viewSize: settledViewSize, scale: screenScale)
+        netLayers.update(netOverlay, viewport: vp, viewSize: settledViewSize, scale: screenScale, zPosition: glowZ)
         CATransaction.commit()
     }
     /// Ids whose object changed in the latest `syncIndex`.
@@ -115,7 +119,6 @@ final class SceneRenderer {
         content.anchorPoint = .zero
         content.position = .zero
         content.addSublayer(grid.layer)
-        content.addSublayer(netLayers.glow)
         content.addSublayer(objects)
         content.addSublayer(netLayers.rings)
         rootLayer.addSublayer(content)
@@ -157,7 +160,7 @@ final class SceneRenderer {
         content.bounds = CGRect(x: 0, y: 0, width: size.x, height: size.y)
         settledViewport = vp
         settledViewSize = size
-        netLayers.update(netOverlay, viewport: vp, viewSize: size, scale: screenScale)
+        netLayers.update(netOverlay, viewport: vp, viewSize: size, scale: screenScale, zPosition: glowZ)
 
         let visible = vp.visibleWorldRect(viewSize: size)
         let culling = Rect(origin: visible.origin - visible.size * 0.25, size: visible.size * 1.5)

@@ -67,7 +67,7 @@ private struct Scene {
     // Overlay: a ring per member, glow per wire; rings use the screen scale.
     let layers = s.view.renderer.netLayers
     #expect(s.view.renderer.netOverlay?.rings.count == expected.members.count)
-    #expect(layers.glow.sublayers?.count == 2)
+    #expect(layers.glowLayers.count == 2)
     #expect(layers.rings.path?.isEmpty == false)
     #expect(layers.rings.contentsScale == s.view.traitCollection.displayScale)
 }
@@ -82,7 +82,7 @@ private struct Scene {
     #expect(s.view.netHighlight.info == nil)
     #expect(s.view.netHighlight.net == nil)
     #expect(s.view.renderer.netOverlay == nil)
-    #expect(s.view.renderer.netLayers.glow.sublayers?.isEmpty != false)
+    #expect(s.view.renderer.netLayers.glowLayers.isEmpty)
 }
 
 @Test @MainActor func highlightClearsOnEmptyTap() {
@@ -116,11 +116,11 @@ private struct Scene {
     s.model.perform(.insert([.wire(s.wire2)], at: nil), actionName: "Add Wire")
     #expect(s.view.netHighlight.net?.members.count == before.members.count + 1)
     #expect(s.view.netHighlight.net?.wires.count == 2)
-    #expect(s.view.renderer.netLayers.glow.sublayers?.count == 2)
+    #expect(s.view.renderer.netLayers.glowLayers.count == 2)
     s.model.undoManager.undo() // net shrinks back
     #expect(s.view.netHighlight.net?.members == before.members)
     #expect(s.view.netHighlight.info?.memberCount == before.members.count)
-    #expect(s.view.renderer.netLayers.glow.sublayers?.count == 1)
+    #expect(s.view.renderer.netLayers.glowLayers.count == 1)
     // Remove the first wire: VCC is no longer on a net, the pin info stays; undo brings the net back.
     s.model.perform(.remove([s.wire1.id]), actionName: "Delete")
     #expect(s.view.netHighlight.net == nil)
@@ -179,7 +179,7 @@ private struct Scene {
     s.view.highlightNet(at: s.pin("VCC"))
     #expect(!s.view.renderer.netLayers.rings.isHidden)
     s.view.renderer.setMovePreview(ids: [], offset: .zero, replacing: [.part(s.module)])
-    #expect(s.view.renderer.netLayers.rings.isHidden && s.view.renderer.netLayers.glow.isHidden)
+    #expect(s.view.renderer.netLayers.rings.isHidden && s.view.renderer.netLayers.glowLayers.allSatisfy(\.isHidden))
     s.view.renderer.setMovePreview(ids: [], offset: .zero)
     #expect(!s.view.renderer.netLayers.rings.isHidden)
 }
@@ -189,4 +189,40 @@ private struct Scene {
     #expect(PinInfo(partLabel: "U1", connectorName: "GPIO4", role: .digital, netName: "N3", memberCount: 4).summary
         == "U1 · GPIO4 · digital — N3 (4 pins)")
     #expect(PinInfo(partLabel: "R1", connectorName: "leg1").summary == "R1 · leg1 — no connection")
+}
+
+@Test @MainActor func glowSitsDirectlyBelowItsWireAboveParts() {
+    let s = scene()
+    s.view.highlightNet(at: s.pin("VCC"))
+    let r: SceneRenderer = s.view.renderer
+    let objects = r.objectsLayer
+    let glow = r.netLayers.glowLayers
+    #expect(glow.count == 2)
+    #expect(glow.allSatisfy { $0.superlayer === objects })
+    let doc = s.model.document
+    for (i, o) in doc.objects.enumerated() {
+        guard case .wire(let w) = o, [s.wire1.id, s.wire2.id].contains(w.id) else { continue }
+        // The wire's own glow is at index - 0.5: above every earlier object (the board part), below the wire.
+        let wireZ = CGFloat(i)
+        #expect(glow.contains { $0.zPosition == wireZ - 0.5 })
+        let partsBelow = doc.objects.prefix(i).enumerated().filter { if case .part = $0.element { true } else { false } }
+        #expect(partsBelow.allSatisfy { CGFloat($0.offset) < wireZ - 0.5 })
+    }
+}
+
+@Test @MainActor func legEndTapHighlightsAndDragBends() {
+    let s = scene()
+    s.view.selection.ids = [s.resistor.id]
+    let end = connectorPositions(s.resistor, resistorDef)["b"]! // free leg end, not on a board
+    // Tap: grab and release at the same point.
+    s.view.beginLegDrag(ConnectorRef(part: s.resistor.id, connector: "b"), at: end)
+    s.view.endLegDrag(at: end)
+    #expect(s.view.netHighlight.info?.connectorName == "b")
+    #expect(s.model.undoManager.canUndo == false)
+    // Drag: leg bends, highlight untouched.
+    let before = s.view.netHighlight.info
+    s.view.beginLegDrag(ConnectorRef(part: s.resistor.id, connector: "b"), at: end)
+    s.view.endLegDrag(at: end + Vec2(x: 0, y: 25))
+    #expect(s.model.undoManager.undoActionName == "Bend Leg")
+    #expect(s.view.netHighlight.info == before)
 }

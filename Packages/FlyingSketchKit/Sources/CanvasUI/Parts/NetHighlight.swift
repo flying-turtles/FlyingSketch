@@ -47,45 +47,50 @@ public final class NetHighlightState {
 struct NetOverlay: Equatable {
     var rings: [Vec2]
     /// Polylines of the net's wires with their (un-widened) width, mm.
-    var wires: [(points: [Vec2], width: Double)]
+    var wires: [(id: ObjectID, points: [Vec2], width: Double)]
 
     static func == (a: NetOverlay, b: NetOverlay) -> Bool {
         a.rings == b.rings && a.wires.count == b.wires.count
-            && zip(a.wires, b.wires).allSatisfy { $0.points == $1.points && $0.width == $1.width }
+            && zip(a.wires, b.wires).allSatisfy { $0.id == $1.id && $0.points == $1.points && $0.width == $1.width }
     }
 }
 
-/// Connector rings (above parts) and wire glow (under objects), repainted in view space on every settle.
+/// Connector rings (above parts) and wire glow (each glow layer sits in the objects layer directly beneath its wire),
+/// repainted in view space on every settle.
 final class NetOverlayLayers {
     static let ringRadius = 1.2
     static let glowExtra = 1.2
     static let glowAlpha: CGFloat = 0.35
     static let accent = UIColor.systemBlue
 
-    let glow = CALayer()
+    /// Glow layers currently in `glowParent`.
+    private(set) var glowLayers: [CALayer] = []
+    private let glowParent: CALayer
     let rings = CAShapeLayer()
     private(set) var contentsScale: CGFloat = 2
     /// Hidden while move/leg previews substitute geometry (the highlight does not follow previews).
     var suppressed = false {
         didSet {
-            glow.isHidden = suppressed
+            for l in glowLayers { l.isHidden = suppressed }
             rings.isHidden = suppressed
         }
     }
 
-    init() {
+    init(glowParent: CALayer) {
+        self.glowParent = glowParent
         rings.fillColor = nil
         rings.strokeColor = Self.accent.cgColor
         rings.lineWidth = 2
         rings.actions = ["path": NSNull(), "hidden": NSNull()]
-        glow.actions = ["sublayers": NSNull(), "hidden": NSNull()]
     }
 
     /// Callers disable implicit animations.
-    func update(_ overlay: NetOverlay?, viewport: Viewport, viewSize: Vec2, scale: CGFloat) {
+    func update(_ overlay: NetOverlay?, viewport: Viewport, viewSize: Vec2, scale: CGFloat,
+                zPosition: (ObjectID) -> CGFloat) {
         contentsScale = scale
         rings.contentsScale = scale
-        glow.sublayers = nil
+        for l in glowLayers { l.removeFromSuperlayer() }
+        glowLayers = []
         guard let overlay else {
             rings.path = nil
             return
@@ -113,7 +118,10 @@ final class NetOverlayLayers {
             layer.lineCap = .round
             layer.lineJoin = .round
             layer.contentsScale = scale
-            glow.addSublayer(layer)
+            layer.zPosition = zPosition(wire.id) - 0.5 // just below its wire, above any part under it
+            layer.isHidden = suppressed
+            glowParent.addSublayer(layer)
+            glowLayers.append(layer)
         }
     }
 }
@@ -153,6 +161,7 @@ extension CanvasView {
         netHighlight.anchor = nil
         netHighlight.net = nil
         netHighlight.info = nil
+        netHighlight.cache = nil
         renderer.netOverlay = nil
     }
 
@@ -187,7 +196,7 @@ extension CanvasView {
         let members = net?.members ?? [anchor]
         let wireIDs = net?.wires ?? []
         var rings: [Vec2] = []
-        var wires: [(points: [Vec2], width: Double)] = []
+        var wires: [(id: ObjectID, points: [Vec2], width: Double)] = []
         let memberParts = Set(members.map(\.part))
         var positions: [ObjectID: [String: Vec2]] = [:]
         for object in doc.objects {
@@ -195,7 +204,7 @@ extension CanvasView {
             case .part(let p) where memberParts.contains(p.id):
                 if let def = doc.parts[p.definitionKey] { positions[p.id] = connectorPositions(p, def) }
             case .wire(let w) where wireIDs.contains(w.id):
-                wires.append((w.polyline, w.width))
+                wires.append((w.id, w.polyline, w.width))
             default: break
             }
         }
