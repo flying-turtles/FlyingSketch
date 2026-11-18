@@ -12,7 +12,7 @@
 
 ### Roadmap (separate plans, written after this one ships)
 
-- **Plan 2 — Parts, wires, nets:** PartsKit (`.fzp`/`.fzpz` parser, part definitions, buses, bendable legs), bundled catalog script (fritzing-parts + Adafruit; ESP32-S3-DevKitC-1, ESP32-C3-DevKitM-1, breadboards, resistor, LED, sensors), library sidebar, part instances, wire tool, plugging, carry-along moves, NetKit, net highlight, library-edit/version handling.
+- **Plan 2 — Parts, wires, nets** (`docs/superpowers/plans/2026-11-18-plan2-parts-wires-nets.md`): PartsKit (`.fzp`/`.fzpz` parser, part definitions, buses, bendable legs), bundled catalog script (fritzing-parts + Adafruit; ESP32-S3-DevKitC-1, ESP32-C3-DevKitM-1, breadboards, resistor, LED, sensors), library sidebar, part instances, wire tool, plugging, carry-along moves, NetKit, net highlight, library-edit/version handling.
 - **Plan 3 — Photo parts:** PhotoPartStudio (Vision cutout, Pencil mask refine, manual trace, crop/rotate, scale calibration, pin editor with 2.54 mm snap and buses, personal library in iCloud container, `.fzpz` round-trip export).
 - **Plan 4 — Export:** PNG, PDF, SVG, BOM CSV, netlist CSV, share sheet.
 
