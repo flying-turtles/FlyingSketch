@@ -14,6 +14,8 @@ struct PartsLibraryView: View {
     @State private var issueCount = 0
     @State private var importing = false
     @State private var importError: String?
+    /// In-flight import; cancelled when the sheet goes away.
+    @State private var importTask: Task<Void, Never>?
     /// Bumped after an import so the list reloads.
     @State private var generation = 0
 
@@ -31,8 +33,10 @@ struct PartsLibraryView: View {
         .searchable(text: $query, prompt: "Search parts")
         .task(id: LoadKey(ready: provider.library != nil, query: query, generation: generation)) { await load() }
         .fileImporter(isPresented: $importing, allowedContentTypes: [UTType(filenameExtension: "fzpz") ?? .zip]) { result in
-            Task { await importPart(result) }
+            importTask?.cancel()
+            importTask = Task { await importPart(result) }
         }
+        .onDisappear { importTask?.cancel() }
         .alert("Import failed", isPresented: Binding(get: { importError != nil }, set: { if !$0 { importError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -91,14 +95,23 @@ struct PartsLibraryView: View {
         guard let library = provider.library else { return }
         do {
             let url = try result.get()
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            let data = try Data(contentsOf: url)
+            let data = try await Self.read(url)
+            try Task.checkCancellation()
             _ = try await library.importFzpz(data)
+            try Task.checkCancellation()
             generation += 1
+        } catch is CancellationError {
+            return
         } catch {
             importError = String(describing: error)
         }
+    }
+
+    /// Reads a picked (security-scoped) file off the main actor.
+    @concurrent private static func read(_ url: URL) async throws -> Data {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        return try Data(contentsOf: url)
     }
 }
 

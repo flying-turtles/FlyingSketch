@@ -115,16 +115,13 @@ extension CanvasView {
             guard delta.length * scale > Self.hitSlop / 2 else { return }
             moveEngaged = true
             moveSet = movingSet()
+            moveRigid = selection.ids
         }
         moveDelta = delta
         // Parts and wires re-render from moved geometry (carried parts, attached wire ends); the rest translate.
-        let replaced = movedObjects(moveSet, by: delta).filter { o in
-            switch o {
-            case .part, .wire: true
-            default: false
-            }
-        }
-        renderer.setMovePreview(ids: selection.ids, offset: CGPoint(x: delta.x * scale, y: delta.y * scale),
+        let replaced = movedObjects(moveSet, rigid: moveRigid, by: delta).filter(Self.isConnectable)
+        let rigid = Set(selectedObjects.filter { !Self.isConnectable($0) }.map(\.id))
+        renderer.setMovePreview(ids: rigid, offset: CGPoint(x: delta.x * scale, y: delta.y * scale),
                                 replacing: replaced)
         updateSelectionOverlay()
     }
@@ -134,6 +131,7 @@ extension CanvasView {
         let engaged = moveEngaged
         let start = moveStart
         let moving = moveSet
+        let rigid = moveRigid
         resetMove()
         guard engaged, delta.length > 0 else {
             // Unengaged = a tap: re-target the selection unless it landed on an already selected object.
@@ -148,8 +146,8 @@ extension CanvasView {
             return
         }
         // Drop: snap the moved parts' males into nearby females of parts left in place, in the same edit.
-        let snapped = delta + plugSnap(moving, movedBy: delta)
-        model.perform(.replace(movedObjects(moving, by: snapped)), actionName: "Move")
+        let snapped = delta + plugSnap(moving, rigid: rigid, movedBy: delta)
+        model.perform(.replace(movedObjects(moving, rigid: rigid, by: snapped)), actionName: "Move")
         updateSelectionOverlay()
     }
 
@@ -158,6 +156,7 @@ extension CanvasView {
     private func resetMove() {
         moveStart = nil
         moveSet = []
+        moveRigid = []
         moveDelta = .zero
         moveEngaged = false
         renderer.setMovePreview(ids: [], offset: .zero)

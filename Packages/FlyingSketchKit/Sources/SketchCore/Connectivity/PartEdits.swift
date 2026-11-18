@@ -28,8 +28,10 @@ private func attached(_ end: WireEnd, toAnyOf ids: Set<ObjectID>) -> Bool {
 
 /// Moves parts by `delta`. Returns replaced part instances (a leg end stays put when plugged into a part
 /// outside `ids`) plus every wire whose attached connector actually moved (end positions updated). Wires listed in `ids`
-/// also shift their free ends and bends.
-public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocument) -> [SceneObject] {
+/// also shift their free ends and bends. Parts in `rigid` (directly dragged) never pin legs: they move whole and
+/// unplug.
+public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocument,
+                      rigid: Set<ObjectID> = []) -> [SceneObject] {
     let old = partsByID(doc)
     var pluggedTo: [ConnectorRef: Set<ObjectID>] = [:]
     for c in contacts(in: doc) where ids.contains(c.male.part) { pluggedTo[c.male, default: []].insert(c.female.part) }
@@ -39,7 +41,8 @@ public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocume
         let current = connectorPositions(p, def)
         p.center = p.center + delta
         for c in def.connectors where c.leg != nil {
-            let pinned = pluggedTo[ConnectorRef(part: id, connector: c.id)]?.contains { !ids.contains($0) } ?? false
+            let pinned = !rigid.contains(id)
+                && (pluggedTo[ConnectorRef(part: id, connector: c.id)]?.contains { !ids.contains($0) } ?? false)
             if pinned {
                 p.legEnds[c.id] = current[c.id]
             } else if let end = p.legEnds[c.id] {

@@ -255,3 +255,43 @@ private func pluggedScene() -> (objects: [SceneObject], board: PartInstance, res
     v.tap(at: CGPoint(x: p.x, y: p.y))
     #expect(v.selection.ids == [board.id])
 }
+
+@Test @MainActor func draggedPluggedPartUnplugsAndResnaps() {
+    let s = pluggedScene()
+    let (v, m) = canvas(s.objects)
+    v.selection.ids = [s.resistor.id]
+    drag(v, by: Vec2(x: 2.54 + 0.3, y: 0))
+    let r = part(object(m, s.resistor.id))!
+    #expect(near(r.legEnds["a"]!, hole(s.board, "c1r2"), 1e-6))
+    #expect(near(r.legEnds["b"]!, hole(s.board, "c3r2"), 1e-6))
+    #expect(contacts(in: m.document).count == 2)
+    #expect(near(wire(object(m, s.wire.id))!.start.position, hole(s.board, "c3r2"), 1e-6))
+    m.undoManager.undo()
+    #expect(m.document.objects == s.objects)
+    #expect(!m.undoManager.canUndo)
+}
+
+@Test @MainActor func draggedPluggedPartIntoFreeSpaceMovesLegsRigidly() {
+    let s = pluggedScene()
+    let (v, m) = canvas(s.objects)
+    let d = Vec2(x: 0, y: -10)
+    v.selection.ids = [s.resistor.id]
+    drag(v, by: d)
+    let r = part(object(m, s.resistor.id))!
+    #expect(near(r.legEnds["a"]!, s.resistor.legEnds["a"]! + d))
+    #expect(near(r.legEnds["b"]!, s.resistor.legEnds["b"]! + d))
+    #expect(contacts(in: m.document).isEmpty)
+}
+
+@Test @MainActor func movePreviewDoesNotTranslateFixedWire() {
+    let board = PartInstance(definitionKey: boardDef.key, center: Vec2(x: 40, y: 0))
+    let w = Wire(start: WireEnd(position: hole(board, "c0r0"), attachment: .connector(part: board.id, connector: "c0r0")),
+                 end: WireEnd(position: hole(board, "c3r4"), attachment: .connector(part: board.id, connector: "c3r4")))
+    let (v, m) = canvas([.part(board), .wire(w)])
+    v.selection.ids = [w.id]
+    v.beginMove(at: .zero)
+    v.updateMove(to: Vec2(x: 10, y: 0))
+    #expect(v.renderer.movingIDs.isEmpty)
+    v.endMove()
+    #expect(!m.undoManager.canUndo)
+}

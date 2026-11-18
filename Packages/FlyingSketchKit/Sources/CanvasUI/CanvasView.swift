@@ -43,6 +43,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     var moveStart: Vec2?
     /// Ids moved by the in-flight gesture (selection plus carried parts); set once the drag engages.
     var moveSet: Set<ObjectID> = []
+    /// Directly dragged ids (the selection at engagement): their parts move rigidly, legs unplug.
+    var moveRigid: Set<ObjectID> = []
     var moveDelta: Vec2 = .zero
     var moveEngaged = false
     var editMenu: UIEditMenuInteraction!

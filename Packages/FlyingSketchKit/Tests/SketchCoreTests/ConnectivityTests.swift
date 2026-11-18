@@ -247,3 +247,14 @@ private func carryFixture() -> (doc: SketchDocument, board: PartInstance, module
     model.undoManager.undo()
     #expect(model.document == doc)
 }
+
+@Test func rigidMoveUnplugsLegs() {
+    let (doc, _, r) = pluggedFixture()
+    let d = Vec2(x: 0, y: -10)
+    let pinned = part(moveParts([r.id], by: d, in: doc).first { $0.id == r.id }!)
+    #expect(pinned.legEnds == r.legEnds)
+    let rigid = part(moveParts([r.id], by: d, in: doc, rigid: [r.id]).first { $0.id == r.id }!)
+    #expect(near(rigid.legEnds["a"]!, r.legEnds["a"]! + d))
+    #expect(near(rigid.legEnds["b"]!, r.legEnds["b"]! + d))
+    #expect(near(rigid.center, r.center + d))
+}

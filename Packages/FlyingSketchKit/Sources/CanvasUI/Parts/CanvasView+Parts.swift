@@ -121,7 +121,7 @@ extension CanvasView {
         if case .part = o { true } else { false }
     }
 
-    private static func isConnectable(_ o: SceneObject) -> Bool {
+    static func isConnectable(_ o: SceneObject) -> Bool {
         switch o {
         case .part, .wire: true
         default: false
@@ -130,20 +130,21 @@ extension CanvasView {
 
     /// Replacement objects for moving `moving` by `delta`: parts and wires via `moveParts` (carried parts follow,
     /// attached wire ends re-path), every other selected object translated.
-    func movedObjects(_ moving: Set<ObjectID>, by delta: Vec2) -> [SceneObject] {
+    /// Parts in `rigid` (directly dragged) move whole, legs included; only carried parts keep legs pinned.
+    func movedObjects(_ moving: Set<ObjectID>, rigid: Set<ObjectID>, by delta: Vec2) -> [SceneObject] {
         let doc = model.document
         var result = selectedObjects.filter { !Self.isConnectable($0) }.map { $0.translated(by: delta) }
         if doc.objects.contains(where: { moving.contains($0.id) && Self.isConnectable($0) }) {
-            result += moveParts(moving, by: delta, in: doc)
+            result += moveParts(moving, by: delta, in: doc, rigid: rigid)
         }
         return result
     }
 
     /// Smallest plug-snap offset of any moved part after moving by `delta` (fixed parts only); zero if none.
-    func plugSnap(_ moving: Set<ObjectID>, movedBy delta: Vec2) -> Vec2 {
+    func plugSnap(_ moving: Set<ObjectID>, rigid: Set<ObjectID>, movedBy delta: Vec2) -> Vec2 {
         var tentative = model.document
         guard tentative.objects.contains(where: { moving.contains($0.id) && Self.isPart($0) }) else { return .zero }
-        _ = SceneEdit.replace(moveParts(moving, by: delta, in: tentative)).apply(to: &tentative)
+        _ = SceneEdit.replace(moveParts(moving, by: delta, in: tentative, rigid: rigid)).apply(to: &tentative)
         var best: Vec2?
         for case .part(let p) in tentative.objects where moving.contains(p.id) {
             guard let offset = plugSnapOffset(for: p, in: tentative, excluding: moving) else { continue }
