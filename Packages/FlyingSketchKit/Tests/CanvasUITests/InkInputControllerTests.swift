@@ -54,3 +54,13 @@ private func sample(_ x: Double, _ y: Double, t: Double = 0) -> InkSample {
     c.end()
     #expect(!m.undoManager.canUndo)
 }
+
+@Test @MainActor func startPointStoredOnce() {
+    let m = DocumentModel(document: .empty); let c = InkInputController(model: m)
+    c.begin(sample(0, 0), tool: .pen, color: .black, width: 0.5)
+    let live = c.move(coalesced: [], predicted: [])
+    #expect(live.count == 1)
+    _ = c.move(coalesced: [sample(1, 0)], predicted: [])
+    c.end()
+    #expect(onlyStroke(m)?.points.map(\.position) == [Vec2(x: 0, y: 0), Vec2(x: 1, y: 0)])
+}

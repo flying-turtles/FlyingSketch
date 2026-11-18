@@ -93,8 +93,11 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
               let touch = touches.first(where: acceptsInk) else { return }
         activeInkTouch = touch
         activeInkStyle = (tool, toolState.color, toolState.inkWidth)
-        ink.begin(sample(touch), tool: tool, color: toolState.color, width: toolState.inkWidth, params: toolState.params)
-        drawLive(ink.move(coalesced: coalescedSamples(touch, event), predicted: predictedSamples(touch, event)))
+        // Coalesced list at began already includes the began touch: start with its first, move with the rest.
+        let coalesced = coalescedSamples(touch, event)
+        ink.begin(coalesced.first ?? sample(touch), tool: tool, color: toolState.color,
+                  width: toolState.inkWidth, params: toolState.params)
+        drawLive(ink.move(coalesced: Array(coalesced.dropFirst()), predicted: predictedSamples(touch, event)))
     }
 
     public override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -116,6 +119,14 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     public override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = activeInkTouch, touches.contains(touch) else { return }
+        activeInkTouch = nil
+        ink.cancel()
+        liveStroke.clear()
+    }
+
+    public override func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+        guard newWindow == nil, activeInkTouch != nil else { return }
         activeInkTouch = nil
         ink.cancel()
         liveStroke.clear()

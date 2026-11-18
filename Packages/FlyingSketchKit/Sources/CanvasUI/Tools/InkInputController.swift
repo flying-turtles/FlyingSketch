@@ -24,10 +24,8 @@ final class InkInputController {
 
     /// Adds coalesced samples to the stroke; returns committed + predicted points for the live layer.
     func move(coalesced: [InkSample], predicted: [InkSample]) -> [InkPoint] {
-        guard var b = builder else { return [] }
-        for s in coalesced { b.add(s) }
-        builder = b
-        return b.points(predicted: predicted)
+        for s in coalesced { builder?.add(s) }
+        return builder?.points(predicted: predicted) ?? []
     }
 
     /// Commits one undoable insert. Never performs an empty edit.
