@@ -76,6 +76,15 @@ private func rebuild(_ zipData: Data, drop: Set<String> = [], replace: [String: 
         #expect(out.family == "boards")
     }
 
+    @Test func svgIdsFollowConnectorIds() {
+        func defs(_ ids: [String]) -> [ConnectorDef] { ids.map { ConnectorDef(id: $0, name: $0, kind: .male, position: .zero) } }
+        #expect(FzpzExporter.svgIds(defs(["connector3", "connector0"])) == ["connector3pin", "connector0pin"])
+        #expect(FzpzExporter.svgIds(defs(["p1", "connector7"])) == ["connector0pin", "connector7pin"])
+        // Collision between a derived id and an index fallback: all by index.
+        #expect(FzpzExporter.svgIds(defs(["p1", "connector0"])) == ["connector0pin", "connector1pin"])
+        #expect(FzpzExporter.svgIds(defs(["connector01", "connector-1"])) == ["connector0pin", "connector1pin"])
+    }
+
     @Test func tamperedSidecarIsRejected() throws {
         let part = try makePart()
         var def = part.definition

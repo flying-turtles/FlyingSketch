@@ -76,6 +76,7 @@ public struct PhotoPartDraft: Hashable, Codable, Sendable {
     public var pins: [DraftPin]
     public var buses: [[String]]
     public var gridSnap: Bool
+    /// Next `connector<N>` number (from 0); pin names are `P<N+1>`.
     public var nextPinNumber: Int
     public var metadata: PartMetadata
 
@@ -87,7 +88,7 @@ public struct PhotoPartDraft: Hashable, Codable, Sendable {
         pins = []
         buses = []
         gridSnap = true
-        nextPinNumber = 1
+        nextPinNumber = 0
         metadata = PartMetadata()
     }
 }

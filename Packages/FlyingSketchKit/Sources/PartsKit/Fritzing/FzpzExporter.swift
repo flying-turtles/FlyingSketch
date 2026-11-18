@@ -36,7 +36,17 @@ public enum FzpzExporter {
         return out
     }
 
-    private static func svgId(_ index: Int) -> String { "connector\(index)pin" }
+    /// SVG rect ids: `connector<N>` ids map to `connector<N>pin`; otherwise (or on any collision) the index is used.
+    static func svgIds(_ connectors: [ConnectorDef]) -> [String] {
+        let derived = connectors.map { c -> String? in
+            guard c.id.hasPrefix("connector"), let n = Int(c.id.dropFirst("connector".count)), n >= 0,
+                  c.id == "connector\(n)" else { return nil }
+            return "connector\(n)pin"
+        }
+        let byIndex = connectors.indices.map { "connector\($0)pin" }
+        let mixed = zip(derived, byIndex).map { $0 ?? $1 }
+        return Set(mixed).count == mixed.count ? mixed : byIndex
+    }
 
     private static func fzp(_ def: PartDefinition, safeName: String) -> String {
         var x = #"<?xml version="1.0" encoding="UTF-8"?>"# + "\n"
@@ -55,11 +65,12 @@ public enum FzpzExporter {
         x += "<views>\n<breadboardView>\n<layers image=\"breadboard/\(escape(safeName)).svg\">\n"
         x += "<layer layerId=\"breadboard\"/>\n</layers>\n</breadboardView>\n</views>\n"
         x += "<connectors>\n"
+        let ids = svgIds(def.connectors)
         for (i, c) in def.connectors.enumerated() {
             x += "<connector id=\"\(escape(c.id))\" name=\"\(escape(c.name))\" type=\"\(c.kind.rawValue)\""
             if let r = c.role { x += " flyingsketch:role=\"\(r.rawValue)\"" }
             x += ">\n<description>\(escape(c.description))</description>\n"
-            x += "<views><breadboardView><p layer=\"breadboard\" svgId=\"\(svgId(i))\"/></breadboardView></views>\n"
+            x += "<views><breadboardView><p layer=\"breadboard\" svgId=\"\(ids[i])\"/></breadboardView></views>\n"
             x += "</connector>\n"
         }
         x += "</connectors>\n"
@@ -79,8 +90,9 @@ public enum FzpzExporter {
         var x = #"<?xml version="1.0" encoding="UTF-8"?>"# + "\n"
         x += "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\(w)mm\" height=\"\(h)mm\" viewBox=\"0 0 \(w) \(h)\">\n"
         x += "<image x=\"0\" y=\"0\" width=\"\(w)\" height=\"\(h)\" href=\"data:\(mime);base64,\(graphic.base64EncodedString())\"/>\n"
+        let ids = svgIds(def.connectors)
         for (i, c) in def.connectors.enumerated() {
-            x += "<rect id=\"\(svgId(i))\" x=\"\(c.position.x - 0.25)\" y=\"\(c.position.y - 0.25)\" width=\"0.5\" height=\"0.5\" fill=\"none\" stroke=\"none\"/>\n"
+            x += "<rect id=\"\(ids[i])\" x=\"\(c.position.x - 0.25)\" y=\"\(c.position.y - 0.25)\" width=\"0.5\" height=\"0.5\" fill=\"none\" stroke=\"none\"/>\n"
         }
         x += "</svg>\n"
         return x

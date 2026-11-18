@@ -61,6 +61,7 @@ import SketchCore
         #expect(close(d.pins.first { $0.id == a }!.position, Vec2(x: 10, y: 10)))
         #expect(close(d.pins.first { $0.id == b }!.position, Vec2(x: 35.4, y: 10)))
         #expect(d.pins.map(\.name) == ["P1", "P2"])
+        #expect(d.pins.map(\.id) == ["connector0", "connector1"])
         d.movePin(b, toOutput: Vec2(x: 62, y: 9))
         #expect(close(d.pins[1].position, Vec2(x: 60.8, y: 10)))
         d.movePin(a, toOutput: Vec2(x: 12.3, y: 14.7))

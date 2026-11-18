@@ -47,7 +47,7 @@ extension PhotoPartDraft {
     @discardableResult
     public mutating func addPin(atOutput p: Vec2) -> String {
         let id = "connector\(nextPinNumber)"
-        let name = "P\(nextPinNumber)"
+        let name = "P\(nextPinNumber + 1)"
         nextPinNumber += 1
         let position = toSource(snapped(p, excluding: nil))
         pins.append(DraftPin(id: id, name: name, position: position))
