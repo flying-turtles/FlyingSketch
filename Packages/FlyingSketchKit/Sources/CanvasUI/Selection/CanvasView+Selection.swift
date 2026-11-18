@@ -172,10 +172,8 @@ extension CanvasView {
     public func deleteSelection() {
         let objects = selectedObjects
         guard !objects.isEmpty else { return }
-        let ids = Set(objects.map(\.id))
         // Wires attached to deleted parts stay, detached (attachment cleared, position kept), in the same edit.
-        let detached = removeParts(ids, in: model.document).detachedWires.filter { !ids.contains($0.id) }
-        model.perform((detached.isEmpty ? [] : [.replace(detached)]) + [.remove(ids)], actionName: "Delete")
+        model.perform(deletionEdits(Set(objects.map(\.id)), in: model.document), actionName: "Delete")
         selection.ids = []
     }
 

@@ -1,7 +1,8 @@
 import SketchCore
 
 /// Whole-stroke eraser. Objects touched during a gesture are reported via `onHiddenChange` (renderer feedback)
-/// and removed from the document in ONE `.remove` edit "Erase" at `end()`.
+/// and removed from the document in ONE edit "Erase" at `end()`. Parts are never erased (a stroke over a
+/// breadboard must not delete it); wires may be.
 final class EraserController {
     private let model: DocumentModel
     /// Objects whose bounds intersect the rect. Defaults to a document scan; the canvas supplies the spatial index.
@@ -45,8 +46,9 @@ final class EraserController {
         let existing = Set(model.document.objects.map(\.id))
         let ids = hit.intersection(existing) // an undo mid-gesture may have removed some
         reset()
-        guard !ids.isEmpty else { return }
-        model.perform(.remove(ids), actionName: "Erase")
+        let edits = deletionEdits(ids, in: model.document)
+        guard !edits.isEmpty else { return }
+        model.perform(edits, actionName: "Erase")
     }
 
     /// Nothing removed; hidden objects reappear.
@@ -63,11 +65,17 @@ final class EraserController {
         if hadHits { onHiddenChange?([]) }
     }
 
+    /// Objects the stroke eraser never removes.
+    static func isProtected(_ object: SceneObject) -> Bool {
+        if case .part = object { return true }
+        return false
+    }
+
     /// Tests the swept capsule. Samples are <= radius/2 apart; the tolerance is widened to the worst-case gap
     /// distance, so every object within `radius` of the segment is hit (over-reach <= ~3 %).
     private func sweep(from a: Vec2, to b: Vec2) {
         let box = Rect.bounding([a, b])!.insetBy(-radius)
-        let pending = candidates(box).filter { !hit.contains($0.id) }
+        let pending = candidates(box).filter { !hit.contains($0.id) && !Self.isProtected($0) }
         guard !pending.isEmpty else { return }
         let doc = model.document
         let step = max(radius / 2, 1e-6)

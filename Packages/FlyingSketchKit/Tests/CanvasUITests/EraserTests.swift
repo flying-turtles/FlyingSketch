@@ -91,3 +91,31 @@ private func stroke(_ x: Double, _ y: Double, length: Double = 4) -> SceneObject
     e.end()
     #expect(!m.undoManager.canUndo)
 }
+
+@Test @MainActor func eraserSkipsPartsAndDetachesNothingWrongly() {
+    // fixtureWithPartsAndWire: resistor at origin with a wire attached to its "b" leg.
+    var doc = SketchDocument.fixtureWithPartsAndWire()
+    let ink = stroke(-3, 0, length: 6) // drawn across the resistor body
+    doc.objects.append(ink)
+    let resistorID = doc.objects[0].id
+    let kept = Wire(start: WireEnd(position: Vec2(x: -7, y: 3), attachment: .connector(part: resistorID, connector: "a")),
+                    end: WireEnd(position: Vec2(x: -7, y: 30)))
+    doc.objects.append(.wire(kept))
+    let partIDs = doc.objects.filter { if case .part = $0 { true } else { false } }.map(\.id)
+    let m = DocumentModel(document: doc)
+    let e = EraserController(model: m)
+    e.begin(at: Vec2(x: -10, y: 0), radius: 1)
+    e.move(to: Vec2(x: 60, y: 0)) // sweeps over resistor, ink, wire start and board
+    #expect(!e.hit.contains { partIDs.contains($0) })
+    #expect(e.hit.contains(ink.id))
+    e.end()
+    let left = m.document.objects.map(\.id)
+    #expect(partIDs.allSatisfy(left.contains))
+    #expect(!left.contains(ink.id))
+    // The swept wire is erased; the untouched wire on the resistor keeps its attachment.
+    var wires: [Wire] = []
+    for case .wire(let w) in m.document.objects { wires.append(w) }
+    #expect(wires == [kept])
+    m.undoManager.undo()
+    #expect(m.document == doc)
+}

@@ -173,6 +173,25 @@ private func carryFixture() -> (doc: SketchDocument, board: PartInstance, module
     #expect(model.document.objects.count == 1 && wire(model.document.objects[0]).start.attachment == nil)
 }
 
+@MainActor @Test func deletionEditsDetachWires() {
+    let r = PartInstance(definitionKey: resistorDef.key, center: .zero)
+    let attachedWire = Wire(start: WireEnd(position: Vec2(x: 5, y: 0), attachment: .connector(part: r.id, connector: "b")),
+                            end: WireEnd(position: Vec2(x: 30, y: 5)))
+    let doomedWire = Wire(start: WireEnd(position: Vec2(x: -5, y: 0), attachment: .connector(part: r.id, connector: "a")),
+                          end: WireEnd(position: Vec2(x: -30, y: 5)))
+    let doc = baseDoc([.part(r), .wire(attachedWire), .wire(doomedWire)])
+    let edits = deletionEdits([r.id, doomedWire.id, ObjectID.new()], in: doc)
+    let model = DocumentModel(document: doc)
+    model.perform(edits, actionName: "Delete")
+    #expect(model.document.objects.count == 1)
+    let left = wire(model.document.objects[0])
+    #expect(left.id == attachedWire.id && left.start.attachment == nil && left.start.position == attachedWire.start.position)
+    model.undoManager.undo()
+    #expect(model.document == doc)
+    #expect(deletionEdits([ObjectID.new()], in: doc).isEmpty)
+    #expect(deletionEdits([], in: doc).isEmpty)
+}
+
 @MainActor @Test func batchPerformSkipsNoOps() {
     let doc = baseDoc([])
     let model = DocumentModel(document: doc)
