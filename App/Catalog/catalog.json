@@ -1,0 +1,150 @@
+[
+  {
+    "family" : "Adafruit BME280",
+    "file" : "parts/bme280-breakout.json",
+    "id" : "bme280-breakout",
+    "tags" : [
+
+    ],
+    "title" : "Adafruit BME280"
+  },
+  {
+    "family" : "Breadboard",
+    "file" : "parts/breadboard-full.json",
+    "id" : "breadboard-full",
+    "tags" : [
+      "breadboard"
+    ],
+    "title" : "RSR 03MB102 Breadboard"
+  },
+  {
+    "family" : "Breadboard",
+    "file" : "parts/breadboard-half.json",
+    "id" : "breadboard-half",
+    "tags" : [
+      "breadboard",
+      "Fritzing Core"
+    ],
+    "title" : "Half-Breadboard"
+  },
+  {
+    "family" : "sensors",
+    "file" : "parts/dht22.json",
+    "id" : "dht22",
+    "tags" : [
+      "sensor",
+      "temperature",
+      "relative",
+      "humidity"
+    ],
+    "title" : "DHT22 Humidity and Temperature Sensor"
+  },
+  {
+    "family" : "microcontroller board (ESP32-C3)",
+    "file" : "parts/esp32-c3-devkitm-1.json",
+    "id" : "esp32-c3-devkitm-1",
+    "tags" : [
+      "ESP32-C3",
+      "ESP32",
+      "Espressif",
+      "microcontroller"
+    ],
+    "title" : "ESP32-C3-DevKitM-1"
+  },
+  {
+    "family" : "microcontroller board (ESP32-S3)",
+    "file" : "parts/esp32-s3-devkitc-1.json",
+    "id" : "esp32-s3-devkitc-1",
+    "tags" : [
+      "ESP32-S3",
+      "ESP32",
+      "Espressif",
+      "microcontroller"
+    ],
+    "title" : "ESP32-S3-DevKitC-1"
+  },
+  {
+    "family" : "distance sensor",
+    "file" : "parts/hc-sr04.json",
+    "id" : "hc-sr04",
+    "tags" : [
+      "ultrasonic",
+      "HC-SR04",
+      "distance sensor",
+      "range",
+      "ultrasonic distance sensor"
+    ],
+    "title" : "HC-SR04 Ultrasonic Distance Sensor"
+  },
+  {
+    "family" : "LED",
+    "file" : "parts/led-5mm.json",
+    "id" : "led-5mm",
+    "tags" : [
+      "LED",
+      "Red LED",
+      "indicator",
+      "fritzing core"
+    ],
+    "title" : "Red LED - 5mm"
+  },
+  {
+    "family" : "Photo-Resistor",
+    "file" : "parts/photoresistor.json",
+    "id" : "photoresistor",
+    "tags" : [
+      "LDR",
+      "light dependent resistor",
+      "photocell",
+      "light sensor",
+      "sensor",
+      "Fritzing core"
+    ],
+    "title" : "Photocell (LDR)"
+  },
+  {
+    "family" : "sensors",
+    "file" : "parts/pir-hc-sr501.json",
+    "id" : "pir-hc-sr501",
+    "tags" : [
+      "sensor",
+      "IR"
+    ],
+    "title" : "PIR sensor"
+  },
+  {
+    "family" : "Potentiometer",
+    "file" : "parts/potentiometer.json",
+    "id" : "potentiometer",
+    "tags" : [
+      "potentiometer",
+      "poti",
+      "adjustable",
+      "resistor",
+      "fritzing core"
+    ],
+    "title" : "Rotary Potentiometer (Small)"
+  },
+  {
+    "family" : "Switch",
+    "file" : "parts/pushbutton.json",
+    "id" : "pushbutton",
+    "tags" : [
+      "Pushbutton",
+      "button",
+      "fritzing core"
+    ],
+    "title" : "Pushbutton"
+  },
+  {
+    "family" : "Resistor",
+    "file" : "parts/resistor.json",
+    "id" : "resistor",
+    "tags" : [
+      "Resistor",
+      "basic resistor",
+      "fritzing core"
+    ],
+    "title" : "220 Ω Resistor"
+  }
+]

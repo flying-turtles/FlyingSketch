@@ -1,0 +1,15 @@
+[
+  {"source": "custom", "fzp": "esp32-s3-devkitc-1/esp32-s3-devkitc-1.fzp", "id": "esp32-s3-devkitc-1"},
+  {"source": "custom", "fzp": "esp32-c3-devkitm-1/esp32-c3-devkitm-1.fzp", "id": "esp32-c3-devkitm-1"},
+  {"source": "fritzing-parts", "fzp": "core/breadboard2.fzp", "id": "breadboard-full"},
+  {"source": "fritzing-parts", "fzp": "core/halfBreadboard.fzp", "id": "breadboard-half"},
+  {"source": "fritzing-parts", "fzp": "core/resistor.fzp", "id": "resistor"},
+  {"source": "fritzing-parts", "fzp": "core/LED-generic-5mm_6852162_005.fzp", "id": "led-5mm"},
+  {"source": "fritzing-parts", "fzp": "core/pushbutton_4_horizontal.fzp", "id": "pushbutton"},
+  {"source": "fritzing-parts", "fzp": "core/potentiometer_rotary_9mm_6.fzp", "id": "potentiometer"},
+  {"source": "adafruit", "fzp": "parts/DHT22 Humidity and Temperature Sensor.fzpz", "id": "dht22"},
+  {"source": "adafruit", "fzp": "parts/Adafruit BME280.fzpz", "id": "bme280-breakout"},
+  {"source": "fritzing-parts", "fzp": "core/hc-sr04_bf8299a_002.fzp", "id": "hc-sr04"},
+  {"source": "adafruit", "fzp": "parts/PIR sensor.fzpz", "id": "pir-hc-sr501"},
+  {"source": "fritzing-parts", "fzp": "core/LDR_photocell_300mil_v5.fzp", "id": "photoresistor"}
+]

@@ -1,0 +1,86 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "Pin0",
+      "id" : "connector0",
+      "kind" : "male",
+      "leg" : {
+        "color" : {
+          "a" : 1,
+          "b" : 0.5490196078431373,
+          "g" : 0.5490196078431373,
+          "r" : 0.5490196078431373
+        },
+        "defaultEnd" : {
+          "x" : 0.7391399999999999,
+          "y" : 1.2814299999999998
+        },
+        "origin" : {
+          "x" : 0.36956999999999995,
+          "y" : 1.2814299999999998
+        },
+        "width" : 0.7391399999999999
+      },
+      "name" : "Pin 0",
+      "position" : {
+        "x" : 0.25399999999999995,
+        "y" : 1.03886
+      }
+    },
+    {
+      "description" : "Pin 1",
+      "id" : "connector1",
+      "kind" : "male",
+      "leg" : {
+        "color" : {
+          "a" : 1,
+          "b" : 0.5490196078431373,
+          "g" : 0.5490196078431373,
+          "r" : 0.5490196078431373
+        },
+        "defaultEnd" : {
+          "x" : 10.161777999999998,
+          "y" : 1.2814299999999998
+        },
+        "origin" : {
+          "x" : 10.531348,
+          "y" : 1.2814299999999998
+        },
+        "width" : 0.7391399999999999
+      },
+      "name" : "Pin 1",
+      "position" : {
+        "x" : 10.646918,
+        "y" : 1.03886
+      }
+    }
+  ],
+  "family" : "Resistor",
+  "graphicAsset" : "part-58d544c7f4d262cc.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "R",
+  "libraryID" : "ResistorModuleID",
+  "properties" : {
+    "Pin Spacing" : "400 mil",
+    "Resistance" : "220",
+    "bands" : "4",
+    "family" : "Resistor",
+    "package" : "THT",
+    "power" : "0.25W",
+    "tolerance" : "±5%"
+  },
+  "size" : {
+    "x" : 10.900917999999999,
+    "y" : 2.46634
+  },
+  "tags" : [
+    "Resistor",
+    "basic resistor",
+    "fritzing core"
+  ],
+  "title" : "220 Ω Resistor",
+  "versionHash" : "58d544c7f4d262cc"
+}

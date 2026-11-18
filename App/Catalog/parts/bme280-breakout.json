@@ -1,0 +1,210 @@
+{
+  "buses" : [
+    [
+      "connector31",
+      "connector11",
+      "connector17"
+    ],
+    [
+      "connector29",
+      "connector12",
+      "connector18"
+    ],
+    [
+      "connector34",
+      "connector13",
+      "connector19"
+    ],
+    [
+      "connector32",
+      "connector14",
+      "connector20"
+    ]
+  ],
+  "connectors" : [
+    {
+      "description" : "VCC",
+      "id" : "connector29",
+      "kind" : "male",
+      "name" : "VCC",
+      "position" : {
+        "x" : 6.099510138888891,
+        "y" : 15.239999999999998
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "VCC",
+      "id" : "connector12",
+      "kind" : "male",
+      "name" : "VCC",
+      "position" : {
+        "x" : 26.696434251651354,
+        "y" : 9.588047503778858
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "VCC",
+      "id" : "connector18",
+      "kind" : "male",
+      "name" : "VCC",
+      "position" : {
+        "x" : 0.7279528116903095,
+        "y" : 8.133672989364602
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "3.3V",
+      "id" : "connector30",
+      "kind" : "male",
+      "name" : "3.3V",
+      "position" : {
+        "x" : 8.639510138888891,
+        "y" : 15.239999999999998
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "SCK/SCL",
+      "id" : "connector32",
+      "kind" : "male",
+      "name" : "SCK/SCL",
+      "position" : {
+        "x" : 13.71951013888889,
+        "y" : 15.239999999999998
+      },
+      "role" : "i2cSCL"
+    },
+    {
+      "description" : "SCK/SCL",
+      "id" : "connector14",
+      "kind" : "male",
+      "name" : "SCK/SCL",
+      "position" : {
+        "x" : 26.696469529429134,
+        "y" : 6.388043671857659
+      },
+      "role" : "i2cSCL"
+    },
+    {
+      "description" : "SCK/SCL",
+      "id" : "connector20",
+      "kind" : "male",
+      "name" : "SCK/SCL",
+      "position" : {
+        "x" : 0.7279528116903085,
+        "y" : 11.333657768643953
+      },
+      "role" : "i2cSCL"
+    },
+    {
+      "description" : "SDO/ADR",
+      "id" : "connector33",
+      "kind" : "male",
+      "name" : "SDO/ADR",
+      "position" : {
+        "x" : 16.259510138888892,
+        "y" : 15.239999999999998
+      }
+    },
+    {
+      "description" : "SDI/SDA",
+      "id" : "connector34",
+      "kind" : "male",
+      "name" : "SDI/SDA",
+      "position" : {
+        "x" : 18.79951013888889,
+        "y" : 15.239999999999998
+      },
+      "role" : "i2cSDA"
+    },
+    {
+      "description" : "SDI/SDA",
+      "id" : "connector13",
+      "kind" : "male",
+      "name" : "SDI/SDA",
+      "position" : {
+        "x" : 26.69646952942913,
+        "y" : 7.9880279489293695
+      },
+      "role" : "i2cSDA"
+    },
+    {
+      "description" : "SDI/SDA",
+      "id" : "connector19",
+      "kind" : "male",
+      "name" : "SDI/SDA",
+      "position" : {
+        "x" : 0.7279528116903093,
+        "y" : 9.733665379048995
+      },
+      "role" : "i2cSDA"
+    },
+    {
+      "description" : "CS",
+      "id" : "connector35",
+      "kind" : "male",
+      "name" : "CS",
+      "position" : {
+        "x" : 21.33951013888889,
+        "y" : 15.239999999999998
+      },
+      "role" : "spi"
+    },
+    {
+      "description" : "GND",
+      "id" : "connector31",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 11.17951013888889,
+        "y" : 15.239999999999998
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "GND",
+      "id" : "connector11",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 26.696469529429137,
+        "y" : 11.188031780761131
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "GND",
+      "id" : "connector17",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 0.7279528116903091,
+        "y" : 6.533680599769647
+      },
+      "role" : "ground"
+    }
+  ],
+  "family" : "Adafruit BME280",
+  "graphicAsset" : "part-96d67803be3f0f1a.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "U",
+  "libraryID" : "adafruit_4ec7984f29223744162ac10ec425b9de_1",
+  "properties" : {
+    "family" : "Adafruit BME280",
+    "layer" : "",
+    "part number" : "Adafruit #2652",
+    "variant" : "variant 1"
+  },
+  "size" : {
+    "x" : 27.453590000000002,
+    "y" : 17.779999999999998
+  },
+  "tags" : [
+
+  ],
+  "title" : "Adafruit BME280",
+  "versionHash" : "96d67803be3f0f1a"
+}

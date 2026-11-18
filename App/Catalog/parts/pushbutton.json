@@ -1,0 +1,76 @@
+{
+  "buses" : [
+    [
+      "connector0",
+      "connector1"
+    ],
+    [
+      "connector2",
+      "connector3"
+    ]
+  ],
+  "connectors" : [
+    {
+      "description" : "pin 4 is always connected with pin 3",
+      "id" : "connector3",
+      "kind" : "male",
+      "name" : "Pin 4",
+      "position" : {
+        "x" : 0.5349240000000003,
+        "y" : 7.842757999999998
+      }
+    },
+    {
+      "description" : "pin 1 is always connected with pin 2",
+      "id" : "connector0",
+      "kind" : "male",
+      "name" : "Pin 1",
+      "position" : {
+        "x" : 5.614924,
+        "y" : 0.5402579999999998
+      }
+    },
+    {
+      "description" : "pin 2 is always connected with pin 1",
+      "id" : "connector1",
+      "kind" : "male",
+      "name" : "Pin 2",
+      "position" : {
+        "x" : 5.614924,
+        "y" : 7.842757999999998
+      }
+    },
+    {
+      "description" : "pin 3 is always connected with pin 4",
+      "id" : "connector2",
+      "kind" : "male",
+      "name" : "Pin 3",
+      "position" : {
+        "x" : 0.5349240000000003,
+        "y" : 0.5402579999999998
+      }
+    }
+  ],
+  "family" : "Switch",
+  "graphicAsset" : "part-0f6e2ffee5d05b86.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "S",
+  "libraryID" : "20A9BBEE34_ST",
+  "properties" : {
+    "contact resistance" : "0.1Ω",
+    "family" : "Switch",
+    "package" : "[THT]",
+    "switch status" : "Released"
+  },
+  "size" : {
+    "x" : 6.227571999999999,
+    "y" : 8.382508
+  },
+  "tags" : [
+    "Pushbutton",
+    "button",
+    "fritzing core"
+  ],
+  "title" : "Pushbutton",
+  "versionHash" : "0f6e2ffee5d05b86"
+}

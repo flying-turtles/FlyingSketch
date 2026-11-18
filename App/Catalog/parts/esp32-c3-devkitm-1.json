@@ -1,0 +1,358 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "J1 pin 1: Ground",
+      "id" : "connector0",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 1.27,
+        "y" : 2.06
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J1 pin 2: 3.3 V power supply",
+      "id" : "connector1",
+      "kind" : "male",
+      "name" : "3V3",
+      "position" : {
+        "x" : 1.27,
+        "y" : 4.6
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "J1 pin 3: 3.3 V power supply",
+      "id" : "connector2",
+      "kind" : "male",
+      "name" : "3V3",
+      "position" : {
+        "x" : 1.27,
+        "y" : 7.14
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "J1 pin 4: GPIO2, ADC1_CH2, FSPIQ",
+      "id" : "connector3",
+      "kind" : "male",
+      "name" : "IO2",
+      "position" : {
+        "x" : 1.27,
+        "y" : 9.68
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J1 pin 5: GPIO3, ADC1_CH3",
+      "id" : "connector4",
+      "kind" : "male",
+      "name" : "IO3",
+      "position" : {
+        "x" : 1.27,
+        "y" : 12.219999999999999
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J1 pin 6: Ground",
+      "id" : "connector5",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 1.27,
+        "y" : 14.760000000000002
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J1 pin 7: CHIP_PU",
+      "id" : "connector6",
+      "kind" : "male",
+      "name" : "RST",
+      "position" : {
+        "x" : 1.27,
+        "y" : 17.3
+      }
+    },
+    {
+      "description" : "J1 pin 8: Ground",
+      "id" : "connector7",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 1.27,
+        "y" : 19.84
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J1 pin 9: GPIO0, ADC1_CH0, XTAL_32K_P",
+      "id" : "connector8",
+      "kind" : "male",
+      "name" : "IO0",
+      "position" : {
+        "x" : 1.27,
+        "y" : 22.38
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J1 pin 10: GPIO1, ADC1_CH1, XTAL_32K_N",
+      "id" : "connector9",
+      "kind" : "male",
+      "name" : "IO1",
+      "position" : {
+        "x" : 1.27,
+        "y" : 24.92
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J1 pin 11: GPIO10, FSPICS0",
+      "id" : "connector10",
+      "kind" : "male",
+      "name" : "IO10",
+      "position" : {
+        "x" : 1.27,
+        "y" : 27.46
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J1 pin 12: Ground",
+      "id" : "connector11",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 1.27,
+        "y" : 30
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J1 pin 13: 5 V power supply",
+      "id" : "connector12",
+      "kind" : "male",
+      "name" : "5V",
+      "position" : {
+        "x" : 1.27,
+        "y" : 32.54
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "J1 pin 14: 5 V power supply",
+      "id" : "connector13",
+      "kind" : "male",
+      "name" : "5V",
+      "position" : {
+        "x" : 1.27,
+        "y" : 35.08
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "J1 pin 15: Ground",
+      "id" : "connector14",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 1.27,
+        "y" : 37.620000000000005
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J3 pin 1: Ground",
+      "id" : "connector15",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 24.13,
+        "y" : 2.06
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J3 pin 2: GPIO21, U0TXD",
+      "id" : "connector16",
+      "kind" : "male",
+      "name" : "TX",
+      "position" : {
+        "x" : 24.13,
+        "y" : 4.6
+      },
+      "role" : "uart"
+    },
+    {
+      "description" : "J3 pin 3: GPIO20, U0RXD",
+      "id" : "connector17",
+      "kind" : "male",
+      "name" : "RX",
+      "position" : {
+        "x" : 24.13,
+        "y" : 7.14
+      },
+      "role" : "uart"
+    },
+    {
+      "description" : "J3 pin 4: Ground",
+      "id" : "connector18",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 24.13,
+        "y" : 9.68
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J3 pin 5: GPIO9",
+      "id" : "connector19",
+      "kind" : "male",
+      "name" : "IO9",
+      "position" : {
+        "x" : 24.13,
+        "y" : 12.219999999999999
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 6: GPIO8, RGB LED",
+      "id" : "connector20",
+      "kind" : "male",
+      "name" : "IO8",
+      "position" : {
+        "x" : 24.13,
+        "y" : 14.760000000000002
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 7: Ground",
+      "id" : "connector21",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 24.13,
+        "y" : 17.3
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J3 pin 8: GPIO7, FSPID, MTDO",
+      "id" : "connector22",
+      "kind" : "male",
+      "name" : "IO7",
+      "position" : {
+        "x" : 24.13,
+        "y" : 19.84
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 9: GPIO6, FSPICLK, MTCK",
+      "id" : "connector23",
+      "kind" : "male",
+      "name" : "IO6",
+      "position" : {
+        "x" : 24.13,
+        "y" : 22.38
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 10: GPIO5, ADC2_CH0, FSPIWP, MTDI",
+      "id" : "connector24",
+      "kind" : "male",
+      "name" : "IO5",
+      "position" : {
+        "x" : 24.13,
+        "y" : 24.92
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 11: GPIO4, ADC1_CH4, FSPIHD, MTMS",
+      "id" : "connector25",
+      "kind" : "male",
+      "name" : "IO4",
+      "position" : {
+        "x" : 24.13,
+        "y" : 27.46
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 12: Ground",
+      "id" : "connector26",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 24.13,
+        "y" : 30
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "J3 pin 13: GPIO18, USB_D-",
+      "id" : "connector27",
+      "kind" : "male",
+      "name" : "IO18",
+      "position" : {
+        "x" : 24.13,
+        "y" : 32.54
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 14: GPIO19, USB_D+",
+      "id" : "connector28",
+      "kind" : "male",
+      "name" : "IO19",
+      "position" : {
+        "x" : 24.13,
+        "y" : 35.08
+      },
+      "role" : "digital"
+    },
+    {
+      "description" : "J3 pin 15: Ground",
+      "id" : "connector29",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 24.13,
+        "y" : 37.620000000000005
+      },
+      "role" : "ground"
+    }
+  ],
+  "family" : "microcontroller board (ESP32-C3)",
+  "graphicAsset" : "part-9c5962f2ab2f69db.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "U",
+  "libraryID" : "FlyingSketch-ESP32-C3-DevKitM-1-v1",
+  "properties" : {
+    "family" : "microcontroller board (ESP32-C3)",
+    "module" : "ESP32-C3-MINI-1",
+    "variant" : "v1"
+  },
+  "size" : {
+    "x" : 25.4,
+    "y" : 38.91
+  },
+  "tags" : [
+    "ESP32-C3",
+    "ESP32",
+    "Espressif",
+    "microcontroller"
+  ],
+  "title" : "ESP32-C3-DevKitM-1",
+  "versionHash" : "9c5962f2ab2f69db"
+}

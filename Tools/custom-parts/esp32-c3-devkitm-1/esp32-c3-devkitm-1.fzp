@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FlyingSketch custom part (MIT, Lars Grof). Pinout: https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32c3/esp32-c3-devkitm-1/user_guide.html -->
+<module fritzingVersion="0.9.3" moduleId="FlyingSketch-ESP32-C3-DevKitM-1-v1">
+  <version>1</version>
+  <title>ESP32-C3-DevKitM-1</title>
+  <label>U</label>
+  <author>Lars Grof (FlyingSketch)</author>
+  <description>Espressif ESP32-C3-DevKitM-1 v1 development board (ESP32-C3-MINI-1). Header pin names follow the Espressif user guide.</description>
+  <tags>
+    <tag>ESP32-C3</tag>
+    <tag>ESP32</tag>
+    <tag>Espressif</tag>
+    <tag>microcontroller</tag>
+  </tags>
+  <properties>
+    <property name="family">microcontroller board (ESP32-C3)</property>
+    <property name="variant">v1</property>
+    <property name="module">ESP32-C3-MINI-1</property>
+  </properties>
+  <views>
+    <breadboardView>
+      <layers image="breadboard/esp32-c3-devkitm-1.svg">
+        <layer layerId="breadboard"/>
+      </layers>
+    </breadboardView>
+  </views>
+  <connectors>
+    <connector id="connector0" name="GND" type="male">
+      <description>J1 pin 1: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector0pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector1" name="3V3" type="male">
+      <description>J1 pin 2: 3.3 V power supply</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector1pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector2" name="3V3" type="male">
+      <description>J1 pin 3: 3.3 V power supply</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector2pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector3" name="IO2" type="male">
+      <description>J1 pin 4: GPIO2, ADC1_CH2, FSPIQ</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector3pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector4" name="IO3" type="male">
+      <description>J1 pin 5: GPIO3, ADC1_CH3</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector4pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector5" name="GND" type="male">
+      <description>J1 pin 6: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector5pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector6" name="RST" type="male">
+      <description>J1 pin 7: CHIP_PU</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector6pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector7" name="GND" type="male">
+      <description>J1 pin 8: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector7pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector8" name="IO0" type="male">
+      <description>J1 pin 9: GPIO0, ADC1_CH0, XTAL_32K_P</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector8pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector9" name="IO1" type="male">
+      <description>J1 pin 10: GPIO1, ADC1_CH1, XTAL_32K_N</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector9pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector10" name="IO10" type="male">
+      <description>J1 pin 11: GPIO10, FSPICS0</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector10pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector11" name="GND" type="male">
+      <description>J1 pin 12: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector11pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector12" name="5V" type="male">
+      <description>J1 pin 13: 5 V power supply</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector12pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector13" name="5V" type="male">
+      <description>J1 pin 14: 5 V power supply</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector13pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector14" name="GND" type="male">
+      <description>J1 pin 15: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector14pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector15" name="GND" type="male">
+      <description>J3 pin 1: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector15pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector16" name="TX" type="male">
+      <description>J3 pin 2: GPIO21, U0TXD</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector16pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector17" name="RX" type="male">
+      <description>J3 pin 3: GPIO20, U0RXD</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector17pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector18" name="GND" type="male">
+      <description>J3 pin 4: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector18pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector19" name="IO9" type="male">
+      <description>J3 pin 5: GPIO9</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector19pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector20" name="IO8" type="male">
+      <description>J3 pin 6: GPIO8, RGB LED</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector20pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector21" name="GND" type="male">
+      <description>J3 pin 7: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector21pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector22" name="IO7" type="male">
+      <description>J3 pin 8: GPIO7, FSPID, MTDO</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector22pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector23" name="IO6" type="male">
+      <description>J3 pin 9: GPIO6, FSPICLK, MTCK</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector23pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector24" name="IO5" type="male">
+      <description>J3 pin 10: GPIO5, ADC2_CH0, FSPIWP, MTDI</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector24pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector25" name="IO4" type="male">
+      <description>J3 pin 11: GPIO4, ADC1_CH4, FSPIHD, MTMS</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector25pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector26" name="GND" type="male">
+      <description>J3 pin 12: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector26pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector27" name="IO18" type="male">
+      <description>J3 pin 13: GPIO18, USB_D-</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector27pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector28" name="IO19" type="male">
+      <description>J3 pin 14: GPIO19, USB_D+</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector28pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+    <connector id="connector29" name="GND" type="male">
+      <description>J3 pin 15: Ground</description>
+      <views>
+        <breadboardView>
+          <p layer="breadboard" svgId="connector29pin"/>
+        </breadboardView>
+      </views>
+    </connector>
+  </connectors>
+</module>

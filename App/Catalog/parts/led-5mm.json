@@ -1,0 +1,85 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "cathode pin",
+      "id" : "connector0",
+      "kind" : "male",
+      "leg" : {
+        "color" : {
+          "a" : 1,
+          "b" : 0.5490196078431373,
+          "g" : 0.5490196078431373,
+          "r" : 0.5490196078431373
+        },
+        "defaultEnd" : {
+          "x" : 1.5968979999999995,
+          "y" : 18.987516000000003
+        },
+        "origin" : {
+          "x" : 1.5968979999999995,
+          "y" : 10.30351
+        },
+        "width" : 0.758952
+      },
+      "name" : "cathode",
+      "position" : {
+        "x" : 1.5970249999999995,
+        "y" : 9.094978000000001
+      }
+    },
+    {
+      "description" : "anode pin",
+      "id" : "connector1",
+      "kind" : "male",
+      "leg" : {
+        "color" : {
+          "a" : 1,
+          "b" : 0.5490196078431373,
+          "g" : 0.5490196078431373,
+          "r" : 0.5490196078431373
+        },
+        "defaultEnd" : {
+          "x" : 4.137659999999999,
+          "y" : 18.987516000000003
+        },
+        "origin" : {
+          "x" : 4.137659999999999,
+          "y" : 10.30351
+        },
+        "width" : 0.758952
+      },
+      "name" : "anode",
+      "position" : {
+        "x" : 4.1374059999999995,
+        "y" : 9.094978000000001
+      }
+    }
+  ],
+  "family" : "LED",
+  "graphicAsset" : "part-5a0513dcd7690a15.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "LED",
+  "libraryID" : "LED-genedb611bf8177f41ac9c325217070f0c62ColorLEDModuleID",
+  "properties" : {
+    "color" : "Red (633nm)",
+    "current" : "0.030A",
+    "family" : "LED",
+    "leg" : "yes",
+    "package" : "5 mm [THT]"
+  },
+  "size" : {
+    "x" : 5.452617999999999,
+    "y" : 10.30351
+  },
+  "tags" : [
+    "LED",
+    "Red LED",
+    "indicator",
+    "fritzing core"
+  ],
+  "title" : "Red LED - 5mm",
+  "versionHash" : "5a0513dcd7690a15"
+}

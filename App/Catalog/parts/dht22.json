@@ -1,0 +1,70 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "no connection",
+      "id" : "connector3",
+      "kind" : "male",
+      "name" : "NULL",
+      "position" : {
+        "x" : 7.5375815500000005,
+        "y" : 21.50228755
+      }
+    },
+    {
+      "description" : "Ground",
+      "id" : "connector4",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 10.12738575,
+        "y" : 21.43588355
+      },
+      "role" : "ground"
+    },
+    {
+      "description" : "supply voltage",
+      "id" : "connector1",
+      "kind" : "male",
+      "name" : "VDD",
+      "position" : {
+        "x" : 2.49078425,
+        "y" : 21.43588355
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "signal",
+      "id" : "connector2",
+      "kind" : "male",
+      "name" : "DATA",
+      "position" : {
+        "x" : 5.0805884500000005,
+        "y" : 21.43588355
+      }
+    }
+  ],
+  "family" : "sensors",
+  "graphicAsset" : "part-82f6823531402252.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "DHT",
+  "libraryID" : "65e31feff426e0dde13a0544d0f93a7d",
+  "properties" : {
+    "family" : "sensors",
+    "part number" : ""
+  },
+  "size" : {
+    "x" : 13,
+    "y" : 23
+  },
+  "tags" : [
+    "sensor",
+    "temperature",
+    "relative",
+    "humidity"
+  ],
+  "title" : "DHT22 Humidity and Temperature Sensor",
+  "versionHash" : "82f6823531402252"
+}

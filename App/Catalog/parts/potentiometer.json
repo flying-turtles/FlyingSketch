@@ -1,0 +1,64 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "leg1",
+      "id" : "connector0",
+      "kind" : "male",
+      "name" : "leg1",
+      "position" : {
+        "x" : 2.616200249287929,
+        "y" : 20.777274942754914
+      }
+    },
+    {
+      "description" : "wiper",
+      "id" : "connector1",
+      "kind" : "male",
+      "name" : "wiper",
+      "position" : {
+        "x" : 5.156200126642279,
+        "y" : 20.777274942754914
+      }
+    },
+    {
+      "description" : "leg2",
+      "id" : "connector2",
+      "kind" : "male",
+      "name" : "leg2",
+      "position" : {
+        "x" : 7.696200003996629,
+        "y" : 20.777274942754914
+      }
+    }
+  ],
+  "family" : "Potentiometer",
+  "graphicAsset" : "part-21aa497bd011cd96.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "R",
+  "libraryID" : "potentiometer_rotary_9mm_6_PotentiometerModuleID",
+  "properties" : {
+    "family" : "Potentiometer",
+    "knob status" : "50%",
+    "maximum resistance" : "10kΩ",
+    "package" : "THT",
+    "power" : "0.5W",
+    "track" : "Linear",
+    "type" : "Rotary-9mm"
+  },
+  "size" : {
+    "x" : 10.297583417999999,
+    "y" : 21.041430104
+  },
+  "tags" : [
+    "potentiometer",
+    "poti",
+    "adjustable",
+    "resistor",
+    "fritzing core"
+  ],
+  "title" : "Rotary Potentiometer (Small)",
+  "versionHash" : "21aa497bd011cd96"
+}

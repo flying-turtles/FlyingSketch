@@ -1,0 +1,4781 @@
+{
+  "buses" : [
+    [
+      "A98",
+      "B98",
+      "C98",
+      "D98",
+      "E98"
+    ],
+    [
+      "A99",
+      "B99",
+      "C99",
+      "D99",
+      "E99"
+    ],
+    [
+      "A1",
+      "B1",
+      "C1",
+      "D1",
+      "E1"
+    ],
+    [
+      "A2",
+      "B2",
+      "C2",
+      "D2",
+      "E2"
+    ],
+    [
+      "A3",
+      "B3",
+      "C3",
+      "D3",
+      "E3"
+    ],
+    [
+      "A4",
+      "B4",
+      "C4",
+      "D4",
+      "E4"
+    ],
+    [
+      "A5",
+      "B5",
+      "C5",
+      "D5",
+      "E5"
+    ],
+    [
+      "A6",
+      "B6",
+      "C6",
+      "D6",
+      "E6"
+    ],
+    [
+      "A7",
+      "B7",
+      "C7",
+      "D7",
+      "E7"
+    ],
+    [
+      "A8",
+      "B8",
+      "C8",
+      "D8",
+      "E8"
+    ],
+    [
+      "A9",
+      "B9",
+      "C9",
+      "D9",
+      "E9"
+    ],
+    [
+      "A10",
+      "B10",
+      "C10",
+      "D10",
+      "E10"
+    ],
+    [
+      "A11",
+      "B11",
+      "C11",
+      "D11",
+      "E11"
+    ],
+    [
+      "A12",
+      "B12",
+      "C12",
+      "D12",
+      "E12"
+    ],
+    [
+      "A13",
+      "B13",
+      "C13",
+      "D13",
+      "E13"
+    ],
+    [
+      "A14",
+      "B14",
+      "C14",
+      "D14",
+      "E14"
+    ],
+    [
+      "A15",
+      "B15",
+      "C15",
+      "D15",
+      "E15"
+    ],
+    [
+      "A16",
+      "B16",
+      "C16",
+      "D16",
+      "E16"
+    ],
+    [
+      "A17",
+      "B17",
+      "C17",
+      "D17",
+      "E17"
+    ],
+    [
+      "A18",
+      "B18",
+      "C18",
+      "D18",
+      "E18"
+    ],
+    [
+      "A19",
+      "B19",
+      "C19",
+      "D19",
+      "E19"
+    ],
+    [
+      "A20",
+      "B20",
+      "C20",
+      "D20",
+      "E20"
+    ],
+    [
+      "A21",
+      "B21",
+      "C21",
+      "D21",
+      "E21"
+    ],
+    [
+      "A22",
+      "B22",
+      "C22",
+      "D22",
+      "E22"
+    ],
+    [
+      "A23",
+      "B23",
+      "C23",
+      "D23",
+      "E23"
+    ],
+    [
+      "A24",
+      "B24",
+      "C24",
+      "D24",
+      "E24"
+    ],
+    [
+      "A25",
+      "B25",
+      "C25",
+      "D25",
+      "E25"
+    ],
+    [
+      "A26",
+      "B26",
+      "C26",
+      "D26",
+      "E26"
+    ],
+    [
+      "A27",
+      "B27",
+      "C27",
+      "D27",
+      "E27"
+    ],
+    [
+      "A28",
+      "B28",
+      "C28",
+      "D28",
+      "E28"
+    ],
+    [
+      "A29",
+      "B29",
+      "C29",
+      "D29",
+      "E29"
+    ],
+    [
+      "A30",
+      "B30",
+      "C30",
+      "D30",
+      "E30"
+    ],
+    [
+      "F98",
+      "G98",
+      "H98",
+      "I98",
+      "J98"
+    ],
+    [
+      "F99",
+      "G99",
+      "H99",
+      "I99",
+      "J99"
+    ],
+    [
+      "F1",
+      "G1",
+      "H1",
+      "I1",
+      "J1"
+    ],
+    [
+      "F2",
+      "G2",
+      "H2",
+      "I2",
+      "J2"
+    ],
+    [
+      "F3",
+      "G3",
+      "H3",
+      "I3",
+      "J3"
+    ],
+    [
+      "F4",
+      "G4",
+      "H4",
+      "I4",
+      "J4"
+    ],
+    [
+      "F5",
+      "G5",
+      "H5",
+      "I5",
+      "J5"
+    ],
+    [
+      "F6",
+      "G6",
+      "H6",
+      "I6",
+      "J6"
+    ],
+    [
+      "F7",
+      "G7",
+      "H7",
+      "I7",
+      "J7"
+    ],
+    [
+      "F8",
+      "G8",
+      "H8",
+      "I8",
+      "J8"
+    ],
+    [
+      "F9",
+      "G9",
+      "H9",
+      "I9",
+      "J9"
+    ],
+    [
+      "F10",
+      "G10",
+      "H10",
+      "I10",
+      "J10"
+    ],
+    [
+      "F11",
+      "G11",
+      "H11",
+      "I11",
+      "J11"
+    ],
+    [
+      "F12",
+      "G12",
+      "H12",
+      "I12",
+      "J12"
+    ],
+    [
+      "F13",
+      "G13",
+      "H13",
+      "I13",
+      "J13"
+    ],
+    [
+      "F14",
+      "G14",
+      "H14",
+      "I14",
+      "J14"
+    ],
+    [
+      "F15",
+      "G15",
+      "H15",
+      "I15",
+      "J15"
+    ],
+    [
+      "F16",
+      "G16",
+      "H16",
+      "I16",
+      "J16"
+    ],
+    [
+      "F17",
+      "G17",
+      "H17",
+      "I17",
+      "J17"
+    ],
+    [
+      "F18",
+      "G18",
+      "H18",
+      "I18",
+      "J18"
+    ],
+    [
+      "F19",
+      "G19",
+      "H19",
+      "I19",
+      "J19"
+    ],
+    [
+      "F20",
+      "G20",
+      "H20",
+      "I20",
+      "J20"
+    ],
+    [
+      "F21",
+      "G21",
+      "H21",
+      "I21",
+      "J21"
+    ],
+    [
+      "F22",
+      "G22",
+      "H22",
+      "I22",
+      "J22"
+    ],
+    [
+      "F23",
+      "G23",
+      "H23",
+      "I23",
+      "J23"
+    ],
+    [
+      "F24",
+      "G24",
+      "H24",
+      "I24",
+      "J24"
+    ],
+    [
+      "F25",
+      "G25",
+      "H25",
+      "I25",
+      "J25"
+    ],
+    [
+      "F26",
+      "G26",
+      "H26",
+      "I26",
+      "J26"
+    ],
+    [
+      "F27",
+      "G27",
+      "H27",
+      "I27",
+      "J27"
+    ],
+    [
+      "F28",
+      "G28",
+      "H28",
+      "I28",
+      "J28"
+    ],
+    [
+      "F29",
+      "G29",
+      "H29",
+      "I29",
+      "J29"
+    ],
+    [
+      "F30",
+      "G30",
+      "H30",
+      "I30",
+      "J30"
+    ],
+    [
+      "W1",
+      "W2",
+      "W3",
+      "W4",
+      "W5",
+      "W7",
+      "W8",
+      "W9",
+      "W10",
+      "W11",
+      "W13",
+      "W14",
+      "W15",
+      "W16",
+      "W17",
+      "W19",
+      "W20",
+      "W21",
+      "W22",
+      "W23",
+      "W25",
+      "W26",
+      "W27",
+      "W28",
+      "W29"
+    ],
+    [
+      "X1",
+      "X2",
+      "X3",
+      "X4",
+      "X5",
+      "X7",
+      "X8",
+      "X9",
+      "X10",
+      "X11",
+      "X13",
+      "X14",
+      "X15",
+      "X16",
+      "X17",
+      "X19",
+      "X20",
+      "X21",
+      "X22",
+      "X23",
+      "X25",
+      "X26",
+      "X27",
+      "X28",
+      "X29"
+    ],
+    [
+      "Y1",
+      "Y2",
+      "Y3",
+      "Y4",
+      "Y5",
+      "Y7",
+      "Y8",
+      "Y9",
+      "Y10",
+      "Y11",
+      "Y13",
+      "Y14",
+      "Y15",
+      "Y16",
+      "Y17",
+      "Y19",
+      "Y20",
+      "Y21",
+      "Y22",
+      "Y23",
+      "Y25",
+      "Y26",
+      "Y27",
+      "Y28",
+      "Y29"
+    ],
+    [
+      "Z1",
+      "Z2",
+      "Z3",
+      "Z4",
+      "Z5",
+      "Z7",
+      "Z8",
+      "Z9",
+      "Z10",
+      "Z11",
+      "Z13",
+      "Z14",
+      "Z15",
+      "Z16",
+      "Z17",
+      "Z19",
+      "Z20",
+      "Z21",
+      "Z22",
+      "Z23",
+      "Z25",
+      "Z26",
+      "Z27",
+      "Z28",
+      "Z29"
+    ]
+  ],
+  "connectors" : [
+    {
+      "description" : "breadboard socket",
+      "id" : "A98",
+      "kind" : "female",
+      "name" : "A98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B98",
+      "kind" : "female",
+      "name" : "B98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C98",
+      "kind" : "female",
+      "name" : "C98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D98",
+      "kind" : "female",
+      "name" : "D98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E98",
+      "kind" : "female",
+      "name" : "E98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A99",
+      "kind" : "female",
+      "name" : "A99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 10.160141111111113
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B99",
+      "kind" : "female",
+      "name" : "B99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 12.192141111111113
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C99",
+      "kind" : "female",
+      "name" : "C99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 14.224282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D99",
+      "kind" : "female",
+      "name" : "D99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 16.256141111111113
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E99",
+      "kind" : "female",
+      "name" : "E99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 18.28828222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A1",
+      "kind" : "female",
+      "name" : "A1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B1",
+      "kind" : "female",
+      "name" : "B1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C1",
+      "kind" : "female",
+      "name" : "C1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D1",
+      "kind" : "female",
+      "name" : "D1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E1",
+      "kind" : "female",
+      "name" : "E1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A2",
+      "kind" : "female",
+      "name" : "A2",
+      "position" : {
+        "x" : 9.177866666666667,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B2",
+      "kind" : "female",
+      "name" : "B2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C2",
+      "kind" : "female",
+      "name" : "C2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D2",
+      "kind" : "female",
+      "name" : "D2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E2",
+      "kind" : "female",
+      "name" : "E2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A3",
+      "kind" : "female",
+      "name" : "A3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B3",
+      "kind" : "female",
+      "name" : "B3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C3",
+      "kind" : "female",
+      "name" : "C3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D3",
+      "kind" : "female",
+      "name" : "D3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E3",
+      "kind" : "female",
+      "name" : "E3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A4",
+      "kind" : "female",
+      "name" : "A4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B4",
+      "kind" : "female",
+      "name" : "B4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C4",
+      "kind" : "female",
+      "name" : "C4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D4",
+      "kind" : "female",
+      "name" : "D4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E4",
+      "kind" : "female",
+      "name" : "E4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A5",
+      "kind" : "female",
+      "name" : "A5",
+      "position" : {
+        "x" : 15.273866666666665,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B5",
+      "kind" : "female",
+      "name" : "B5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C5",
+      "kind" : "female",
+      "name" : "C5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D5",
+      "kind" : "female",
+      "name" : "D5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E5",
+      "kind" : "female",
+      "name" : "E5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A6",
+      "kind" : "female",
+      "name" : "A6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B6",
+      "kind" : "female",
+      "name" : "B6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C6",
+      "kind" : "female",
+      "name" : "C6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D6",
+      "kind" : "female",
+      "name" : "D6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E6",
+      "kind" : "female",
+      "name" : "E6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A7",
+      "kind" : "female",
+      "name" : "A7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B7",
+      "kind" : "female",
+      "name" : "B7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C7",
+      "kind" : "female",
+      "name" : "C7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D7",
+      "kind" : "female",
+      "name" : "D7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E7",
+      "kind" : "female",
+      "name" : "E7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A8",
+      "kind" : "female",
+      "name" : "A8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B8",
+      "kind" : "female",
+      "name" : "B8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C8",
+      "kind" : "female",
+      "name" : "C8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D8",
+      "kind" : "female",
+      "name" : "D8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E8",
+      "kind" : "female",
+      "name" : "E8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A9",
+      "kind" : "female",
+      "name" : "A9",
+      "position" : {
+        "x" : 23.401866666666667,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B9",
+      "kind" : "female",
+      "name" : "B9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C9",
+      "kind" : "female",
+      "name" : "C9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D9",
+      "kind" : "female",
+      "name" : "D9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E9",
+      "kind" : "female",
+      "name" : "E9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A10",
+      "kind" : "female",
+      "name" : "A10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B10",
+      "kind" : "female",
+      "name" : "B10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C10",
+      "kind" : "female",
+      "name" : "C10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D10",
+      "kind" : "female",
+      "name" : "D10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E10",
+      "kind" : "female",
+      "name" : "E10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A11",
+      "kind" : "female",
+      "name" : "A11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B11",
+      "kind" : "female",
+      "name" : "B11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C11",
+      "kind" : "female",
+      "name" : "C11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D11",
+      "kind" : "female",
+      "name" : "D11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E11",
+      "kind" : "female",
+      "name" : "E11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A12",
+      "kind" : "female",
+      "name" : "A12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B12",
+      "kind" : "female",
+      "name" : "B12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C12",
+      "kind" : "female",
+      "name" : "C12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D12",
+      "kind" : "female",
+      "name" : "D12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E12",
+      "kind" : "female",
+      "name" : "E12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A13",
+      "kind" : "female",
+      "name" : "A13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B13",
+      "kind" : "female",
+      "name" : "B13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C13",
+      "kind" : "female",
+      "name" : "C13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D13",
+      "kind" : "female",
+      "name" : "D13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E13",
+      "kind" : "female",
+      "name" : "E13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A14",
+      "kind" : "female",
+      "name" : "A14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B14",
+      "kind" : "female",
+      "name" : "B14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C14",
+      "kind" : "female",
+      "name" : "C14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D14",
+      "kind" : "female",
+      "name" : "D14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E14",
+      "kind" : "female",
+      "name" : "E14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A15",
+      "kind" : "female",
+      "name" : "A15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B15",
+      "kind" : "female",
+      "name" : "B15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 12.192846666666664
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C15",
+      "kind" : "female",
+      "name" : "C15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 14.224987777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D15",
+      "kind" : "female",
+      "name" : "D15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E15",
+      "kind" : "female",
+      "name" : "E15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A16",
+      "kind" : "female",
+      "name" : "A16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B16",
+      "kind" : "female",
+      "name" : "B16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C16",
+      "kind" : "female",
+      "name" : "C16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D16",
+      "kind" : "female",
+      "name" : "D16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E16",
+      "kind" : "female",
+      "name" : "E16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A17",
+      "kind" : "female",
+      "name" : "A17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B17",
+      "kind" : "female",
+      "name" : "B17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C17",
+      "kind" : "female",
+      "name" : "C17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D17",
+      "kind" : "female",
+      "name" : "D17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E17",
+      "kind" : "female",
+      "name" : "E17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A18",
+      "kind" : "female",
+      "name" : "A18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B18",
+      "kind" : "female",
+      "name" : "B18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C18",
+      "kind" : "female",
+      "name" : "C18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D18",
+      "kind" : "female",
+      "name" : "D18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E18",
+      "kind" : "female",
+      "name" : "E18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A19",
+      "kind" : "female",
+      "name" : "A19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B19",
+      "kind" : "female",
+      "name" : "B19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 12.192846666666664
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C19",
+      "kind" : "female",
+      "name" : "C19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 14.224987777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D19",
+      "kind" : "female",
+      "name" : "D19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E19",
+      "kind" : "female",
+      "name" : "E19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A20",
+      "kind" : "female",
+      "name" : "A20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B20",
+      "kind" : "female",
+      "name" : "B20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C20",
+      "kind" : "female",
+      "name" : "C20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D20",
+      "kind" : "female",
+      "name" : "D20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E20",
+      "kind" : "female",
+      "name" : "E20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A21",
+      "kind" : "female",
+      "name" : "A21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B21",
+      "kind" : "female",
+      "name" : "B21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C21",
+      "kind" : "female",
+      "name" : "C21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D21",
+      "kind" : "female",
+      "name" : "D21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E21",
+      "kind" : "female",
+      "name" : "E21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A22",
+      "kind" : "female",
+      "name" : "A22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B22",
+      "kind" : "female",
+      "name" : "B22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 12.192846666666664
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C22",
+      "kind" : "female",
+      "name" : "C22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 14.224987777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D22",
+      "kind" : "female",
+      "name" : "D22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E22",
+      "kind" : "female",
+      "name" : "E22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A23",
+      "kind" : "female",
+      "name" : "A23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B23",
+      "kind" : "female",
+      "name" : "B23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 12.192846666666664
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C23",
+      "kind" : "female",
+      "name" : "C23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 14.224987777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D23",
+      "kind" : "female",
+      "name" : "D23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E23",
+      "kind" : "female",
+      "name" : "E23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A24",
+      "kind" : "female",
+      "name" : "A24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B24",
+      "kind" : "female",
+      "name" : "B24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C24",
+      "kind" : "female",
+      "name" : "C24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D24",
+      "kind" : "female",
+      "name" : "D24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E24",
+      "kind" : "female",
+      "name" : "E24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A25",
+      "kind" : "female",
+      "name" : "A25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B25",
+      "kind" : "female",
+      "name" : "B25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 12.192987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C25",
+      "kind" : "female",
+      "name" : "C25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 14.224987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D25",
+      "kind" : "female",
+      "name" : "D25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E25",
+      "kind" : "female",
+      "name" : "E25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A26",
+      "kind" : "female",
+      "name" : "A26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 10.160987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B26",
+      "kind" : "female",
+      "name" : "B26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 12.192846666666664
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C26",
+      "kind" : "female",
+      "name" : "C26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 14.224987777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D26",
+      "kind" : "female",
+      "name" : "D26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 16.256987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E26",
+      "kind" : "female",
+      "name" : "E26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 18.288987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A27",
+      "kind" : "female",
+      "name" : "A27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B27",
+      "kind" : "female",
+      "name" : "B27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C27",
+      "kind" : "female",
+      "name" : "C27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D27",
+      "kind" : "female",
+      "name" : "D27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E27",
+      "kind" : "female",
+      "name" : "E27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A28",
+      "kind" : "female",
+      "name" : "A28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B28",
+      "kind" : "female",
+      "name" : "B28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C28",
+      "kind" : "female",
+      "name" : "C28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D28",
+      "kind" : "female",
+      "name" : "D28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E28",
+      "kind" : "female",
+      "name" : "E28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A29",
+      "kind" : "female",
+      "name" : "A29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B29",
+      "kind" : "female",
+      "name" : "B29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C29",
+      "kind" : "female",
+      "name" : "C29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D29",
+      "kind" : "female",
+      "name" : "D29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E29",
+      "kind" : "female",
+      "name" : "E29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "A30",
+      "kind" : "female",
+      "name" : "A30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 10.16
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "B30",
+      "kind" : "female",
+      "name" : "B30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 12.192
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "C30",
+      "kind" : "female",
+      "name" : "C30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 14.223999999999998
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "D30",
+      "kind" : "female",
+      "name" : "D30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 16.256
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "E30",
+      "kind" : "female",
+      "name" : "E30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 18.287999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F98",
+      "kind" : "female",
+      "name" : "F98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G98",
+      "kind" : "female",
+      "name" : "G98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H98",
+      "kind" : "female",
+      "name" : "H98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I98",
+      "kind" : "female",
+      "name" : "I98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J98",
+      "kind" : "female",
+      "name" : "J98",
+      "position" : {
+        "x" : 3.0820077777777772,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F99",
+      "kind" : "female",
+      "name" : "F99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 24.38428222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G99",
+      "kind" : "female",
+      "name" : "G99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 26.41614111111111
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H99",
+      "kind" : "female",
+      "name" : "H99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 28.448282222222225
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I99",
+      "kind" : "female",
+      "name" : "I99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 30.480282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J99",
+      "kind" : "female",
+      "name" : "J99",
+      "position" : {
+        "x" : 5.113725555555556,
+        "y" : 32.512282222222225
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F1",
+      "kind" : "female",
+      "name" : "F1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G1",
+      "kind" : "female",
+      "name" : "G1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H1",
+      "kind" : "female",
+      "name" : "H1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I1",
+      "kind" : "female",
+      "name" : "I1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J1",
+      "kind" : "female",
+      "name" : "J1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F2",
+      "kind" : "female",
+      "name" : "F2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G2",
+      "kind" : "female",
+      "name" : "G2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H2",
+      "kind" : "female",
+      "name" : "H2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I2",
+      "kind" : "female",
+      "name" : "I2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J2",
+      "kind" : "female",
+      "name" : "J2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F3",
+      "kind" : "female",
+      "name" : "F3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G3",
+      "kind" : "female",
+      "name" : "G3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H3",
+      "kind" : "female",
+      "name" : "H3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I3",
+      "kind" : "female",
+      "name" : "I3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J3",
+      "kind" : "female",
+      "name" : "J3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F4",
+      "kind" : "female",
+      "name" : "F4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G4",
+      "kind" : "female",
+      "name" : "G4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H4",
+      "kind" : "female",
+      "name" : "H4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I4",
+      "kind" : "female",
+      "name" : "I4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J4",
+      "kind" : "female",
+      "name" : "J4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F5",
+      "kind" : "female",
+      "name" : "F5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G5",
+      "kind" : "female",
+      "name" : "G5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H5",
+      "kind" : "female",
+      "name" : "H5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I5",
+      "kind" : "female",
+      "name" : "I5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J5",
+      "kind" : "female",
+      "name" : "J5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F6",
+      "kind" : "female",
+      "name" : "F6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G6",
+      "kind" : "female",
+      "name" : "G6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H6",
+      "kind" : "female",
+      "name" : "H6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I6",
+      "kind" : "female",
+      "name" : "I6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J6",
+      "kind" : "female",
+      "name" : "J6",
+      "position" : {
+        "x" : 17.305725555555554,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F7",
+      "kind" : "female",
+      "name" : "F7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G7",
+      "kind" : "female",
+      "name" : "G7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H7",
+      "kind" : "female",
+      "name" : "H7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I7",
+      "kind" : "female",
+      "name" : "I7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J7",
+      "kind" : "female",
+      "name" : "J7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F8",
+      "kind" : "female",
+      "name" : "F8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G8",
+      "kind" : "female",
+      "name" : "G8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H8",
+      "kind" : "female",
+      "name" : "H8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I8",
+      "kind" : "female",
+      "name" : "I8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J8",
+      "kind" : "female",
+      "name" : "J8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F9",
+      "kind" : "female",
+      "name" : "F9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G9",
+      "kind" : "female",
+      "name" : "G9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H9",
+      "kind" : "female",
+      "name" : "H9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I9",
+      "kind" : "female",
+      "name" : "I9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J9",
+      "kind" : "female",
+      "name" : "J9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F10",
+      "kind" : "female",
+      "name" : "F10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G10",
+      "kind" : "female",
+      "name" : "G10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H10",
+      "kind" : "female",
+      "name" : "H10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I10",
+      "kind" : "female",
+      "name" : "I10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J10",
+      "kind" : "female",
+      "name" : "J10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F11",
+      "kind" : "female",
+      "name" : "F11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G11",
+      "kind" : "female",
+      "name" : "G11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H11",
+      "kind" : "female",
+      "name" : "H11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I11",
+      "kind" : "female",
+      "name" : "I11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J11",
+      "kind" : "female",
+      "name" : "J11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F12",
+      "kind" : "female",
+      "name" : "F12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G12",
+      "kind" : "female",
+      "name" : "G12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H12",
+      "kind" : "female",
+      "name" : "H12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I12",
+      "kind" : "female",
+      "name" : "I12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J12",
+      "kind" : "female",
+      "name" : "J12",
+      "position" : {
+        "x" : 29.497443333333333,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F13",
+      "kind" : "female",
+      "name" : "F13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G13",
+      "kind" : "female",
+      "name" : "G13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H13",
+      "kind" : "female",
+      "name" : "H13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I13",
+      "kind" : "female",
+      "name" : "I13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J13",
+      "kind" : "female",
+      "name" : "J13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F14",
+      "kind" : "female",
+      "name" : "F14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G14",
+      "kind" : "female",
+      "name" : "G14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H14",
+      "kind" : "female",
+      "name" : "H14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I14",
+      "kind" : "female",
+      "name" : "I14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J14",
+      "kind" : "female",
+      "name" : "J14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F15",
+      "kind" : "female",
+      "name" : "F15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 24.384846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G15",
+      "kind" : "female",
+      "name" : "G15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 26.416564444444443
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H15",
+      "kind" : "female",
+      "name" : "H15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 28.448564444444447
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I15",
+      "kind" : "female",
+      "name" : "I15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 30.480846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J15",
+      "kind" : "female",
+      "name" : "J15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 32.51256444444444
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F16",
+      "kind" : "female",
+      "name" : "F16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G16",
+      "kind" : "female",
+      "name" : "G16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H16",
+      "kind" : "female",
+      "name" : "H16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I16",
+      "kind" : "female",
+      "name" : "I16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J16",
+      "kind" : "female",
+      "name" : "J16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F17",
+      "kind" : "female",
+      "name" : "F17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G17",
+      "kind" : "female",
+      "name" : "G17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H17",
+      "kind" : "female",
+      "name" : "H17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I17",
+      "kind" : "female",
+      "name" : "I17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J17",
+      "kind" : "female",
+      "name" : "J17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F18",
+      "kind" : "female",
+      "name" : "F18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G18",
+      "kind" : "female",
+      "name" : "G18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H18",
+      "kind" : "female",
+      "name" : "H18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I18",
+      "kind" : "female",
+      "name" : "I18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J18",
+      "kind" : "female",
+      "name" : "J18",
+      "position" : {
+        "x" : 41.68986666666666,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F19",
+      "kind" : "female",
+      "name" : "F19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 24.384846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G19",
+      "kind" : "female",
+      "name" : "G19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 26.416564444444443
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H19",
+      "kind" : "female",
+      "name" : "H19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 28.448564444444447
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I19",
+      "kind" : "female",
+      "name" : "I19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 30.480846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J19",
+      "kind" : "female",
+      "name" : "J19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 32.51256444444444
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F20",
+      "kind" : "female",
+      "name" : "F20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G20",
+      "kind" : "female",
+      "name" : "G20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H20",
+      "kind" : "female",
+      "name" : "H20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I20",
+      "kind" : "female",
+      "name" : "I20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J20",
+      "kind" : "female",
+      "name" : "J20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F21",
+      "kind" : "female",
+      "name" : "F21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G21",
+      "kind" : "female",
+      "name" : "G21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H21",
+      "kind" : "female",
+      "name" : "H21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I21",
+      "kind" : "female",
+      "name" : "I21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J21",
+      "kind" : "female",
+      "name" : "J21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F22",
+      "kind" : "female",
+      "name" : "F22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 24.384846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G22",
+      "kind" : "female",
+      "name" : "G22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 26.416564444444443
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H22",
+      "kind" : "female",
+      "name" : "H22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 28.448564444444447
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I22",
+      "kind" : "female",
+      "name" : "I22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 30.480846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J22",
+      "kind" : "female",
+      "name" : "J22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 32.51256444444444
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F23",
+      "kind" : "female",
+      "name" : "F23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 24.384846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G23",
+      "kind" : "female",
+      "name" : "G23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 26.416564444444443
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H23",
+      "kind" : "female",
+      "name" : "H23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 28.448564444444447
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I23",
+      "kind" : "female",
+      "name" : "I23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 30.480846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J23",
+      "kind" : "female",
+      "name" : "J23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 32.51256444444444
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F24",
+      "kind" : "female",
+      "name" : "F24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G24",
+      "kind" : "female",
+      "name" : "G24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H24",
+      "kind" : "female",
+      "name" : "H24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I24",
+      "kind" : "female",
+      "name" : "I24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J24",
+      "kind" : "female",
+      "name" : "J24",
+      "position" : {
+        "x" : 53.881725555555555,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F25",
+      "kind" : "female",
+      "name" : "F25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 24.38498777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G25",
+      "kind" : "female",
+      "name" : "G25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 26.416705555555552
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H25",
+      "kind" : "female",
+      "name" : "H25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 28.448705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I25",
+      "kind" : "female",
+      "name" : "I25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 30.480987777777777
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J25",
+      "kind" : "female",
+      "name" : "J25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 32.512705555555556
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F26",
+      "kind" : "female",
+      "name" : "F26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 24.384846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G26",
+      "kind" : "female",
+      "name" : "G26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 26.416564444444443
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H26",
+      "kind" : "female",
+      "name" : "H26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 28.448564444444447
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I26",
+      "kind" : "female",
+      "name" : "I26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 30.480846666666668
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J26",
+      "kind" : "female",
+      "name" : "J26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 32.51256444444444
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F27",
+      "kind" : "female",
+      "name" : "F27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G27",
+      "kind" : "female",
+      "name" : "G27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H27",
+      "kind" : "female",
+      "name" : "H27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I27",
+      "kind" : "female",
+      "name" : "I27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J27",
+      "kind" : "female",
+      "name" : "J27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F28",
+      "kind" : "female",
+      "name" : "F28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G28",
+      "kind" : "female",
+      "name" : "G28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H28",
+      "kind" : "female",
+      "name" : "H28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I28",
+      "kind" : "female",
+      "name" : "I28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J28",
+      "kind" : "female",
+      "name" : "J28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F29",
+      "kind" : "female",
+      "name" : "F29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G29",
+      "kind" : "female",
+      "name" : "G29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H29",
+      "kind" : "female",
+      "name" : "H29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I29",
+      "kind" : "female",
+      "name" : "I29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J29",
+      "kind" : "female",
+      "name" : "J29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "F30",
+      "kind" : "female",
+      "name" : "F30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 24.384
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "G30",
+      "kind" : "female",
+      "name" : "G30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 26.415717777777775
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "H30",
+      "kind" : "female",
+      "name" : "H30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 28.448
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "I30",
+      "kind" : "female",
+      "name" : "I30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 30.479999999999997
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "J30",
+      "kind" : "female",
+      "name" : "J30",
+      "position" : {
+        "x" : 66.07316111111112,
+        "y" : 32.512
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W1",
+      "kind" : "female",
+      "name" : "W1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W2",
+      "kind" : "female",
+      "name" : "W2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W3",
+      "kind" : "female",
+      "name" : "W3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W4",
+      "kind" : "female",
+      "name" : "W4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W5",
+      "kind" : "female",
+      "name" : "W5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W7",
+      "kind" : "female",
+      "name" : "W7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W8",
+      "kind" : "female",
+      "name" : "W8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W9",
+      "kind" : "female",
+      "name" : "W9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W10",
+      "kind" : "female",
+      "name" : "W10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W11",
+      "kind" : "female",
+      "name" : "W11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W13",
+      "kind" : "female",
+      "name" : "W13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 2.03327
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W14",
+      "kind" : "female",
+      "name" : "W14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 2.03327
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W15",
+      "kind" : "female",
+      "name" : "W15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 2.0332699999999995
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W16",
+      "kind" : "female",
+      "name" : "W16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 2.03327
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W17",
+      "kind" : "female",
+      "name" : "W17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 2.03327
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W19",
+      "kind" : "female",
+      "name" : "W19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 2.0332699999999995
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W20",
+      "kind" : "female",
+      "name" : "W20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 2.03327
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W21",
+      "kind" : "female",
+      "name" : "W21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 2.03327
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W22",
+      "kind" : "female",
+      "name" : "W22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 2.0332699999999995
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W23",
+      "kind" : "female",
+      "name" : "W23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 2.0332699999999995
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W25",
+      "kind" : "female",
+      "name" : "W25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 2.03327
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W26",
+      "kind" : "female",
+      "name" : "W26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 2.0332699999999995
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W27",
+      "kind" : "female",
+      "name" : "W27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W28",
+      "kind" : "female",
+      "name" : "W28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "W29",
+      "kind" : "female",
+      "name" : "W29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 2.032282222222222
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X1",
+      "kind" : "female",
+      "name" : "X1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X2",
+      "kind" : "female",
+      "name" : "X2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X3",
+      "kind" : "female",
+      "name" : "X3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X4",
+      "kind" : "female",
+      "name" : "X4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X5",
+      "kind" : "female",
+      "name" : "X5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X7",
+      "kind" : "female",
+      "name" : "X7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X8",
+      "kind" : "female",
+      "name" : "X8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X9",
+      "kind" : "female",
+      "name" : "X9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X10",
+      "kind" : "female",
+      "name" : "X10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X11",
+      "kind" : "female",
+      "name" : "X11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X13",
+      "kind" : "female",
+      "name" : "X13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 4.064987777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X14",
+      "kind" : "female",
+      "name" : "X14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 4.064987777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X15",
+      "kind" : "female",
+      "name" : "X15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 4.064846666666667
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X16",
+      "kind" : "female",
+      "name" : "X16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 4.064987777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X17",
+      "kind" : "female",
+      "name" : "X17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 4.064987777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X19",
+      "kind" : "female",
+      "name" : "X19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 4.064846666666667
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X20",
+      "kind" : "female",
+      "name" : "X20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 4.064987777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X21",
+      "kind" : "female",
+      "name" : "X21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 4.064987777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X22",
+      "kind" : "female",
+      "name" : "X22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 4.064846666666667
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X23",
+      "kind" : "female",
+      "name" : "X23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 4.064846666666667
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X25",
+      "kind" : "female",
+      "name" : "X25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 4.064987777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X26",
+      "kind" : "female",
+      "name" : "X26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 4.064846666666667
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X27",
+      "kind" : "female",
+      "name" : "X27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X28",
+      "kind" : "female",
+      "name" : "X28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "X29",
+      "kind" : "female",
+      "name" : "X29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 4.064
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y1",
+      "kind" : "female",
+      "name" : "Y1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y2",
+      "kind" : "female",
+      "name" : "Y2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y3",
+      "kind" : "female",
+      "name" : "Y3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y4",
+      "kind" : "female",
+      "name" : "Y4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y5",
+      "kind" : "female",
+      "name" : "Y5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y7",
+      "kind" : "female",
+      "name" : "Y7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y8",
+      "kind" : "female",
+      "name" : "Y8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y9",
+      "kind" : "female",
+      "name" : "Y9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y10",
+      "kind" : "female",
+      "name" : "Y10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y11",
+      "kind" : "female",
+      "name" : "Y11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y13",
+      "kind" : "female",
+      "name" : "Y13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 38.608423333333334
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y14",
+      "kind" : "female",
+      "name" : "Y14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 38.608423333333334
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y15",
+      "kind" : "female",
+      "name" : "Y15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 38.608282222222215
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y16",
+      "kind" : "female",
+      "name" : "Y16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 38.608423333333334
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y17",
+      "kind" : "female",
+      "name" : "Y17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 38.608423333333334
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y19",
+      "kind" : "female",
+      "name" : "Y19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 38.608282222222215
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y20",
+      "kind" : "female",
+      "name" : "Y20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 38.608423333333334
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y21",
+      "kind" : "female",
+      "name" : "Y21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 38.608423333333334
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y22",
+      "kind" : "female",
+      "name" : "Y22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 38.608282222222215
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y23",
+      "kind" : "female",
+      "name" : "Y23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 38.608282222222215
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y25",
+      "kind" : "female",
+      "name" : "Y25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 38.608423333333334
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y26",
+      "kind" : "female",
+      "name" : "Y26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 38.608282222222215
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y27",
+      "kind" : "female",
+      "name" : "Y27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y28",
+      "kind" : "female",
+      "name" : "Y28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Y29",
+      "kind" : "female",
+      "name" : "Y29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 38.60771777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z1",
+      "kind" : "female",
+      "name" : "Z1",
+      "position" : {
+        "x" : 7.145725555555556,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z2",
+      "kind" : "female",
+      "name" : "Z2",
+      "position" : {
+        "x" : 9.177725555555554,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z3",
+      "kind" : "female",
+      "name" : "Z3",
+      "position" : {
+        "x" : 11.209866666666667,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z4",
+      "kind" : "female",
+      "name" : "Z4",
+      "position" : {
+        "x" : 13.241725555555556,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z5",
+      "kind" : "female",
+      "name" : "Z5",
+      "position" : {
+        "x" : 15.273725555555554,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z7",
+      "kind" : "female",
+      "name" : "Z7",
+      "position" : {
+        "x" : 19.337725555555558,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z8",
+      "kind" : "female",
+      "name" : "Z8",
+      "position" : {
+        "x" : 21.369584444444442,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z9",
+      "kind" : "female",
+      "name" : "Z9",
+      "position" : {
+        "x" : 23.401725555555554,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z10",
+      "kind" : "female",
+      "name" : "Z10",
+      "position" : {
+        "x" : 25.433725555555554,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z11",
+      "kind" : "female",
+      "name" : "Z11",
+      "position" : {
+        "x" : 27.465443333333333,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z13",
+      "kind" : "female",
+      "name" : "Z13",
+      "position" : {
+        "x" : 31.529866666666663,
+        "y" : 40.64098777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z14",
+      "kind" : "female",
+      "name" : "Z14",
+      "position" : {
+        "x" : 33.56200777777778,
+        "y" : 40.64098777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z15",
+      "kind" : "female",
+      "name" : "Z15",
+      "position" : {
+        "x" : 35.59372555555555,
+        "y" : 40.64084666666666
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z16",
+      "kind" : "female",
+      "name" : "Z16",
+      "position" : {
+        "x" : 37.625725555555555,
+        "y" : 40.64098777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z17",
+      "kind" : "female",
+      "name" : "Z17",
+      "position" : {
+        "x" : 39.65772555555556,
+        "y" : 40.64098777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z19",
+      "kind" : "female",
+      "name" : "Z19",
+      "position" : {
+        "x" : 43.72172555555556,
+        "y" : 40.64084666666666
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z20",
+      "kind" : "female",
+      "name" : "Z20",
+      "position" : {
+        "x" : 45.753725555555555,
+        "y" : 40.64098777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z21",
+      "kind" : "female",
+      "name" : "Z21",
+      "position" : {
+        "x" : 47.78572555555556,
+        "y" : 40.64098777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z22",
+      "kind" : "female",
+      "name" : "Z22",
+      "position" : {
+        "x" : 49.81744333333333,
+        "y" : 40.64084666666666
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z23",
+      "kind" : "female",
+      "name" : "Z23",
+      "position" : {
+        "x" : 51.849584444444446,
+        "y" : 40.64084666666666
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z25",
+      "kind" : "female",
+      "name" : "Z25",
+      "position" : {
+        "x" : 55.91372555555555,
+        "y" : 40.64098777777778
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z26",
+      "kind" : "female",
+      "name" : "Z26",
+      "position" : {
+        "x" : 57.94544333333334,
+        "y" : 40.64084666666666
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z27",
+      "kind" : "female",
+      "name" : "Z27",
+      "position" : {
+        "x" : 59.97716111111111,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z28",
+      "kind" : "female",
+      "name" : "Z28",
+      "position" : {
+        "x" : 62.00930222222222,
+        "y" : 40.64
+      }
+    },
+    {
+      "description" : "breadboard socket",
+      "id" : "Z29",
+      "kind" : "female",
+      "name" : "Z29",
+      "position" : {
+        "x" : 64.04144333333333,
+        "y" : 40.64
+      }
+    }
+  ],
+  "family" : "Breadboard",
+  "graphicAsset" : "part-443537516ac83c5c.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "Bread",
+  "libraryID" : "HalfBreadboardModuleID",
+  "properties" : {
+    "family" : "Breadboard",
+    "size" : "half"
+  },
+  "size" : {
+    "x" : 69.15488666666667,
+    "y" : 42.672
+  },
+  "tags" : [
+    "breadboard",
+    "Fritzing Core"
+  ],
+  "title" : "Half-Breadboard",
+  "versionHash" : "443537516ac83c5c"
+}

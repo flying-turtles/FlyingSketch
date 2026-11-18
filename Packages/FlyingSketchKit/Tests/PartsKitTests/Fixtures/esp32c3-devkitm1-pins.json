@@ -1,0 +1,42 @@
+{
+  "board": "ESP32-C3-DevKitM-1",
+  "revision": "v1",
+  "source": "https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32c3/esp32-c3-devkitm-1/user_guide.html",
+  "silkscreenCheck": "https://dl.espressif.com/dl/schematics/DIMENSION_ESP32-C3-DEVKITM-1_V1_20200915AA.dxf",
+  "headers": {
+    "J1": [
+      "GND",
+      "3V3",
+      "3V3",
+      "IO2",
+      "IO3",
+      "GND",
+      "RST",
+      "GND",
+      "IO0",
+      "IO1",
+      "IO10",
+      "GND",
+      "5V",
+      "5V",
+      "GND"
+    ],
+    "J3": [
+      "GND",
+      "TX",
+      "RX",
+      "GND",
+      "IO9",
+      "IO8",
+      "GND",
+      "IO7",
+      "IO6",
+      "IO5",
+      "IO4",
+      "GND",
+      "IO18",
+      "IO19",
+      "GND"
+    ]
+  }
+}

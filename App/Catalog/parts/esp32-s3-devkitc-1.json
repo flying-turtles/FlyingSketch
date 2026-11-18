@@ -1,0 +1,474 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "J1 pin 1: 3.3 V power supply",
+      "id" : "connector0",
+      "kind" : "male",
+      "name" : "3V3",
+      "position" : {
+        "x" : 1.27,
+        "y" : 7.85
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "J1 pin 2: 3.3 V power supply",
+      "id" : "connector1",
+      "kind" : "male",
+      "name" : "3V3",
+      "position" : {
+        "x" : 1.27,
+        "y" : 10.39
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "J1 pin 3: EN",
+      "id" : "connector2",
+      "kind" : "male",
+      "name" : "RST",
+      "position" : {
+        "x" : 1.27,
+        "y" : 12.93
+      }
+    },
+    {
+      "description" : "J1 pin 4: RTC_GPIO4, GPIO4, TOUCH4, ADC1_CH3",
+      "id" : "connector3",
+      "kind" : "male",
+      "name" : "4",
+      "position" : {
+        "x" : 1.27,
+        "y" : 15.469999999999999
+      }
+    },
+    {
+      "description" : "J1 pin 5: RTC_GPIO5, GPIO5, TOUCH5, ADC1_CH4",
+      "id" : "connector4",
+      "kind" : "male",
+      "name" : "5",
+      "position" : {
+        "x" : 1.27,
+        "y" : 18.01
+      }
+    },
+    {
+      "description" : "J1 pin 6: RTC_GPIO6, GPIO6, TOUCH6, ADC1_CH5",
+      "id" : "connector5",
+      "kind" : "male",
+      "name" : "6",
+      "position" : {
+        "x" : 1.27,
+        "y" : 20.55
+      }
+    },
+    {
+      "description" : "J1 pin 7: RTC_GPIO7, GPIO7, TOUCH7, ADC1_CH6",
+      "id" : "connector6",
+      "kind" : "male",
+      "name" : "7",
+      "position" : {
+        "x" : 1.27,
+        "y" : 23.09
+      }
+    },
+    {
+      "description" : "J1 pin 8: RTC_GPIO15, GPIO15, U0RTS, ADC2_CH4, XTAL_32K_P",
+      "id" : "connector7",
+      "kind" : "male",
+      "name" : "15",
+      "position" : {
+        "x" : 1.27,
+        "y" : 25.63
+      }
+    },
+    {
+      "description" : "J1 pin 9: RTC_GPIO16, GPIO16, U0CTS, ADC2_CH5, XTAL_32K_N",
+      "id" : "connector8",
+      "kind" : "male",
+      "name" : "16",
+      "position" : {
+        "x" : 1.27,
+        "y" : 28.17
+      }
+    },
+    {
+      "description" : "J1 pin 10: RTC_GPIO17, GPIO17, U1TXD, ADC2_CH6",
+      "id" : "connector9",
+      "kind" : "male",
+      "name" : "17",
+      "position" : {
+        "x" : 1.27,
+        "y" : 30.71
+      }
+    },
+    {
+      "description" : "J1 pin 11: RTC_GPIO18, GPIO18, U1RXD, ADC2_CH7, CLK_OUT3",
+      "id" : "connector10",
+      "kind" : "male",
+      "name" : "18",
+      "position" : {
+        "x" : 1.27,
+        "y" : 33.25
+      }
+    },
+    {
+      "description" : "J1 pin 12: RTC_GPIO8, GPIO8, TOUCH8, ADC1_CH7, SUBSPICS1",
+      "id" : "connector11",
+      "kind" : "male",
+      "name" : "8",
+      "position" : {
+        "x" : 1.27,
+        "y" : 35.790000000000006
+      }
+    },
+    {
+      "description" : "J1 pin 13: RTC_GPIO3, GPIO3, TOUCH3, ADC1_CH2",
+      "id" : "connector12",
+      "kind" : "male",
+      "name" : "3",
+      "position" : {
+        "x" : 1.27,
+        "y" : 38.33
+      }
+    },
+    {
+      "description" : "J1 pin 14: GPIO46",
+      "id" : "connector13",
+      "kind" : "male",
+      "name" : "46",
+      "position" : {
+        "x" : 1.27,
+        "y" : 40.870000000000005
+      }
+    },
+    {
+      "description" : "J1 pin 15: RTC_GPIO9, GPIO9, TOUCH9, ADC1_CH8, FSPIHD, SUBSPIHD",
+      "id" : "connector14",
+      "kind" : "male",
+      "name" : "9",
+      "position" : {
+        "x" : 1.27,
+        "y" : 43.41
+      }
+    },
+    {
+      "description" : "J1 pin 16: RTC_GPIO10, GPIO10, TOUCH10, ADC1_CH9, FSPICS0, FSPIIO4, SUBSPICS0",
+      "id" : "connector15",
+      "kind" : "male",
+      "name" : "10",
+      "position" : {
+        "x" : 1.27,
+        "y" : 45.95
+      }
+    },
+    {
+      "description" : "J1 pin 17: RTC_GPIO11, GPIO11, TOUCH11, ADC2_CH0, FSPID, FSPIIO5, SUBSPID",
+      "id" : "connector16",
+      "kind" : "male",
+      "name" : "11",
+      "position" : {
+        "x" : 1.27,
+        "y" : 48.489999999999995
+      }
+    },
+    {
+      "description" : "J1 pin 18: RTC_GPIO12, GPIO12, TOUCH12, ADC2_CH1, FSPICLK, FSPIIO6, SUBSPICLK",
+      "id" : "connector17",
+      "kind" : "male",
+      "name" : "12",
+      "position" : {
+        "x" : 1.27,
+        "y" : 51.03
+      }
+    },
+    {
+      "description" : "J1 pin 19: RTC_GPIO13, GPIO13, TOUCH13, ADC2_CH2, FSPIQ, FSPIIO7, SUBSPIQ",
+      "id" : "connector18",
+      "kind" : "male",
+      "name" : "13",
+      "position" : {
+        "x" : 1.27,
+        "y" : 53.57000000000001
+      }
+    },
+    {
+      "description" : "J1 pin 20: RTC_GPIO14, GPIO14, TOUCH14, ADC2_CH3, FSPIWP, FSPIDQS, SUBSPIWP",
+      "id" : "connector19",
+      "kind" : "male",
+      "name" : "14",
+      "position" : {
+        "x" : 1.27,
+        "y" : 56.11
+      }
+    },
+    {
+      "description" : "J1 pin 21: 5 V power supply",
+      "id" : "connector20",
+      "kind" : "male",
+      "name" : "5V",
+      "position" : {
+        "x" : 1.27,
+        "y" : 58.650000000000006
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "J1 pin 22: Ground",
+      "id" : "connector21",
+      "kind" : "male",
+      "name" : "G",
+      "position" : {
+        "x" : 1.27,
+        "y" : 61.19
+      }
+    },
+    {
+      "description" : "J3 pin 1: Ground",
+      "id" : "connector22",
+      "kind" : "male",
+      "name" : "G",
+      "position" : {
+        "x" : 24.13,
+        "y" : 7.85
+      }
+    },
+    {
+      "description" : "J3 pin 2: U0TXD, GPIO43, CLK_OUT1",
+      "id" : "connector23",
+      "kind" : "male",
+      "name" : "TX",
+      "position" : {
+        "x" : 24.13,
+        "y" : 10.39
+      },
+      "role" : "uart"
+    },
+    {
+      "description" : "J3 pin 3: U0RXD, GPIO44, CLK_OUT2",
+      "id" : "connector24",
+      "kind" : "male",
+      "name" : "RX",
+      "position" : {
+        "x" : 24.13,
+        "y" : 12.93
+      },
+      "role" : "uart"
+    },
+    {
+      "description" : "J3 pin 4: RTC_GPIO1, GPIO1, TOUCH1, ADC1_CH0",
+      "id" : "connector25",
+      "kind" : "male",
+      "name" : "1",
+      "position" : {
+        "x" : 24.13,
+        "y" : 15.469999999999999
+      }
+    },
+    {
+      "description" : "J3 pin 5: RTC_GPIO2, GPIO2, TOUCH2, ADC1_CH1",
+      "id" : "connector26",
+      "kind" : "male",
+      "name" : "2",
+      "position" : {
+        "x" : 24.13,
+        "y" : 18.01
+      }
+    },
+    {
+      "description" : "J3 pin 6: MTMS, GPIO42",
+      "id" : "connector27",
+      "kind" : "male",
+      "name" : "42",
+      "position" : {
+        "x" : 24.13,
+        "y" : 20.55
+      }
+    },
+    {
+      "description" : "J3 pin 7: MTDI, GPIO41, CLK_OUT1",
+      "id" : "connector28",
+      "kind" : "male",
+      "name" : "41",
+      "position" : {
+        "x" : 24.13,
+        "y" : 23.09
+      }
+    },
+    {
+      "description" : "J3 pin 8: MTDO, GPIO40, CLK_OUT2",
+      "id" : "connector29",
+      "kind" : "male",
+      "name" : "40",
+      "position" : {
+        "x" : 24.13,
+        "y" : 25.63
+      }
+    },
+    {
+      "description" : "J3 pin 9: MTCK, GPIO39, CLK_OUT3, SUBSPICS1",
+      "id" : "connector30",
+      "kind" : "male",
+      "name" : "39",
+      "position" : {
+        "x" : 24.13,
+        "y" : 28.17
+      }
+    },
+    {
+      "description" : "J3 pin 10: GPIO38, FSPIWP, SUBSPIWP, RGB LED",
+      "id" : "connector31",
+      "kind" : "male",
+      "name" : "38",
+      "position" : {
+        "x" : 24.13,
+        "y" : 30.71
+      }
+    },
+    {
+      "description" : "J3 pin 11: SPIDQS, GPIO37, FSPIQ, SUBSPIQ",
+      "id" : "connector32",
+      "kind" : "male",
+      "name" : "37",
+      "position" : {
+        "x" : 24.13,
+        "y" : 33.25
+      }
+    },
+    {
+      "description" : "J3 pin 12: SPIIO7, GPIO36, FSPICLK, SUBSPICLK",
+      "id" : "connector33",
+      "kind" : "male",
+      "name" : "36",
+      "position" : {
+        "x" : 24.13,
+        "y" : 35.790000000000006
+      }
+    },
+    {
+      "description" : "J3 pin 13: SPIIO6, GPIO35, FSPID, SUBSPID",
+      "id" : "connector34",
+      "kind" : "male",
+      "name" : "35",
+      "position" : {
+        "x" : 24.13,
+        "y" : 38.33
+      }
+    },
+    {
+      "description" : "J3 pin 14: RTC_GPIO0, GPIO0",
+      "id" : "connector35",
+      "kind" : "male",
+      "name" : "0",
+      "position" : {
+        "x" : 24.13,
+        "y" : 40.870000000000005
+      }
+    },
+    {
+      "description" : "J3 pin 15: GPIO45",
+      "id" : "connector36",
+      "kind" : "male",
+      "name" : "45",
+      "position" : {
+        "x" : 24.13,
+        "y" : 43.41
+      }
+    },
+    {
+      "description" : "J3 pin 16: GPIO48, SPICLK_N, SUBSPICLK_N_DIFF",
+      "id" : "connector37",
+      "kind" : "male",
+      "name" : "48",
+      "position" : {
+        "x" : 24.13,
+        "y" : 45.95
+      }
+    },
+    {
+      "description" : "J3 pin 17: GPIO47, SPICLK_P, SUBSPICLK_P_DIFF",
+      "id" : "connector38",
+      "kind" : "male",
+      "name" : "47",
+      "position" : {
+        "x" : 24.13,
+        "y" : 48.489999999999995
+      }
+    },
+    {
+      "description" : "J3 pin 18: RTC_GPIO21, GPIO21",
+      "id" : "connector39",
+      "kind" : "male",
+      "name" : "21",
+      "position" : {
+        "x" : 24.13,
+        "y" : 51.03
+      }
+    },
+    {
+      "description" : "J3 pin 19: RTC_GPIO20, GPIO20, U1CTS, ADC2_CH9, CLK_OUT1, USB_D+",
+      "id" : "connector40",
+      "kind" : "male",
+      "name" : "20",
+      "position" : {
+        "x" : 24.13,
+        "y" : 53.57000000000001
+      }
+    },
+    {
+      "description" : "J3 pin 20: RTC_GPIO19, GPIO19, U1RTS, ADC2_CH8, CLK_OUT2, USB_D-",
+      "id" : "connector41",
+      "kind" : "male",
+      "name" : "19",
+      "position" : {
+        "x" : 24.13,
+        "y" : 56.11
+      }
+    },
+    {
+      "description" : "J3 pin 21: Ground",
+      "id" : "connector42",
+      "kind" : "male",
+      "name" : "G",
+      "position" : {
+        "x" : 24.13,
+        "y" : 58.650000000000006
+      }
+    },
+    {
+      "description" : "J3 pin 22: Ground",
+      "id" : "connector43",
+      "kind" : "male",
+      "name" : "G",
+      "position" : {
+        "x" : 24.13,
+        "y" : 61.19
+      }
+    }
+  ],
+  "family" : "microcontroller board (ESP32-S3)",
+  "graphicAsset" : "part-43445c828cf32f07.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "U",
+  "libraryID" : "FlyingSketch-ESP32-S3-DevKitC-1-v1.1",
+  "properties" : {
+    "family" : "microcontroller board (ESP32-S3)",
+    "module" : "ESP32-S3-WROOM-1",
+    "variant" : "v1.1"
+  },
+  "size" : {
+    "x" : 25.4,
+    "y" : 69.15
+  },
+  "tags" : [
+    "ESP32-S3",
+    "ESP32",
+    "Espressif",
+    "microcontroller"
+  ],
+  "title" : "ESP32-S3-DevKitC-1",
+  "versionHash" : "43445c828cf32f07"
+}

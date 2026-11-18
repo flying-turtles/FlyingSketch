@@ -1,0 +1,88 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "pin0",
+      "id" : "connector0",
+      "kind" : "male",
+      "leg" : {
+        "color" : {
+          "a" : 1,
+          "b" : 0.5490196078431373,
+          "g" : 0.5490196078431373,
+          "r" : 0.5490196078431373
+        },
+        "defaultEnd" : {
+          "x" : 0.3704266854006582,
+          "y" : 3.4861423465422607
+        },
+        "origin" : {
+          "x" : 0.3704266854006582,
+          "y" : 1.9120513578485179
+        },
+        "width" : 0.7408317069154774
+      },
+      "name" : "pin 0",
+      "position" : {
+        "x" : 0.27658800252469773,
+        "y" : 1.687685183754116
+      }
+    },
+    {
+      "description" : "pin1",
+      "id" : "connector1",
+      "kind" : "male",
+      "leg" : {
+        "color" : {
+          "a" : 1,
+          "b" : 0.5490196078431373,
+          "g" : 0.5490196078431373,
+          "r" : 0.5490196078431373
+        },
+        "defaultEnd" : {
+          "x" : 8.21195391459934,
+          "y" : 3.4861423465422607
+        },
+        "origin" : {
+          "x" : 8.21195391459934,
+          "y" : 1.9120513578485179
+        },
+        "width" : 0.7408317069154774
+      },
+      "name" : "pin 1",
+      "position" : {
+        "x" : 7.896924050658615,
+        "y" : 1.687685183754116
+      }
+    }
+  ],
+  "family" : "Photo-Resistor",
+  "graphicAsset" : "part-ee00bdf41fb3e94e.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "R",
+  "libraryID" : "2010BBCD20113PhotocellModuleID",
+  "properties" : {
+    "dark resistance @0.01lx" : "300kΩ",
+    "family" : "Photo-Resistor",
+    "light resistance @100lx" : "400Ω",
+    "luminance" : "10lx",
+    "package" : "THT",
+    "power" : "0.25W"
+  },
+  "size" : {
+    "x" : 8.582380599999999,
+    "y" : 3.8565582
+  },
+  "tags" : [
+    "LDR",
+    "light dependent resistor",
+    "photocell",
+    "light sensor",
+    "sensor",
+    "Fritzing core"
+  ],
+  "title" : "Photocell (LDR)",
+  "versionHash" : "ee00bdf41fb3e94e"
+}

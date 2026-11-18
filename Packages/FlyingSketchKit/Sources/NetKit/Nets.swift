@@ -47,14 +47,21 @@ public func nets(in doc: SketchDocument) -> [Net] {
     var refs: [ConnectorRef] = []
     var sortKeys: [SortKey] = []
 
-    var parts: [ObjectID: (PartInstance, PartDefinition)] = [:]
+    // Connector lookup per definition (built once; parts like a full breadboard have 800+ connectors).
+    var connectorMaps: [String: [String: ConnectorDef]] = [:]
+    var parts: [ObjectID: PartEntry] = [:]
     for case .part(let p) in doc.objects {
-        if let def = doc.parts[p.definitionKey] { parts[p.id] = (p, def) }
+        guard let def = doc.parts[p.definitionKey] else { continue }
+        let map = connectorMaps[p.definitionKey]
+            ?? Dictionary(def.connectors.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        connectorMaps[p.definitionKey] = map
+        parts[p.id] = PartEntry(instance: p, definition: def, connectors: map)
     }
 
     func node(_ ref: ConnectorRef) -> Int? {
         if let i = indexOf[ref] { return i }
-        guard let (p, def) = parts[ref.part], let c = def.connectors.first(where: { $0.id == ref.connector }) else { return nil }
+        guard let entry = parts[ref.part], let c = entry.connectors[ref.connector] else { return nil }
+        let p = entry.instance
         let i = sets.add()
         indexOf[ref] = i
         refs.append(ref)
@@ -82,7 +89,7 @@ public func nets(in doc: SketchDocument) -> [Net] {
     // Buses: only those that already have an active connector.
     let activeParts = Set(refs.map(\.part))
     for part in activeParts {
-        guard let (_, def) = parts[part] else { continue }
+        guard let def = parts[part]?.definition else { continue }
         for bus in def.buses {
             let known = bus.compactMap { indexOf[ConnectorRef(part: part, connector: $0)] }
             guard let first = known.first else { continue }
@@ -122,6 +129,12 @@ public func net(containing ref: ConnectorRef, in nets: [Net]) -> Net? {
     nets.first { $0.members.contains(ref) }
 }
 
+private struct PartEntry {
+    var instance: PartInstance
+    var definition: PartDefinition
+    var connectors: [String: ConnectorDef]
+}
+
 private struct SortKey: Comparable {
     var label: String
     var name: String
@@ -137,11 +150,12 @@ private struct SortKey: Comparable {
 }
 
 /// Shared connector name of the power/ground members (case-insensitive, first spelling wins), else nil.
-private func powerGroundName(_ members: [ConnectorRef], parts: [ObjectID: (PartInstance, PartDefinition)]) -> String? {
+private func powerGroundName(_ members: [ConnectorRef], parts: [ObjectID: PartEntry]) -> String? {
     var found: [(SortKey, String)] = []
     for ref in members {
-        guard let (p, def) = parts[ref.part], let c = def.connectors.first(where: { $0.id == ref.connector }),
+        guard let entry = parts[ref.part], let c = entry.connectors[ref.connector],
               c.role == .power || c.role == .ground else { continue }
+        let p = entry.instance
         found.append((SortKey(label: p.label, name: c.name, id: c.id, part: p.id.raw.uuidString), c.name))
     }
     guard !found.isEmpty else { return nil }

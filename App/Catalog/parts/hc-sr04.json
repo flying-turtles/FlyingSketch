@@ -1,0 +1,74 @@
+{
+  "buses" : [
+
+  ],
+  "connectors" : [
+    {
+      "description" : "VCC",
+      "id" : "connector0",
+      "kind" : "male",
+      "name" : "VCC",
+      "position" : {
+        "x" : 18.397522622868028,
+        "y" : 23.063872677758724
+      },
+      "role" : "power"
+    },
+    {
+      "description" : "TRIGGER",
+      "id" : "connector1",
+      "kind" : "male",
+      "name" : "TRIG",
+      "position" : {
+        "x" : 20.937391092641747,
+        "y" : 23.063872677758724
+      }
+    },
+    {
+      "description" : "ECHO",
+      "id" : "connector2",
+      "kind" : "male",
+      "name" : "ECHO",
+      "position" : {
+        "x" : 23.47752235070941,
+        "y" : 23.063078318479313
+      }
+    },
+    {
+      "description" : "GND",
+      "id" : "connector3",
+      "kind" : "male",
+      "name" : "GND",
+      "position" : {
+        "x" : 26.01725904533631,
+        "y" : 23.062814361785836
+      },
+      "role" : "ground"
+    }
+  ],
+  "family" : "distance sensor",
+  "graphicAsset" : "part-6cfd7607c453b369.svg",
+  "graphicKind" : "svg",
+  "labelPrefix" : "HC-SR04 Sensor",
+  "libraryID" : "hc-sr0489a24442a28f4051a3a8757dd4825d87",
+  "properties" : {
+    "chip" : "LM324",
+    "family" : "distance sensor",
+    "layer" : "",
+    "part number" : "",
+    "variant" : "variant 1"
+  },
+  "size" : {
+    "x" : 45.096996,
+    "y" : 23.605209
+  },
+  "tags" : [
+    "ultrasonic",
+    "HC-SR04",
+    "distance sensor",
+    "range",
+    "ultrasonic distance sensor"
+  ],
+  "title" : "HC-SR04 Ultrasonic Distance Sensor",
+  "versionHash" : "6cfd7607c453b369"
+}

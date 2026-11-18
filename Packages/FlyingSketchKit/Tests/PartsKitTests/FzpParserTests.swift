@@ -216,6 +216,7 @@ private func makeZip(_ files: [(String, Data)]) -> Data {
                 counts[k, default: 0] += 1; samples[k] = "\(f): \(e)"
             } catch { counts["otherError", default: 0] += 1 }
         }
-        print("SWEEP \(counts.sorted { $0.key < $1.key }) samples \(samples)")
+        // Task 6 sweep: 1719/1796 core parts import; guard against regressions.
+        #expect(counts["ok", default: 0] >= 1700, "\(counts.sorted { $0.key < $1.key }) samples \(samples)")
     }
 }
