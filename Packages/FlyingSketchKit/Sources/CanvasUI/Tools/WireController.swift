@@ -59,10 +59,12 @@ final class WireController {
     }
 
     /// Nearest connector within `radius`; ties go to the earlier part (z-order), then declaration order.
-    func connector(near world: Vec2, radius: Double) -> (ConnectorRef, Vec2)? {
+    /// `among`: only parts with these ids (nil = any part).
+    func connector(near world: Vec2, radius: Double, among: Set<ObjectID>? = nil) -> (ConnectorRef, Vec2)? {
         var best: (ConnectorRef, Vec2)?
         var bestDistance = Double.infinity
         for case .part(let p) in objects(near: world, radius: radius) {
+            if let among, !among.contains(p.id) { continue }
             guard let def = model.document.parts[p.definitionKey] else { continue }
             let positions = connectorPositions(p, def)
             for c in def.connectors {
@@ -177,10 +179,12 @@ final class WireController {
     // MARK: End drag
 
     /// Nearest wire end (not bend) within `radius`; ties go to the topmost wire, then start before end.
-    func end(near world: Vec2, radius: Double) -> (wire: Wire, isStart: Bool)? {
+    /// `among`: only wires with these ids (nil = any wire).
+    func end(near world: Vec2, radius: Double, among: Set<ObjectID>? = nil) -> (wire: Wire, isStart: Bool)? {
         var best: (wire: Wire, isStart: Bool)?
         var bestDistance = Double.infinity
         for case .wire(let w) in objects(near: world, radius: radius).reversed() {
+            if let among, !among.contains(w.id) { continue }
             for (end, isStart) in [(w.start, true), (w.end, false)] {
                 let d = end.position.distance(to: world)
                 if d <= radius, d < bestDistance {

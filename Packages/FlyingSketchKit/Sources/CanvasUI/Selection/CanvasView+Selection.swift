@@ -86,6 +86,12 @@ extension CanvasView {
         return renderer.objects(in: box).last { objectHit($0, w, tol, doc) }
     }
 
+    /// Finger tap outside the selection: a pin of a selected part (or end of a selected wire) highlights its net,
+    /// anything else is a selection tap.
+    func handleTap(at viewPoint: CGPoint) {
+        if !highlightNet(at: viewPoint) { tap(at: viewPoint) }
+    }
+
     func tap(at viewPoint: CGPoint) {
         let hit = topObject(at: viewPoint)
         selection.ids = hit.map { [$0.id] } ?? []

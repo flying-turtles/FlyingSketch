@@ -55,6 +55,7 @@ private struct Scene {
 @Test @MainActor func tapOnPinHighlightsNet() {
     let s = scene()
     let expected = nets(in: s.model.document).first { $0.members.contains(ConnectorRef(part: s.module.id, connector: "VCC")) }!
+    s.view.selection.ids = [s.module.id]
     #expect(s.view.highlightNet(at: s.pin("VCC")))
     let h = s.view.netHighlight
     #expect(h.net?.members == expected.members)
@@ -72,11 +73,25 @@ private struct Scene {
     #expect(layers.rings.contentsScale == s.view.traitCollection.displayScale)
 }
 
-@Test @MainActor func tapWinsOverSelectingPartAndTapElsewhereClears() {
+@Test @MainActor func pinOfUnselectedPartSelectsInsteadOfHighlighting() {
+    let s = scene()
+    #expect(!s.view.highlightNet(at: s.pin("VCC")))
+    #expect(s.view.netHighlight.info == nil)
+    s.view.fingerTap(at: s.pin("GND")) // first tap selects the part (GND: no wire on top)
+    #expect(s.view.selection.ids == [s.module.id])
+    #expect(s.view.netHighlight.info == nil)
+    s.view.fingerTap(at: s.pin("GND")) // second tap on its pin highlights
+    #expect(s.view.netHighlight.info?.connectorName == "GND")
+    #expect(s.view.selection.ids == [s.module.id])
+    // Another part's pin while the module is selected: selection, no highlight.
+    s.view.fingerTap(at: s.hole("c3r3"))
+    #expect(s.view.selection.ids == [s.board.id])
+    #expect(s.view.netHighlight.info == nil)
+}
+
+@Test @MainActor func selectedPinHighlightsAndTapElsewhereClears() {
     let s = scene()
     s.view.selection.ids = [s.module.id]
-    s.view.tap(at: s.pin("VCC")) // selection tap path alone still selects
-    #expect(s.view.selection.ids.count == 1)
     #expect(s.view.highlightNet(at: s.pin("VCC")))
     #expect(s.view.highlightNet(at: CGPoint(x: 900, y: 1200)) == false)
     #expect(s.view.netHighlight.info == nil)
@@ -87,6 +102,7 @@ private struct Scene {
 
 @Test @MainActor func highlightClearsOnEmptyTap() {
     let s = scene()
+    s.view.selection.ids = [s.module.id]
     s.view.highlightNet(at: s.pin("GND"))
     s.view.highlightNet(at: s.pin("VCC"))
     #expect(s.view.netHighlight.info != nil)
@@ -97,6 +113,7 @@ private struct Scene {
 
 @Test @MainActor func unconnectedPinShowsNoConnection() {
     let s = scene()
+    s.view.selection.ids = [s.module.id, s.board.id]
     #expect(s.view.highlightNet(at: s.pin("GND")))
     #expect(s.view.netHighlight.net == nil)
     #expect(s.view.netHighlight.info?.summary == "U1 · GND · ground — no connection")
@@ -110,6 +127,7 @@ private struct Scene {
 @Test @MainActor func highlightUpdatesAfterUndo() {
     let s = scene(withWire2: false)
     let before = nets(in: s.model.document).first { $0.members.contains(ConnectorRef(part: s.module.id, connector: "VCC")) }!
+    s.view.selection.ids = [s.module.id]
     s.view.highlightNet(at: s.pin("VCC"))
     #expect(s.view.netHighlight.net?.members == before.members)
     // Add wire2 (one edit): the open highlight grows without a new tap.
@@ -131,8 +149,8 @@ private struct Scene {
 
 @Test @MainActor func highlightDisappearsWhenPinIsGone() {
     let s = scene()
-    s.view.highlightNet(at: s.pin("VCC"))
     s.view.selection.ids = [s.module.id]
+    s.view.highlightNet(at: s.pin("VCC"))
     s.view.deleteSelection()
     #expect(s.view.netHighlight.info == nil)
     #expect(s.view.renderer.netOverlay == nil)
@@ -142,6 +160,7 @@ private struct Scene {
 
 @Test @MainActor func netsRecomputedOnlyWhenDocumentChanged() {
     let s = scene()
+    s.view.selection.ids = [s.module.id]
     s.view.highlightNet(at: s.pin("VCC"))
     let cached = s.view.netHighlight.cache?.nets
     s.model.setViewport(Viewport(center: Vec2(x: 5, y: 5), zoom: 2)) // viewport-only change
@@ -163,6 +182,7 @@ private struct Scene {
 @Test @MainActor func pencilLassoTapHighlights() {
     let s = scene()
     s.view.toolState.kind = .lasso
+    s.view.selection.ids = [s.module.id]
     let w = s.view.worldPoint(s.pin("VCC"))
     s.view.lasso.begin(at: w)
     s.view.lasso.move(to: w + Vec2(x: 0.1, y: 0.1))
@@ -176,6 +196,7 @@ private struct Scene {
 
 @Test @MainActor func previewsHideOverlay() {
     let s = scene()
+    s.view.selection.ids = [s.module.id]
     s.view.highlightNet(at: s.pin("VCC"))
     #expect(!s.view.renderer.netLayers.rings.isHidden)
     s.view.renderer.setMovePreview(ids: [], offset: .zero, replacing: [.part(s.module)])
@@ -193,6 +214,7 @@ private struct Scene {
 
 @Test @MainActor func glowSitsDirectlyBelowItsWireAboveParts() {
     let s = scene()
+    s.view.selection.ids = [s.module.id]
     s.view.highlightNet(at: s.pin("VCC"))
     let r: SceneRenderer = s.view.renderer
     let objects = r.objectsLayer
@@ -225,4 +247,81 @@ private struct Scene {
     s.view.endLegDrag(at: end + Vec2(x: 0, y: 25))
     #expect(s.model.undoManager.undoActionName == "Bend Leg")
     #expect(s.view.netHighlight.info == before)
+}
+
+@Test @MainActor func selectedWireEndHighlightsItsNet() {
+    let s = scene()
+    let endPoint = s.viewPoint(s.wire2.end.position) // board c0r4; the board is not selected
+    #expect(!s.view.highlightNet(at: endPoint))
+    s.view.selection.ids = [s.wire2.id]
+    #expect(s.view.highlightNet(at: endPoint))
+    #expect(s.view.netHighlight.anchor == ConnectorRef(part: s.board.id, connector: "c0r4"))
+    #expect(s.view.netHighlight.net?.wires.contains(s.wire2.id) == true)
+    // A selected wire with two free ends has no net: no highlight, normal selection.
+    let loose = Wire(start: WireEnd(position: Vec2(x: 100, y: 100)), end: WireEnd(position: Vec2(x: 120, y: 100)))
+    s.model.perform(.insert([.wire(loose)], at: nil), actionName: "Add Wire")
+    s.view.selection.ids = [loose.id]
+    #expect(!s.view.highlightNet(at: s.viewPoint(loose.start.position)))
+    #expect(s.view.netHighlight.info == nil)
+}
+
+/// Real catalog geometry: holes 2.54 mm apart, so every tap on a board is within a connector's hit radius.
+@Test @MainActor func breadboardTapsSelectFirstThenHighlight() throws {
+    let catalog = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("App/Catalog/parts")
+    func load(_ id: String) throws -> PartDefinition {
+        try JSONDecoder().decode(PartDefinition.self, from: Data(contentsOf: catalog.appendingPathComponent("\(id).json")))
+    }
+    let boardDef = try load("breadboard-full"), resDef = try load("resistor")
+    let board = PartInstance(definitionKey: boardDef.key, center: .zero, label: "BB1")
+    let holes = connectorPositions(board, boardDef)
+    let a = try #require(holes["pin10C"]), b = try #require(holes["pin14C"])
+    let res = PartInstance(definitionKey: resDef.key, center: (a + b) * 0.5, label: "R1",
+                           legEnds: ["connector0": a, "connector1": b])
+    let m = DocumentModel(document: SketchDocument(objects: [.part(board), .part(res)],
+                                                   parts: [boardDef.key: boardDef, resDef.key: resDef]))
+    let v = CanvasView(model: m)
+    v.frame = CGRect(x: 0, y: 0, width: 1024, height: 1366)
+    v.layoutIfNeeded()
+    func view(_ w: Vec2) -> CGPoint {
+        let p = v.currentViewport.worldToView(w, viewSize: v.viewSize)
+        return CGPoint(x: p.x, y: p.y)
+    }
+    // First tap on the resistor body: selects it, no highlight.
+    v.fingerTap(at: view(res.center))
+    #expect(v.selection.ids == [res.id])
+    #expect(v.netHighlight.info == nil)
+    // Tap on the board (a hole away from the resistor): selects the board, no highlight.
+    let farHole = try #require(holes["pin30H"])
+    v.fingerTap(at: view(farHole))
+    #expect(v.selection.ids == [board.id])
+    #expect(v.netHighlight.info == nil)
+    // Second tap on a hole of the now selected board highlights that hole.
+    v.fingerTap(at: view(farHole))
+    #expect(v.netHighlight.anchor == ConnectorRef(part: board.id, connector: "pin30H"))
+    #expect(v.selection.ids == [board.id])
+    // Resistor selected again, then a tap on its leg end highlights the leg's net (the column it is plugged into).
+    v.fingerTap(at: view(res.center))
+    #expect(v.selection.ids == [res.id])
+    #expect(v.netHighlight.info == nil)
+    v.fingerTap(at: view(a))
+    #expect(v.netHighlight.anchor == ConnectorRef(part: res.id, connector: "connector0"))
+    #expect(v.netHighlight.net?.members.contains(ConnectorRef(part: board.id, connector: "pin10C")) == true)
+    #expect(v.selection.ids == [res.id])
+    #expect(!m.undoManager.canUndo)
+}
+
+extension CanvasView {
+    /// Finger tap (pencil-only mode): the same handlers `touchesBegan`/`touchesEnded` run for a touch that does not travel.
+    func fingerTap(at p: CGPoint) {
+        toolState.pencilOnly = true
+        let w = worldPoint(p)
+        switch route(isPencil: false, at: p) {
+        case .leg(let ref)?: beginLegDrag(ref, at: w); endLegDrag(at: w)
+        case .move?: beginMove(at: w); endMove()
+        case .pending?: handleTap(at: p)
+        default: Issue.record("unexpected route")
+        }
+    }
 }

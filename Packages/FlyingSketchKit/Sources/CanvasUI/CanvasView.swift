@@ -387,7 +387,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .ignored:
             break
         case .pending(let start):
-            if !highlightNet(at: start) { tap(at: start) }
+            handleTap(at: start)
         }
     }
 

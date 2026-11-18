@@ -127,17 +127,36 @@ final class NetOverlayLayers {
 }
 
 extension CanvasView {
-    /// Highlights the net of the connector within the hit radius of `viewPoint` (shows the pin info card). With no
-    /// connector there, clears the highlight. True when a connector was hit.
+    /// Highlights the net of the connector within the hit radius of `viewPoint` (shows the pin info card). Only
+    /// ALREADY selected objects count: a connector of a selected part, or an attached end of a selected wire (a
+    /// free end uses the wire's other, attached end). A tap whose top object is an unselected part (a resistor body
+    /// lying over a selected board) selects instead. Breadboard holes are 2.54 mm apart, so without this rule every
+    /// tap on a board would highlight instead of selecting. Otherwise clears the highlight. True when it highlighted.
     @discardableResult
     func highlightNet(at viewPoint: CGPoint) -> Bool {
-        guard let (ref, _) = wires.connector(near: worldPoint(viewPoint), radius: wireRadius) else {
+        guard let ref = netAnchor(at: viewPoint) else {
             clearNetHighlight()
             return false
         }
         netHighlight.anchor = ref
         applyNetHighlight(in: model.document)
         return true
+    }
+
+    private func netAnchor(at viewPoint: CGPoint) -> ConnectorRef? {
+        let selected = selection.ids
+        guard !selected.isEmpty else { return nil }
+        if let top = topObject(at: viewPoint), case .part = top, !selected.contains(top.id) { return nil }
+        let world = worldPoint(viewPoint)
+        if let (ref, _) = wires.connector(near: world, radius: wireRadius, among: selected) { return ref }
+        guard let hit = wires.end(near: world, radius: wireRadius, among: selected) else { return nil }
+        let ends = hit.isStart ? [hit.wire.start, hit.wire.end] : [hit.wire.end, hit.wire.start]
+        for end in ends {
+            if case .connector(let part, let connector)? = end.attachment {
+                return ConnectorRef(part: part, connector: connector)
+            }
+        }
+        return nil
     }
 
     /// A Pencil lasso that never left the hit slop is a tap: highlight a connector at its start, else fall back to
