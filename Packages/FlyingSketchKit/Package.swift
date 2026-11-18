@@ -34,7 +34,7 @@ let package = Package(
             resources: [.copy("Fixtures")]
         ),
         .testTarget(name: "InkEngineTests", dependencies: ["InkEngine"]),
-        .testTarget(name: "PhotoPartKitTests", dependencies: ["PhotoPartKit", "SketchCore"]),
+        .testTarget(name: "PhotoPartKitTests", dependencies: ["PhotoPartKit", "SketchCore", "PartsKit"]),
         .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI", "PartsKit"]),
     ],
     swiftLanguageModes: [.v6]
