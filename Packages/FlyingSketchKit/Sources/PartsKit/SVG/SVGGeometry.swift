@@ -11,7 +11,8 @@ public enum SVGError: Error, Equatable, Sendable {
 /// (origin at the top-left of the SVG's viewport, y down).
 ///
 /// Units: `in` 25.4 mm, `cm` 10 mm, `mm`, `pt` 25.4/72, `px` and unitless 25.4/90 (Fritzing's
-/// legacy 90 dpi). Percent or missing sizes throw `.missingSize`.
+/// legacy 90 dpi), or 25.4/72 for Adobe Illustrator exports (a `Generator: Adobe Illustrator` comment
+/// before the root element), as Fritzing does. Percent or missing sizes throw `.missingSize`.
 ///
 /// User units: with a `viewBox` they scale to fill the size (`preserveAspectRatio` defaults to
 /// `xMidYMid meet`; `none` stretches). Without a `viewBox`, one user unit = size / numeric
@@ -48,7 +49,8 @@ public struct SVGGeometry: Sendable {
             guard let a = SVGAffine.parse(t), a == .identity else { throw SVGError.unsupported("root transform") }
         }
 
-        guard let w = Self.length(root["width"]), let h = Self.length(root["height"]),
+        let pxPerInch = Self.isIllustratorExport(data) ? 72.0 : 90.0
+        guard let w = Self.length(root["width"], pxPerInch: pxPerInch), let h = Self.length(root["height"], pxPerInch: pxPerInch),
               w.value > 0, h.value > 0
         else { throw SVGError.missingSize }
         let size = Vec2(x: w.mm, y: h.mm)
@@ -194,14 +196,20 @@ public struct SVGGeometry: Sendable {
          Vec2(x: cx + rx, y: cy + ry), Vec2(x: cx - rx, y: cy + ry)]
     }
 
-    private static func length(_ s: String?) -> (value: Double, mm: Double)? {
+    /// Fritzing's `isIllustratorFile` rule, limited to the prolog (text before the root `<svg`).
+    private static func isIllustratorExport(_ data: Data) -> Bool {
+        let prolog = data.range(of: Data("<svg".utf8)).map { data[..<$0.lowerBound] } ?? data
+        return prolog.range(of: Data("Generator: Adobe Illustrator".utf8)) != nil
+    }
+
+    private static func length(_ s: String?, pxPerInch: Double) -> (value: Double, mm: Double)? {
         guard let s else { return nil }
         var sc = SVGScanner(s.trimmingCharacters(in: .whitespaces))
         guard let v = sc.readNumber() else { return nil }
         let unit = sc.rest.trimmingCharacters(in: .whitespaces).lowercased()
         let perUnit: Double
         switch unit {
-        case "", "px": perUnit = 25.4 / 90
+        case "", "px": perUnit = 25.4 / pxPerInch
         case "in": perUnit = 25.4
         case "mm": perUnit = 1
         case "cm": perUnit = 10

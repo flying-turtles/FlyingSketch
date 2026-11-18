@@ -9,8 +9,8 @@
       "kind" : "male",
       "name" : "NULL",
       "position" : {
-        "x" : 7.5375815500000005,
-        "y" : 21.50228755
+        "x" : 7.537582,
+        "y" : 21.502288
       }
     },
     {
@@ -19,8 +19,8 @@
       "kind" : "male",
       "name" : "GND",
       "position" : {
-        "x" : 10.12738575,
-        "y" : 21.43588355
+        "x" : 10.127386,
+        "y" : 21.435884
       },
       "role" : "ground"
     },
@@ -30,8 +30,8 @@
       "kind" : "male",
       "name" : "VDD",
       "position" : {
-        "x" : 2.49078425,
-        "y" : 21.43588355
+        "x" : 2.490784,
+        "y" : 21.435884
       },
       "role" : "power"
     },
@@ -41,13 +41,13 @@
       "kind" : "male",
       "name" : "DATA",
       "position" : {
-        "x" : 5.0805884500000005,
-        "y" : 21.43588355
+        "x" : 5.080588,
+        "y" : 21.435884
       }
     }
   ],
   "family" : "sensors",
-  "graphicAsset" : "part-82f6823531402252.svg",
+  "graphicAsset" : "part-f6f7e470f407a3a4.svg",
   "graphicKind" : "svg",
   "labelPrefix" : "DHT",
   "libraryID" : "65e31feff426e0dde13a0544d0f93a7d",
@@ -66,5 +66,5 @@
     "humidity"
   ],
   "title" : "DHT22 Humidity and Temperature Sensor",
-  "versionHash" : "82f6823531402252"
+  "versionHash" : "f6f7e470f407a3a4"
 }

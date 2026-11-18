@@ -33,7 +33,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 12.93
-      }
+      },
+      "role" : "other"
     },
     {
       "description" : "J1 pin 4: RTC_GPIO4, GPIO4, TOUCH4, ADC1_CH3",
@@ -42,8 +43,9 @@
       "name" : "4",
       "position" : {
         "x" : 1.27,
-        "y" : 15.469999999999999
-      }
+        "y" : 15.47
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 5: RTC_GPIO5, GPIO5, TOUCH5, ADC1_CH4",
@@ -53,7 +55,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 18.01
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 6: RTC_GPIO6, GPIO6, TOUCH6, ADC1_CH5",
@@ -63,7 +66,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 20.55
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 7: RTC_GPIO7, GPIO7, TOUCH7, ADC1_CH6",
@@ -73,7 +77,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 23.09
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 8: RTC_GPIO15, GPIO15, U0RTS, ADC2_CH4, XTAL_32K_P",
@@ -83,7 +88,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 25.63
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 9: RTC_GPIO16, GPIO16, U0CTS, ADC2_CH5, XTAL_32K_N",
@@ -93,7 +99,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 28.17
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 10: RTC_GPIO17, GPIO17, U1TXD, ADC2_CH6",
@@ -103,7 +110,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 30.71
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 11: RTC_GPIO18, GPIO18, U1RXD, ADC2_CH7, CLK_OUT3",
@@ -113,7 +121,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 33.25
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 12: RTC_GPIO8, GPIO8, TOUCH8, ADC1_CH7, SUBSPICS1",
@@ -122,8 +131,9 @@
       "name" : "8",
       "position" : {
         "x" : 1.27,
-        "y" : 35.790000000000006
-      }
+        "y" : 35.79
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 13: RTC_GPIO3, GPIO3, TOUCH3, ADC1_CH2",
@@ -133,7 +143,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 38.33
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 14: GPIO46",
@@ -142,8 +153,9 @@
       "name" : "46",
       "position" : {
         "x" : 1.27,
-        "y" : 40.870000000000005
-      }
+        "y" : 40.87
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 15: RTC_GPIO9, GPIO9, TOUCH9, ADC1_CH8, FSPIHD, SUBSPIHD",
@@ -153,7 +165,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 43.41
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 16: RTC_GPIO10, GPIO10, TOUCH10, ADC1_CH9, FSPICS0, FSPIIO4, SUBSPICS0",
@@ -163,7 +176,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 45.95
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 17: RTC_GPIO11, GPIO11, TOUCH11, ADC2_CH0, FSPID, FSPIIO5, SUBSPID",
@@ -172,8 +186,9 @@
       "name" : "11",
       "position" : {
         "x" : 1.27,
-        "y" : 48.489999999999995
-      }
+        "y" : 48.49
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 18: RTC_GPIO12, GPIO12, TOUCH12, ADC2_CH1, FSPICLK, FSPIIO6, SUBSPICLK",
@@ -183,7 +198,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 51.03
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 19: RTC_GPIO13, GPIO13, TOUCH13, ADC2_CH2, FSPIQ, FSPIIO7, SUBSPIQ",
@@ -192,8 +208,9 @@
       "name" : "13",
       "position" : {
         "x" : 1.27,
-        "y" : 53.57000000000001
-      }
+        "y" : 53.57
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 20: RTC_GPIO14, GPIO14, TOUCH14, ADC2_CH3, FSPIWP, FSPIDQS, SUBSPIWP",
@@ -203,7 +220,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 56.11
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J1 pin 21: 5 V power supply",
@@ -212,7 +230,7 @@
       "name" : "5V",
       "position" : {
         "x" : 1.27,
-        "y" : 58.650000000000006
+        "y" : 58.65
       },
       "role" : "power"
     },
@@ -224,7 +242,8 @@
       "position" : {
         "x" : 1.27,
         "y" : 61.19
-      }
+      },
+      "role" : "ground"
     },
     {
       "description" : "J3 pin 1: Ground",
@@ -234,7 +253,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 7.85
-      }
+      },
+      "role" : "ground"
     },
     {
       "description" : "J3 pin 2: U0TXD, GPIO43, CLK_OUT1",
@@ -245,7 +265,7 @@
         "x" : 24.13,
         "y" : 10.39
       },
-      "role" : "uart"
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 3: U0RXD, GPIO44, CLK_OUT2",
@@ -256,7 +276,7 @@
         "x" : 24.13,
         "y" : 12.93
       },
-      "role" : "uart"
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 4: RTC_GPIO1, GPIO1, TOUCH1, ADC1_CH0",
@@ -265,8 +285,9 @@
       "name" : "1",
       "position" : {
         "x" : 24.13,
-        "y" : 15.469999999999999
-      }
+        "y" : 15.47
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 5: RTC_GPIO2, GPIO2, TOUCH2, ADC1_CH1",
@@ -276,7 +297,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 18.01
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 6: MTMS, GPIO42",
@@ -286,7 +308,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 20.55
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 7: MTDI, GPIO41, CLK_OUT1",
@@ -296,7 +319,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 23.09
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 8: MTDO, GPIO40, CLK_OUT2",
@@ -306,7 +330,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 25.63
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 9: MTCK, GPIO39, CLK_OUT3, SUBSPICS1",
@@ -316,7 +341,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 28.17
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 10: GPIO38, FSPIWP, SUBSPIWP, RGB LED",
@@ -326,7 +352,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 30.71
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 11: SPIDQS, GPIO37, FSPIQ, SUBSPIQ",
@@ -336,7 +363,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 33.25
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 12: SPIIO7, GPIO36, FSPICLK, SUBSPICLK",
@@ -345,8 +373,9 @@
       "name" : "36",
       "position" : {
         "x" : 24.13,
-        "y" : 35.790000000000006
-      }
+        "y" : 35.79
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 13: SPIIO6, GPIO35, FSPID, SUBSPID",
@@ -356,7 +385,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 38.33
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 14: RTC_GPIO0, GPIO0",
@@ -365,8 +395,9 @@
       "name" : "0",
       "position" : {
         "x" : 24.13,
-        "y" : 40.870000000000005
-      }
+        "y" : 40.87
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 15: GPIO45",
@@ -376,7 +407,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 43.41
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 16: GPIO48, SPICLK_N, SUBSPICLK_N_DIFF",
@@ -386,7 +418,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 45.95
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 17: GPIO47, SPICLK_P, SUBSPICLK_P_DIFF",
@@ -395,8 +428,9 @@
       "name" : "47",
       "position" : {
         "x" : 24.13,
-        "y" : 48.489999999999995
-      }
+        "y" : 48.49
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 18: RTC_GPIO21, GPIO21",
@@ -406,7 +440,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 51.03
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 19: RTC_GPIO20, GPIO20, U1CTS, ADC2_CH9, CLK_OUT1, USB_D+",
@@ -415,8 +450,9 @@
       "name" : "20",
       "position" : {
         "x" : 24.13,
-        "y" : 53.57000000000001
-      }
+        "y" : 53.57
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 20: RTC_GPIO19, GPIO19, U1RTS, ADC2_CH8, CLK_OUT2, USB_D-",
@@ -426,7 +462,8 @@
       "position" : {
         "x" : 24.13,
         "y" : 56.11
-      }
+      },
+      "role" : "digital"
     },
     {
       "description" : "J3 pin 21: Ground",
@@ -435,8 +472,9 @@
       "name" : "G",
       "position" : {
         "x" : 24.13,
-        "y" : 58.650000000000006
-      }
+        "y" : 58.65
+      },
+      "role" : "ground"
     },
     {
       "description" : "J3 pin 22: Ground",
@@ -446,11 +484,12 @@
       "position" : {
         "x" : 24.13,
         "y" : 61.19
-      }
+      },
+      "role" : "ground"
     }
   ],
   "family" : "microcontroller board (ESP32-S3)",
-  "graphicAsset" : "part-43445c828cf32f07.svg",
+  "graphicAsset" : "part-4699cfa113072e16.svg",
   "graphicKind" : "svg",
   "labelPrefix" : "U",
   "libraryID" : "FlyingSketch-ESP32-S3-DevKitC-1-v1.1",
@@ -470,5 +509,5 @@
     "microcontroller"
   ],
   "title" : "ESP32-S3-DevKitC-1",
-  "versionHash" : "43445c828cf32f07"
+  "versionHash" : "4699cfa113072e16"
 }

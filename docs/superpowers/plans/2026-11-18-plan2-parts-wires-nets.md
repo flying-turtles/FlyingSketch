@@ -21,7 +21,7 @@ Everything in Plan 1's Global Constraints still holds (iPadOS 26, Swift 6 strict
 - Snap / tolerance values (mm unless noted): plug snap search radius **1.0**, contact tolerance **0.2**, connector hit radius **max(0.8 mm, 12 pt on screen)**, wire default width **0.65**, leg default width **0.6**.
 - Part rotation: quarter turns only (0–3, clockwise), around the part center.
 - Every user action = one undoable edit with an action name; never perform empty edits; never replace `DocumentModel.onChange` (chain).
-- Test command (package): `cd Packages/FlyingSketchKit && xcodebuild test -scheme FlyingSketchKit-Package -destination 'platform=iOS Simulator,id=08D1B7B4-263D-4479-8F34-C24730978306' -quiet`. macOS-only CLI: `cd Packages/FlyingSketchKit && swift run catalog-builder …`.
+- Test command (package): `cd Packages/FlyingSketchKit && xcodebuild test -scheme FlyingSketchKit-Package -destination 'platform=iOS Simulator,id=08D1B7B4-263D-4479-8F34-C24730978306' -quiet`. macOS-only CLI: `cd Tools/CatalogBuilder && swift run catalog-builder ../catalog-manifest.json ../../Vendor ../custom-parts ../../App/Catalog`.
 
 ## Review Focus
 

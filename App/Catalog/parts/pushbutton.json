@@ -11,23 +11,13 @@
   ],
   "connectors" : [
     {
-      "description" : "pin 4 is always connected with pin 3",
-      "id" : "connector3",
-      "kind" : "male",
-      "name" : "Pin 4",
-      "position" : {
-        "x" : 0.5349240000000003,
-        "y" : 7.842757999999998
-      }
-    },
-    {
       "description" : "pin 1 is always connected with pin 2",
       "id" : "connector0",
       "kind" : "male",
       "name" : "Pin 1",
       "position" : {
-        "x" : 5.614924,
-        "y" : 0.5402579999999998
+        "x" : 6.35,
+        "y" : 1.27
       }
     },
     {
@@ -36,8 +26,8 @@
       "kind" : "male",
       "name" : "Pin 2",
       "position" : {
-        "x" : 5.614924,
-        "y" : 7.842757999999998
+        "x" : 6.35,
+        "y" : 8.89
       }
     },
     {
@@ -46,31 +36,40 @@
       "kind" : "male",
       "name" : "Pin 3",
       "position" : {
-        "x" : 0.5349240000000003,
-        "y" : 0.5402579999999998
+        "x" : 1.27,
+        "y" : 1.27
+      }
+    },
+    {
+      "description" : "pin 4 is always connected with pin 3",
+      "id" : "connector3",
+      "kind" : "male",
+      "name" : "Pin 4",
+      "position" : {
+        "x" : 1.27,
+        "y" : 8.89
       }
     }
   ],
   "family" : "Switch",
-  "graphicAsset" : "part-0f6e2ffee5d05b86.svg",
+  "graphicAsset" : "part-c6ccb79d3ee02ab6.svg",
   "graphicKind" : "svg",
   "labelPrefix" : "S",
-  "libraryID" : "20A9BBEE34_ST",
+  "libraryID" : "FlyingSketch-Pushbutton-6mm",
   "properties" : {
-    "contact resistance" : "0.1Ω",
     "family" : "Switch",
-    "package" : "[THT]",
-    "switch status" : "Released"
+    "form" : "6 mm tactile",
+    "package" : "[THT]"
   },
   "size" : {
-    "x" : 6.227571999999999,
-    "y" : 8.382508
+    "x" : 7.62,
+    "y" : 10.16
   },
   "tags" : [
     "Pushbutton",
     "button",
-    "fritzing core"
+    "tactile switch"
   ],
   "title" : "Pushbutton",
-  "versionHash" : "0f6e2ffee5d05b86"
+  "versionHash" : "c6ccb79d3ee02ab6"
 }

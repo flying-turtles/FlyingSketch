@@ -104,11 +104,9 @@ Custom parts were authored for FlyingSketch and are licensed under MIT (Copyrigh
 ## pushbutton
 
 - Title: Pushbutton
-- Source: https://github.com/fritzing/fritzing-parts
-- Path: core/pushbutton_4_horizontal.fzp
-- Commit: 27535f2fd02097be9bed229b75aa8e9be282a4a0
-- Authors: not stated in the .fzp (see the source repository history)
-- License: CC-BY-SA 3.0
+- Source: FlyingSketch custom part (Tools/custom-parts/pushbutton-6mm/pushbutton-6mm.fzp)
+- Authors: Lars Grof (FlyingSketch)
+- License: MIT
 
 ## resistor
 

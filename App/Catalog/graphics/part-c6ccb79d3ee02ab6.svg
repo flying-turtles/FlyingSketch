@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 6 mm tactile pushbutton breadboard view. FlyingSketch custom part (MIT, Lars Grof). -->
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="7.62mm" height="10.16mm" viewBox="0 0 7.62 10.16">
+<g id="breadboard">
+<rect x="6.1" y="1.27" width="0.5" height="3.81" fill="#9a9a9a"/>
+<rect id="connector0pin" x="5.85" y="0.77" width="1" height="1" fill="#8c8c8c"/>
+<rect x="6.1" y="5.08" width="0.5" height="3.81" fill="#9a9a9a"/>
+<rect id="connector1pin" x="5.85" y="8.39" width="1" height="1" fill="#8c8c8c"/>
+<rect x="1.02" y="1.27" width="0.5" height="3.81" fill="#9a9a9a"/>
+<rect id="connector2pin" x="0.77" y="0.77" width="1" height="1" fill="#8c8c8c"/>
+<rect x="1.02" y="5.08" width="0.5" height="3.81" fill="#9a9a9a"/>
+<rect id="connector3pin" x="0.77" y="8.39" width="1" height="1" fill="#8c8c8c"/>
+<rect id="body" x="0.81" y="2.08" width="6" height="6" rx="0.3" fill="#2b2b2b" stroke="#111111" stroke-width="0.1"/>
+<circle id="cap" cx="3.81" cy="5.08" r="1.75" fill="#5a5a5a" stroke="#1a1a1a" stroke-width="0.1"/>
+</g>
+</svg>

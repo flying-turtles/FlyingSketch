@@ -5,38 +5,158 @@
   "silkscreenCheck": "https://dl.espressif.com/dl/schematics/DIMENSION_ESP32-C3-DEVKITM-1_V1_20200915AA.dxf",
   "headers": {
     "J1": [
-      "GND",
-      "3V3",
-      "3V3",
-      "IO2",
-      "IO3",
-      "GND",
-      "RST",
-      "GND",
-      "IO0",
-      "IO1",
-      "IO10",
-      "GND",
-      "5V",
-      "5V",
-      "GND"
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "3V3",
+        "type": "P",
+        "function": "3.3 V power supply"
+      },
+      {
+        "name": "3V3",
+        "type": "P",
+        "function": "3.3 V power supply"
+      },
+      {
+        "name": "IO2",
+        "type": "I/O/T",
+        "function": "GPIO2, ADC1_CH2, FSPIQ"
+      },
+      {
+        "name": "IO3",
+        "type": "I/O/T",
+        "function": "GPIO3, ADC1_CH3"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "RST",
+        "type": "I",
+        "function": "CHIP_PU"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "IO0",
+        "type": "I/O/T",
+        "function": "GPIO0, ADC1_CH0, XTAL_32K_P"
+      },
+      {
+        "name": "IO1",
+        "type": "I/O/T",
+        "function": "GPIO1, ADC1_CH1, XTAL_32K_N"
+      },
+      {
+        "name": "IO10",
+        "type": "I/O/T",
+        "function": "GPIO10, FSPICS0"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "5V",
+        "type": "P",
+        "function": "5 V power supply"
+      },
+      {
+        "name": "5V",
+        "type": "P",
+        "function": "5 V power supply"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      }
     ],
     "J3": [
-      "GND",
-      "TX",
-      "RX",
-      "GND",
-      "IO9",
-      "IO8",
-      "GND",
-      "IO7",
-      "IO6",
-      "IO5",
-      "IO4",
-      "GND",
-      "IO18",
-      "IO19",
-      "GND"
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "TX",
+        "type": "I/O/T",
+        "function": "GPIO21, U0TXD"
+      },
+      {
+        "name": "RX",
+        "type": "I/O/T",
+        "function": "GPIO20, U0RXD"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "IO9",
+        "type": "I/O/T",
+        "function": "GPIO9"
+      },
+      {
+        "name": "IO8",
+        "type": "I/O/T",
+        "function": "GPIO8, RGB LED"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "IO7",
+        "type": "I/O/T",
+        "function": "GPIO7, FSPID, MTDO"
+      },
+      {
+        "name": "IO6",
+        "type": "I/O/T",
+        "function": "GPIO6, FSPICLK, MTCK"
+      },
+      {
+        "name": "IO5",
+        "type": "I/O/T",
+        "function": "GPIO5, ADC2_CH0, FSPIWP, MTDI"
+      },
+      {
+        "name": "IO4",
+        "type": "I/O/T",
+        "function": "GPIO4, ADC1_CH4, FSPIHD, MTMS"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "IO18",
+        "type": "I/O/T",
+        "function": "GPIO18, USB_D-"
+      },
+      {
+        "name": "IO19",
+        "type": "I/O/T",
+        "function": "GPIO19, USB_D+"
+      },
+      {
+        "name": "GND",
+        "type": "G",
+        "function": "Ground"
+      }
     ]
   }
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- ESP32-C3-DevKitM-1 v1 breadboard view. FlyingSketch custom part (MIT, Lars Grof). -->
-<!-- Geometry from Espressif dimension drawing: https://dl.espressif.com/dl/schematics/DIMENSION_ESP32-C3-DEVKITM-1_V1_20200915AA.dxf -->
+<!-- Geometry: https://dl.espressif.com/dl/schematics/DIMENSION_ESP32-C3-DEVKITM-1_V1_20200915AA.dxf -->
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="25.4mm" height="38.91mm" viewBox="0 0 25.4 38.91">
 <g id="breadboard">
 <rect id="pcb" x="0" y="0" width="25.4" height="38.91" rx="0.5" fill="#1b1b1b" stroke="#000000" stroke-width="0.1"/>

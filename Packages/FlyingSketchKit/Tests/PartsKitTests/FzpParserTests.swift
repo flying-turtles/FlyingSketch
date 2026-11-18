@@ -184,6 +184,45 @@ private func makeZip(_ files: [(String, Data)]) -> Data {
         let r = try FzpParser.parse(fzp: Data(fzp.utf8), breadboardSVG: fixture("resistor_220.svg"), svgFileName: "x.svg")
         #expect(r.connectors[0].role == .analog)
     }
+
+    @Test func explicitRoleAttributeWinsOverName() throws {
+        // Any prefix bound to the FlyingSketch namespace works.
+        let fzp = try #require(String(data: fixture("resistor.fzp"), encoding: .utf8))
+            .replacingOccurrences(of: "<module ", with: "<module xmlns:fs=\"https://github.com/flying-turtles/FlyingSketch\" ")
+            .replacingOccurrences(of: "name=\"Pin 0\"", with: "name=\"A0\" fs:role=\"ground\"")
+        let r = try FzpParser.parse(fzp: Data(fzp.utf8), breadboardSVG: fixture("resistor_220.svg"), svgFileName: "x.svg")
+        #expect(r.connectors[0].role == .ground)
+        #expect(r.connectors[1].role == nil)
+    }
+
+    @Test func explicitRoleAppliesToFemaleConnectors() throws {
+        let fzp = try #require(String(data: fixture("miniBreadboard.fzp"), encoding: .utf8))
+            .replacingOccurrences(of: "<module ", with: "<module xmlns:flyingsketch=\"https://github.com/flying-turtles/FlyingSketch\" ")
+        let first = try #require(fzp.range(of: "<connector "))
+        let tagged = fzp.replacingCharacters(in: first, with: "<connector flyingsketch:role=\"power\" ")
+        let d = try FzpParser.parse(fzp: Data(tagged.utf8), breadboardSVG: fixture("miniBreadboard.svg"),
+                                    svgFileName: "miniBreadboard.svg")
+        #expect(d.connectors[0].kind == .female)
+        #expect(d.connectors[0].role == .power)
+        #expect(d.connectors.dropFirst().allSatisfy { $0.role == nil })
+    }
+
+    @Test func roleAttributeOfOtherNamespaceIsIgnored() throws {
+        let fzp = try #require(String(data: fixture("resistor.fzp"), encoding: .utf8))
+            .replacingOccurrences(of: "<module ", with: "<module xmlns:x=\"https://example.com/other\" ")
+            .replacingOccurrences(of: "name=\"Pin 0\"", with: "name=\"A0\" x:role=\"ground\"")
+        let r = try FzpParser.parse(fzp: Data(fzp.utf8), breadboardSVG: fixture("resistor_220.svg"), svgFileName: "x.svg")
+        #expect(r.connectors[0].role == .analog)
+    }
+
+    @Test func unknownExplicitRoleIsAnError() throws {
+        let fzp = try #require(String(data: fixture("resistor.fzp"), encoding: .utf8))
+            .replacingOccurrences(of: "<module ", with: "<module xmlns:flyingsketch=\"https://github.com/flying-turtles/FlyingSketch\" ")
+            .replacingOccurrences(of: "name=\"Pin 0\"", with: "name=\"Pin 0\" flyingsketch:role=\"gnd\"")
+        #expect(throws: PartImportError.invalidFzp("unknown role gnd on connector0")) {
+            try FzpParser.parse(fzp: Data(fzp.utf8), breadboardSVG: fixture("resistor_220.svg"), svgFileName: "x.svg")
+        }
+    }
 }
 
 /// One-off real-catalog sweep; skipped unless `Vendor/fritzing-parts` exists.

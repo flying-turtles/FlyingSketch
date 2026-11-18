@@ -24,6 +24,16 @@ private func near(_ a: Vec2?, _ x: Double, _ y: Double, _ tol: Double = 1e-6) ->
         #expect(near(g.centerMM(ofElement: "c"), 25.4, 12.7))
     }
 
+    /// Fritzing reads px/unitless sizes of Adobe Illustrator exports at 72 dpi (its `isIllustratorFile` rule).
+    @Test func illustratorPxUses72dpi() throws {
+        let g = try svg(#"<?xml version="1.0"?><!-- Generator: Adobe Illustrator 14.0.0, SVG Export Plug-In --><svg width="72px" height="36" viewBox="0 0 72 36"><circle id="c" cx="72" cy="36" r="5"/></svg>"#)
+        #expect(near(g.sizeMM, 25.4, 12.7))
+        #expect(near(g.centerMM(ofElement: "c"), 25.4, 12.7))
+        // Explicit units are unaffected; a later mention of Illustrator inside the document does not count.
+        #expect(near(try svg(#"<!-- Generator: Adobe Illustrator --><svg width="1in" height="10mm"/>"#).sizeMM, 25.4, 10))
+        #expect(near(try svg(#"<svg width="90px" height="90"><desc>Generator: Adobe Illustrator</desc></svg>"#).sizeMM, 25.4, 25.4))
+    }
+
     @Test func otherUnits() throws {
         #expect(near(try svg(#"<svg width="2cm" height="10mm"/>"#).sizeMM, 20, 10))
         #expect(near(try svg(#"<svg width="72pt" height="36pt"/>"#).sizeMM, 25.4, 12.7))

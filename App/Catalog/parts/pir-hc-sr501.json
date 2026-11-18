@@ -9,8 +9,8 @@
       "kind" : "male",
       "name" : "GND",
       "position" : {
-        "x" : 20.31999913922222,
-        "y" : 55.87998587477777
+        "x" : 20.319999,
+        "y" : 55.879986
       },
       "role" : "ground"
     },
@@ -20,8 +20,8 @@
       "kind" : "male",
       "name" : "VDD",
       "position" : {
-        "x" : 15.24000026811111,
-        "y" : 55.88000280811111
+        "x" : 15.24,
+        "y" : 55.880003
       },
       "role" : "power"
     },
@@ -31,13 +31,13 @@
       "kind" : "male",
       "name" : "SIG",
       "position" : {
-        "x" : 17.78000026811111,
-        "y" : 55.87998587477777
+        "x" : 17.78,
+        "y" : 55.879986
       }
     }
   ],
   "family" : "sensors",
-  "graphicAsset" : "part-d4c5382eed8bf5a1.svg",
+  "graphicAsset" : "part-720e3076ae1e1d63.svg",
   "graphicKind" : "svg",
   "labelPrefix" : "PIR",
   "libraryID" : "4a531c3119db2e1fd301cb1292e45937",
@@ -46,13 +46,13 @@
     "part number" : ""
   },
   "size" : {
-    "x" : 35.559999999999995,
-    "y" : 58.419999999999995
+    "x" : 35.56,
+    "y" : 58.42
   },
   "tags" : [
     "sensor",
     "IR"
   ],
   "title" : "PIR sensor",
-  "versionHash" : "d4c5382eed8bf5a1"
+  "versionHash" : "720e3076ae1e1d63"
 }

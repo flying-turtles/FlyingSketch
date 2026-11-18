@@ -5,52 +5,228 @@
   "silkscreenCheck": "https://dl.espressif.com/dl/schematics/esp_idf/DXF_ESP32-S3-DevKitC-1_V1.1_20220429.dxf",
   "headers": {
     "J1": [
-      "3V3",
-      "3V3",
-      "RST",
-      "4",
-      "5",
-      "6",
-      "7",
-      "15",
-      "16",
-      "17",
-      "18",
-      "8",
-      "3",
-      "46",
-      "9",
-      "10",
-      "11",
-      "12",
-      "13",
-      "14",
-      "5V",
-      "G"
+      {
+        "name": "3V3",
+        "type": "P",
+        "function": "3.3 V power supply"
+      },
+      {
+        "name": "3V3",
+        "type": "P",
+        "function": "3.3 V power supply"
+      },
+      {
+        "name": "RST",
+        "type": "I",
+        "function": "EN"
+      },
+      {
+        "name": "4",
+        "type": "I/O/T",
+        "function": "RTC_GPIO4, GPIO4, TOUCH4, ADC1_CH3"
+      },
+      {
+        "name": "5",
+        "type": "I/O/T",
+        "function": "RTC_GPIO5, GPIO5, TOUCH5, ADC1_CH4"
+      },
+      {
+        "name": "6",
+        "type": "I/O/T",
+        "function": "RTC_GPIO6, GPIO6, TOUCH6, ADC1_CH5"
+      },
+      {
+        "name": "7",
+        "type": "I/O/T",
+        "function": "RTC_GPIO7, GPIO7, TOUCH7, ADC1_CH6"
+      },
+      {
+        "name": "15",
+        "type": "I/O/T",
+        "function": "RTC_GPIO15, GPIO15, U0RTS, ADC2_CH4, XTAL_32K_P"
+      },
+      {
+        "name": "16",
+        "type": "I/O/T",
+        "function": "RTC_GPIO16, GPIO16, U0CTS, ADC2_CH5, XTAL_32K_N"
+      },
+      {
+        "name": "17",
+        "type": "I/O/T",
+        "function": "RTC_GPIO17, GPIO17, U1TXD, ADC2_CH6"
+      },
+      {
+        "name": "18",
+        "type": "I/O/T",
+        "function": "RTC_GPIO18, GPIO18, U1RXD, ADC2_CH7, CLK_OUT3"
+      },
+      {
+        "name": "8",
+        "type": "I/O/T",
+        "function": "RTC_GPIO8, GPIO8, TOUCH8, ADC1_CH7, SUBSPICS1"
+      },
+      {
+        "name": "3",
+        "type": "I/O/T",
+        "function": "RTC_GPIO3, GPIO3, TOUCH3, ADC1_CH2"
+      },
+      {
+        "name": "46",
+        "type": "I/O/T",
+        "function": "GPIO46"
+      },
+      {
+        "name": "9",
+        "type": "I/O/T",
+        "function": "RTC_GPIO9, GPIO9, TOUCH9, ADC1_CH8, FSPIHD, SUBSPIHD"
+      },
+      {
+        "name": "10",
+        "type": "I/O/T",
+        "function": "RTC_GPIO10, GPIO10, TOUCH10, ADC1_CH9, FSPICS0, FSPIIO4, SUBSPICS0"
+      },
+      {
+        "name": "11",
+        "type": "I/O/T",
+        "function": "RTC_GPIO11, GPIO11, TOUCH11, ADC2_CH0, FSPID, FSPIIO5, SUBSPID"
+      },
+      {
+        "name": "12",
+        "type": "I/O/T",
+        "function": "RTC_GPIO12, GPIO12, TOUCH12, ADC2_CH1, FSPICLK, FSPIIO6, SUBSPICLK"
+      },
+      {
+        "name": "13",
+        "type": "I/O/T",
+        "function": "RTC_GPIO13, GPIO13, TOUCH13, ADC2_CH2, FSPIQ, FSPIIO7, SUBSPIQ"
+      },
+      {
+        "name": "14",
+        "type": "I/O/T",
+        "function": "RTC_GPIO14, GPIO14, TOUCH14, ADC2_CH3, FSPIWP, FSPIDQS, SUBSPIWP"
+      },
+      {
+        "name": "5V",
+        "type": "P",
+        "function": "5 V power supply"
+      },
+      {
+        "name": "G",
+        "type": "G",
+        "function": "Ground"
+      }
     ],
     "J3": [
-      "G",
-      "TX",
-      "RX",
-      "1",
-      "2",
-      "42",
-      "41",
-      "40",
-      "39",
-      "38",
-      "37",
-      "36",
-      "35",
-      "0",
-      "45",
-      "48",
-      "47",
-      "21",
-      "20",
-      "19",
-      "G",
-      "G"
+      {
+        "name": "G",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "TX",
+        "type": "I/O/T",
+        "function": "U0TXD, GPIO43, CLK_OUT1"
+      },
+      {
+        "name": "RX",
+        "type": "I/O/T",
+        "function": "U0RXD, GPIO44, CLK_OUT2"
+      },
+      {
+        "name": "1",
+        "type": "I/O/T",
+        "function": "RTC_GPIO1, GPIO1, TOUCH1, ADC1_CH0"
+      },
+      {
+        "name": "2",
+        "type": "I/O/T",
+        "function": "RTC_GPIO2, GPIO2, TOUCH2, ADC1_CH1"
+      },
+      {
+        "name": "42",
+        "type": "I/O/T",
+        "function": "MTMS, GPIO42"
+      },
+      {
+        "name": "41",
+        "type": "I/O/T",
+        "function": "MTDI, GPIO41, CLK_OUT1"
+      },
+      {
+        "name": "40",
+        "type": "I/O/T",
+        "function": "MTDO, GPIO40, CLK_OUT2"
+      },
+      {
+        "name": "39",
+        "type": "I/O/T",
+        "function": "MTCK, GPIO39, CLK_OUT3, SUBSPICS1"
+      },
+      {
+        "name": "38",
+        "type": "I/O/T",
+        "function": "GPIO38, FSPIWP, SUBSPIWP, RGB LED"
+      },
+      {
+        "name": "37",
+        "type": "I/O/T",
+        "function": "SPIDQS, GPIO37, FSPIQ, SUBSPIQ"
+      },
+      {
+        "name": "36",
+        "type": "I/O/T",
+        "function": "SPIIO7, GPIO36, FSPICLK, SUBSPICLK"
+      },
+      {
+        "name": "35",
+        "type": "I/O/T",
+        "function": "SPIIO6, GPIO35, FSPID, SUBSPID"
+      },
+      {
+        "name": "0",
+        "type": "I/O/T",
+        "function": "RTC_GPIO0, GPIO0"
+      },
+      {
+        "name": "45",
+        "type": "I/O/T",
+        "function": "GPIO45"
+      },
+      {
+        "name": "48",
+        "type": "I/O/T",
+        "function": "GPIO48, SPICLK_N, SUBSPICLK_N_DIFF"
+      },
+      {
+        "name": "47",
+        "type": "I/O/T",
+        "function": "GPIO47, SPICLK_P, SUBSPICLK_P_DIFF"
+      },
+      {
+        "name": "21",
+        "type": "I/O/T",
+        "function": "RTC_GPIO21, GPIO21"
+      },
+      {
+        "name": "20",
+        "type": "I/O/T",
+        "function": "RTC_GPIO20, GPIO20, U1CTS, ADC2_CH9, CLK_OUT1, USB_D+"
+      },
+      {
+        "name": "19",
+        "type": "I/O/T",
+        "function": "RTC_GPIO19, GPIO19, U1RTS, ADC2_CH8, CLK_OUT2, USB_D-"
+      },
+      {
+        "name": "G",
+        "type": "G",
+        "function": "Ground"
+      },
+      {
+        "name": "G",
+        "type": "G",
+        "function": "Ground"
+      }
     ]
   }
 }

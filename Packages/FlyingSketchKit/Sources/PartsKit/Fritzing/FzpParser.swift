@@ -20,7 +20,12 @@ struct FzpDocument {
         var description = ""
         var svgId: String?
         var legId: String?
+        /// Raw `flyingsketch:role` attribute (explicit pin role), if any.
+        var role: String?
     }
+
+    /// Namespace of FlyingSketch's own fzp extension attributes (e.g. `flyingsketch:role` on `<connector>`).
+    static let namespace = "https://github.com/flying-turtles/FlyingSketch"
 
     static let maxSize = 1024 * 1024
 
@@ -52,6 +57,8 @@ struct FzpDocument {
         private var text = ""
         private var propName: String?
         private var inBus = false
+        /// Prefixes bound to `FzpDocument.namespace` (namespace processing is off, so attributes keep their qualified names).
+        private var prefixes: Set<String> = []
 
         private var key: String { path.joined(separator: "/") }
 
@@ -59,13 +66,16 @@ struct FzpDocument {
                     qualifiedName: String?, attributes a: [String: String] = [:]) {
             path.append(name)
             text = ""
+            for (k, v) in a where k.hasPrefix("xmlns:") && v == FzpDocument.namespace { prefixes.insert(String(k.dropFirst(6))) }
             switch key {
             case "module":
                 doc.moduleId = a["moduleId"] ?? ""
             case "module/properties/property":
                 propName = a["name"]
             case "module/connectors/connector":
-                doc.connectors.append(Connector(id: a["id"] ?? "", name: a["name"] ?? "", type: a["type"] ?? ""))
+                var c = Connector(id: a["id"] ?? "", name: a["name"] ?? "", type: a["type"] ?? "")
+                c.role = prefixes.sorted().lazy.compactMap { a["\($0):role"] }.first
+                doc.connectors.append(c)
             case "module/connectors/connector/views/breadboardView/p":
                 if !doc.connectors.isEmpty, doc.connectors[doc.connectors.count - 1].svgId == nil {
                     doc.connectors[doc.connectors.count - 1].svgId = a["svgId"]
@@ -142,9 +152,18 @@ public struct FzpParser {
                 leg = LegSpec(origin: start, defaultEnd: end, color: legColor(geometry, legId),
                               width: legWidth(geometry, legId))
             }
+            var pinRole: PinRole?
+            if let raw = c.role {
+                guard let explicit = PinRole(rawValue: raw) else {
+                    throw PartImportError.invalidFzp("unknown role \(raw) on \(c.id)")
+                }
+                pinRole = explicit
+            } else if kind(c.type) != .female {
+                pinRole = role(forName: c.name)
+            }
             connectors.append(ConnectorDef(
                 id: c.id, name: c.name, description: c.description, kind: kind(c.type), position: position,
-                role: kind(c.type) == .female ? nil : role(forName: c.name), leg: leg))
+                role: pinRole, leg: leg))
         }
 
         let family = doc.properties["family"]

@@ -9,8 +9,8 @@
       "kind" : "male",
       "name" : "VCC",
       "position" : {
-        "x" : 18.397522622868028,
-        "y" : 23.063872677758724
+        "x" : 18.397523,
+        "y" : 23.063873
       },
       "role" : "power"
     },
@@ -20,8 +20,8 @@
       "kind" : "male",
       "name" : "TRIG",
       "position" : {
-        "x" : 20.937391092641747,
-        "y" : 23.063872677758724
+        "x" : 20.937391,
+        "y" : 23.063873
       }
     },
     {
@@ -30,8 +30,8 @@
       "kind" : "male",
       "name" : "ECHO",
       "position" : {
-        "x" : 23.47752235070941,
-        "y" : 23.063078318479313
+        "x" : 23.477522,
+        "y" : 23.063078
       }
     },
     {
@@ -40,14 +40,14 @@
       "kind" : "male",
       "name" : "GND",
       "position" : {
-        "x" : 26.01725904533631,
-        "y" : 23.062814361785836
+        "x" : 26.017259,
+        "y" : 23.062814
       },
       "role" : "ground"
     }
   ],
   "family" : "distance sensor",
-  "graphicAsset" : "part-6cfd7607c453b369.svg",
+  "graphicAsset" : "part-328159d5b2404bb6.svg",
   "graphicKind" : "svg",
   "labelPrefix" : "HC-SR04 Sensor",
   "libraryID" : "hc-sr0489a24442a28f4051a3a8757dd4825d87",
@@ -70,5 +70,5 @@
     "ultrasonic distance sensor"
   ],
   "title" : "HC-SR04 Ultrasonic Distance Sensor",
-  "versionHash" : "6cfd7607c453b369"
+  "versionHash" : "328159d5b2404bb6"
 }

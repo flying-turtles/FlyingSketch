@@ -5,7 +5,7 @@
   {"source": "fritzing-parts", "fzp": "core/halfBreadboard.fzp", "id": "breadboard-half"},
   {"source": "fritzing-parts", "fzp": "core/resistor.fzp", "id": "resistor"},
   {"source": "fritzing-parts", "fzp": "core/LED-generic-5mm_6852162_005.fzp", "id": "led-5mm"},
-  {"source": "fritzing-parts", "fzp": "core/pushbutton_4_horizontal.fzp", "id": "pushbutton"},
+  {"source": "custom", "fzp": "pushbutton-6mm/pushbutton-6mm.fzp", "id": "pushbutton"},
   {"source": "fritzing-parts", "fzp": "core/potentiometer_rotary_9mm_6.fzp", "id": "potentiometer"},
   {"source": "adafruit", "fzp": "parts/DHT22 Humidity and Temperature Sensor.fzpz", "id": "dht22"},
   {"source": "adafruit", "fzp": "parts/Adafruit BME280.fzpz", "id": "bme280-breakout"},
