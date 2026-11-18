@@ -23,7 +23,7 @@ let package = Package(
         .target(name: "PhotoPartKit", dependencies: ["SketchCore", "PartsKit"]),
         .target(
             name: "CanvasUI",
-            dependencies: ["InkEngine", "SketchCore", "NetKit", "PartsKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
+            dependencies: ["InkEngine", "SketchCore", "NetKit", "PartsKit", "PhotoPartKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "SketchCoreTests", dependencies: ["SketchCore"]),
@@ -35,7 +35,7 @@ let package = Package(
         ),
         .testTarget(name: "InkEngineTests", dependencies: ["InkEngine"]),
         .testTarget(name: "PhotoPartKitTests", dependencies: ["PhotoPartKit", "SketchCore", "PartsKit"]),
-        .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI", "PartsKit"]),
+        .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI", "PartsKit", "PhotoPartKit"]),
     ],
     swiftLanguageModes: [.v6]
 )
