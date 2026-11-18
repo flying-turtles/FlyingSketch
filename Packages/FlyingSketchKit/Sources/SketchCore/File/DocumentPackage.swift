@@ -15,7 +15,10 @@ public enum DocumentPackage {
         var parts: [String: PartDefinition]?
     }
 
+    /// Throws `corrupt("unsafe asset name")` for any asset name that is not `isSafeAssetName` (a FileWrapper key
+    /// like `../x` would be written outside the package).
     public static func fileWrapper(for doc: SketchDocument) throws -> FileWrapper {
+        if doc.assets.keys.contains(where: { !isSafeAssetName($0) }) { throw DocumentError.corrupt("unsafe asset name") }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let body = Body(formatVersion: 2, objects: doc.objects, viewport: doc.viewport, parts: doc.parts)
@@ -56,7 +59,7 @@ public enum DocumentPackage {
         try validate(body.objects, body.viewport, parts)
 
         var assets: [String: Data] = [:]
-        for (name, w) in wrapper.fileWrappers?[assetsName]?.fileWrappers ?? [:] {
+        for (name, w) in wrapper.fileWrappers?[assetsName]?.fileWrappers ?? [:] where isSafeAssetName(name) {
             if let data = w.regularFileContents { assets[name] = data }
         }
         // Reading upgrades to v2; the next write is always v2.

@@ -39,7 +39,9 @@ extension CanvasView {
             _ = edit.apply(to: &working)
         }
         if working.parts[new.key] == nil { run(.setDefinitions([new.key: new])) }
-        if working.assets[new.graphicAsset] == nil { model.addAssets([new.graphicAsset: newer.graphic]) }
+        if working.assets[new.graphicAsset] == nil {
+            guard (try? model.addAssets([new.graphicAsset: newer.graphic])) != nil else { return }
+        }
 
         let connectorIDs = Set(new.connectors.map(\.id))
         var repointed: [SceneObject] = []

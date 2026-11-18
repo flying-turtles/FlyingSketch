@@ -149,6 +149,18 @@ private func makePart(id: String, title: String = "Mine", family: String = "cust
         #expect(await lib.lastLoadIssues.count == 1)
     }
 
+    @Test func unsafeGraphicAssetNameReported() throws {
+        let root = tempRoot()
+        let store = PersonalLibraryStore(rootURL: root)
+        try store.write(makePart(id: "good"))
+        var evil = makePart(id: "evil")
+        evil.definition.graphicAsset = "../../escaped.svg"
+        try store.write(evil)
+        let loaded = try store.load()
+        #expect(loaded.parts.map(\.definition.libraryID) == ["good"])
+        #expect(loaded.issues.map(\.reason) == [.invalidDefinition])
+    }
+
     @Test func iCloudPlaceholderReportedNotDownloaded() throws {
         let root = tempRoot()
         let store = PersonalLibraryStore(rootURL: root)

@@ -117,14 +117,14 @@ private func wire(_ o: SceneObject) -> Wire? { if case .wire(let w) = o { w } el
     #expect(m.document.objects.compactMap(wire).first { $0.id == s.wireA.id } == s.wireA)
 }
 
-@Test @MainActor func updateKeepsDefinitionUsedByOtherVersion() {
+@Test @MainActor func updateKeepsDefinitionUsedByOtherVersion() throws {
     // Document already holds the newest version next to an old one: old instances move, new ones stay.
     let newDef = newResistor()
     let fresh = PartInstance(definitionKey: newDef.key, center: Vec2(x: 0, y: 60), label: "R2")
     var s = Scene()
     s.r2.definitionKey = oldDef.key
     let (v, m) = canvas(s.objects + [.part(fresh)])
-    m.addAssets([newDef.graphicAsset: svg])
+    try m.addAssets([newDef.graphicAsset: svg])
     _ = m.perform(.setDefinitions([newDef.key: newDef]), actionName: "x")
     v.updatePart(libraryID: oldDef.libraryID, to: libPart(newDef))
     #expect(m.document.objects.compactMap(part).allSatisfy { $0.definitionKey == newDef.key })

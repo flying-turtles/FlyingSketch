@@ -70,7 +70,9 @@ extension CanvasView {
             edits.append(.setDefinitions([def.key: def]))
             doc.parts[def.key] = def
         }
-        if doc.assets[def.graphicAsset] == nil { model.addAssets([def.graphicAsset: part.graphic]) }
+        if doc.assets[def.graphicAsset] == nil {
+            guard (try? model.addAssets([def.graphicAsset: part.graphic])) != nil else { return }
+        }
         var instance = PartInstance(definitionKey: def.key, center: currentViewport.center,
                                     label: nextPartLabel(prefix: def.labelPrefix, existing: partLabels(in: doc)),
                                     properties: def.properties)

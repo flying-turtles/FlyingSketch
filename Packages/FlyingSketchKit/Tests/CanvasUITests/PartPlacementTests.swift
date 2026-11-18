@@ -187,6 +187,32 @@ private func pluggedScene() -> (objects: [SceneObject], board: PartInstance, res
         #expect(dm.document.objects.isEmpty)
     }
 
+    @Test func readDropsUnsafeAssetNames() throws {
+        clear()
+        let s = pluggedScene()
+        var evilDef = resistorDef
+        evilDef.libraryID = "evil"
+        evilDef.graphicAsset = "../evil.svg"
+        let evilPart = PartInstance(definitionKey: evilDef.key, center: .zero, label: "X1")
+        let evilImage = ImageObject(assetName: "../../escaped.png", frame: Rect(origin: .zero, size: Vec2(x: 1, y: 1)))
+        let goodImage = ImageObject(assetName: "fine.png", frame: Rect(origin: .zero, size: Vec2(x: 1, y: 1)))
+        Clipboard.write([.part(s.resistor), .part(evilPart), .image(evilImage), .image(goodImage)],
+                        assets: [resistorDef.graphicAsset: svg, "../evil.svg": svg, "../../escaped.png": Data([1]),
+                                 "fine.png": Data([2])],
+                        definitions: [resistorDef.key: resistorDef, evilDef.key: evilDef])
+        let clip = try #require(Clipboard.read())
+        #expect(Set(clip.objects.map(\.id)) == [s.resistor.id, goodImage.id])
+        #expect(Set(clip.assets.keys) == [resistorDef.graphicAsset, "fine.png"])
+        #expect(Array(clip.definitions.keys) == [resistorDef.key])
+        // prepare applies the same rule to contents it is handed directly.
+        let prepared = Clipboard.prepare([.part(evilPart), .image(evilImage), .image(goodImage)],
+                                         assets: ["../../escaped.png": Data([1]), "fine.png": Data([2])],
+                                         definitions: [evilDef.key: evilDef], for: .empty, centeredAt: .zero)
+        #expect(prepared.objects.count == 1)
+        #expect(prepared.definitions.isEmpty)
+        #expect(Array(prepared.assets.keys) == ["fine.png"])
+    }
+
     @Test func oldPayloadWithoutDefinitionsDecodes() throws {
         clear()
         let ink = SceneObject.ink(InkStroke(points: [InkPoint(position: .zero, pressure: 0.5, time: 0)],

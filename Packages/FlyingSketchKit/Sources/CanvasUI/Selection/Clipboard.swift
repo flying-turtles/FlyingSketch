@@ -47,7 +47,28 @@ enum Clipboard {
     static func read() -> Contents? {
         guard let data = pasteboard.data(forPasteboardType: typeIdentifier),
               let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return nil }
-        return Contents(objects: payload.objects, assets: payload.assets, definitions: payload.definitions)
+        let safe = sanitized(payload.objects, assets: payload.assets, definitions: payload.definitions)
+        return Contents(objects: safe.objects, assets: safe.assets, definitions: safe.definitions)
+    }
+
+    /// Pasteboard data is untrusted: drops assets with unsafe names, images referencing one, definitions that are
+    /// mis-keyed or have an unsafe graphic asset, and the parts that would use such a dropped definition.
+    static func sanitized(_ objects: [SceneObject], assets: [String: Data], definitions: [String: PartDefinition])
+        -> (objects: [SceneObject], assets: [String: Data], definitions: [String: PartDefinition]) {
+        let safeAssets = assets.filter { isSafeAssetName($0.key) }
+        var safeDefinitions: [String: PartDefinition] = [:]
+        var rejected: Set<String> = []
+        for (key, def) in definitions {
+            if key == def.key, isSafeAssetName(def.graphicAsset) { safeDefinitions[key] = def } else { rejected.insert(key) }
+        }
+        let safeObjects = objects.filter { o in
+            switch o {
+            case .image(let i): isSafeAssetName(i.assetName)
+            case .part(let p): !rejected.contains(p.definitionKey)
+            default: true
+            }
+        }
+        return (safeObjects, safeAssets, safeDefinitions)
     }
 
     /// Objects to insert into `document`: fresh ids, centred on `center`, labels renumbered, wire attachments kept
@@ -57,6 +78,7 @@ enum Clipboard {
     static func prepare(_ objects: [SceneObject], assets: [String: Data], definitions: [String: PartDefinition] = [:],
                         for document: SketchDocument, centeredAt center: Vec2)
         -> (objects: [SceneObject], assets: [String: Data], definitions: [String: PartDefinition]) {
+        let (objects, assets, definitions) = sanitized(objects, assets: assets, definitions: definitions)
         var withDefinitions = document
         withDefinitions.parts.merge(definitions) { existing, _ in existing }
         guard let box = Rect.bounding(objects.flatMap { o -> [Vec2] in

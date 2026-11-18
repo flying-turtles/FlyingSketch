@@ -14,7 +14,7 @@ enum ImagePlacement {
         let size = Vec2(x: width, y: width * Double(image.size.height / image.size.width))
         let name = UUID().uuidString + ".png"
         let object = ImageObject(assetName: name, frame: Rect(origin: center - size / 2, size: size))
-        model.addAssets([name: png])
+        guard (try? model.addAssets([name: png])) != nil else { return false }
         model.perform(.insert([.image(object)], at: nil), actionName: "Add Image")
         return true
     }

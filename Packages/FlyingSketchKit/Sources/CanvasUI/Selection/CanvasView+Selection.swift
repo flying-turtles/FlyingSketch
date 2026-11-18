@@ -216,7 +216,7 @@ extension CanvasView {
         let prepared = Clipboard.prepare(clip.objects, assets: clip.assets, definitions: clip.definitions,
                                          for: model.document, centeredAt: viewport.center)
         guard !prepared.objects.isEmpty else { return }
-        model.addAssets(prepared.assets)
+        guard (try? model.addAssets(prepared.assets)) != nil else { return } // prepare drops unsafe names
         let defs: [SceneEdit] = prepared.definitions.isEmpty ? [] : [.setDefinitions(prepared.definitions.mapValues { $0 })]
         model.perform(defs + [.insert(prepared.objects, at: nil)], actionName: "Paste")
         selection.ids = Set(prepared.objects.map(\.id))

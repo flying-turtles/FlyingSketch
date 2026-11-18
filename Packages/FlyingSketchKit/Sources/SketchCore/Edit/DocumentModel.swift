@@ -28,9 +28,11 @@ public final class DocumentModel {
     }
 
     /// Merges binary assets (images). Not undoable and fires no `onChange`: unreferenced assets are harmless;
-    /// callers follow up with a `perform` that references them.
-    public func addAssets(_ assets: [String: Data]) {
+    /// callers follow up with a `perform` that references them. Throws (adding nothing) when any name is not
+    /// `isSafeAssetName`.
+    public func addAssets(_ assets: [String: Data]) throws(AssetNameError) {
         guard !assets.isEmpty else { return }
+        if let bad = assets.keys.sorted().first(where: { !isSafeAssetName($0) }) { throw .unsafe(bad) }
         document.assets.merge(assets) { _, new in new }
     }
 
