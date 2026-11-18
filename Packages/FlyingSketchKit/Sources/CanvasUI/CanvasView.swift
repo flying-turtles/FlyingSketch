@@ -58,6 +58,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     }()
     /// Selected objects; the app may observe or set it.
     public let selection: SelectionState
+    /// Highlighted net and pin info; the app may supply it (like `selection`) so SwiftUI observes it from the first render.
+    public let netHighlight: NetHighlightState
     /// Move gesture in progress: world delta applied so far (visual only until release).
     var moveStart: Vec2?
     /// Ids moved by the in-flight gesture (selection plus carried parts); set once the drag engages.
@@ -88,9 +90,11 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     }
 
     /// `selection` may be supplied by the app so SwiftUI can observe it from the first render.
-    public init(model: DocumentModel, selection: SelectionState = SelectionState()) {
+    public init(model: DocumentModel, selection: SelectionState = SelectionState(),
+                netHighlight: NetHighlightState = NetHighlightState()) {
         self.model = model
         self.selection = selection
+        self.netHighlight = netHighlight
         self.ink = InkInputController(model: model)
         self.storedViewport = model.document.viewport
         super.init(frame: .zero)
@@ -158,6 +162,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     public override func layoutSubviews() {
         super.layoutSubviews()
         factory.screenScale = traitCollection.displayScale
+        renderer.screenScale = traitCollection.displayScale
         liveStroke.setFrame(bounds)
         selectionOverlay.setFrame(bounds)
         lassoPath.layer.frame = bounds
@@ -365,7 +370,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             renderer.hiddenIDs = []
         case .lasso:
             for s in coalescedSamples(touch, event) { lasso.move(to: s.position) }
-            finishLasso()
+            if !highlightNetOnLassoTap() { finishLasso() }
         case .move:
             endMove()
         case .shape:
@@ -382,7 +387,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .ignored:
             break
         case .pending(let start):
-            tap(at: start)
+            if !highlightNet(at: start) { tap(at: start) }
         }
     }
 

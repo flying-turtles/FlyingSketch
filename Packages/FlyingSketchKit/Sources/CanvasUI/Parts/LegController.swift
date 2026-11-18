@@ -8,7 +8,7 @@ final class LegController {
     private var connector = ""
     private var startEnd = Vec2.zero
     private var current = Vec2.zero
-    private var grab = Vec2.zero
+    private(set) var grab = Vec2.zero
     /// Releases closer than this (mm) to the original leg end make no edit.
     var minDistance = 0.0
 

@@ -40,7 +40,7 @@ private func doc(_ def: PartDefinition, turns: Int = 0) -> (SketchDocument, Part
 }
 
 /// root -> content -> [grid, objects]
-@MainActor private func objectsLayer(_ root: CALayer) -> CALayer { root.sublayers![0].sublayers![1] }
+@MainActor private func objectsLayer(_ root: CALayer) -> CALayer { root.sublayers![0].sublayers![2] } // grid, net glow, objects, net rings
 
 @Test @MainActor func partLayerSizedInView() {
     let (d, _) = doc(definition(20, 10))

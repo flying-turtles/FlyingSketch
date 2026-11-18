@@ -68,9 +68,14 @@ extension CanvasView {
 
     func endLegDrag(at world: Vec2) {
         guard legs.isActive else { return }
+        let isTap = legs.grab.distance(to: world) < legs.minDistance
         legs.move(to: world)
         clearLegPreview()
         legs.end()
+        if isTap {
+            let v = currentViewport.worldToView(world, viewSize: viewSize)
+            highlightNet(at: CGPoint(x: v.x, y: v.y)) // a tap (no drag) on a leg end that is a connector
+        }
     }
 
     func cancelLegDrag() {

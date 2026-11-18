@@ -14,6 +14,7 @@ final class SceneRenderer {
     private let content = CALayer()
     private let grid = GridLayer()
     private let objects = CALayer()
+    let netLayers = NetOverlayLayers()
     private let factory: any ObjectLayerFactory
 
     private var index = SpatialIndex(cellSize: 50)
@@ -26,6 +27,17 @@ final class SceneRenderer {
     private var settledViewSize: Vec2 = .zero
 
     var showsGrid = true
+    /// Highlighted net geometry (world mm); re-pathed on every settle. Hidden while part/wire previews run.
+    var netOverlay: NetOverlay? { didSet { repaintNetOverlay() } }
+    var screenScale: CGFloat = 2 { didSet { repaintNetOverlay() } }
+
+    private func repaintNetOverlay() {
+        guard let vp = settledViewport else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        netLayers.update(netOverlay, viewport: vp, viewSize: settledViewSize, scale: screenScale)
+        CATransaction.commit()
+    }
     /// Ids whose object changed in the latest `syncIndex`.
     private var dirty: Set<ObjectID> = []
     /// Number of settled updates performed (debug/test).
@@ -74,6 +86,7 @@ final class SceneRenderer {
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
         clearFeedback()
+        netLayers.suppressed = !previewObjects.isEmpty
         for (id, object) in previewObjects {
             guard let e = entries[id] else { continue }
             factory.update(e.layer, for: object, viewport: e.viewport, viewSize: e.viewSize)
@@ -102,7 +115,9 @@ final class SceneRenderer {
         content.anchorPoint = .zero
         content.position = .zero
         content.addSublayer(grid.layer)
+        content.addSublayer(netLayers.glow)
         content.addSublayer(objects)
+        content.addSublayer(netLayers.rings)
         rootLayer.addSublayer(content)
     }
 
@@ -142,6 +157,7 @@ final class SceneRenderer {
         content.bounds = CGRect(x: 0, y: 0, width: size.x, height: size.y)
         settledViewport = vp
         settledViewSize = size
+        netLayers.update(netOverlay, viewport: vp, viewSize: size, scale: screenScale)
 
         let visible = vp.visibleWorldRect(viewSize: size)
         let culling = Rect(origin: visible.origin - visible.size * 0.25, size: visible.size * 1.5)

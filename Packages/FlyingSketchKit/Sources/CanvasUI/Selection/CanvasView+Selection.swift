@@ -46,6 +46,7 @@ extension CanvasView {
             endTextEditing() // edited text vanished (undo etc.): drop the editor, commit is a no-op
         }
         if wires.documentDidChange(doc) { clearWirePreview() }
+        refreshNetHighlight(after: doc)
         render(settled: true)
     }
 
@@ -140,6 +141,7 @@ extension CanvasView {
             guard let start else { return }
             let v = currentViewport.worldToView(start, viewSize: viewSize)
             let point = CGPoint(x: v.x, y: v.y)
+            if highlightNet(at: point) { return } // a connector under the tap wins over selecting
             if let hit = topObject(at: point), selection.ids.contains(hit.id) {
                 presentEditMenu()
             } else {

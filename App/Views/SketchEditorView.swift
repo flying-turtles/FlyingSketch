@@ -15,25 +15,30 @@ struct SketchEditorView: View {
     @State private var undoTick = 0
     /// Owned here (passed into the canvas) so `body` observes it from the first render.
     @State private var selection = SelectionState()
+    /// Owned here like `selection` so `body` observes the pin info without touching the canvas from a view update.
+    @State private var netHighlight = NetHighlightState()
     @State private var showsParts = false
     @State private var showsInspector = false
 
     var body: some View {
         CanvasRepresentable(
-            model: document.model, selection: selection, toolState: toolState, showsGrid: showsGrid, snapsToGrid: snapsToGrid,
+            model: document.model, selection: selection, netHighlight: netHighlight, toolState: toolState, showsGrid: showsGrid, snapsToGrid: snapsToGrid,
             handle: canvasHandle, onPencilDoubleTap: togglePencilEraser
         )
         .ignoresSafeArea()
         .overlay(alignment: .top) {
-            ToolPalette(
-                toolState: $toolState, showsGrid: $showsGrid, snapsToGrid: $snapsToGrid,
-                canUndo: canUndo, canRedo: canRedo,
-                undo: { undoManager?.undo() }, redo: { undoManager?.redo() },
-                insertImage: { _ = canvasHandle.view?.insertImage($0) },
-                insertStress: insertStress,
-                openParts: { showsParts = true },
-                accessory: inspectorButton
-            )
+            VStack(spacing: 8) {
+                ToolPalette(
+                    toolState: $toolState, showsGrid: $showsGrid, snapsToGrid: $snapsToGrid,
+                    canUndo: canUndo, canRedo: canRedo,
+                    undo: { undoManager?.undo() }, redo: { undoManager?.redo() },
+                    insertImage: { _ = canvasHandle.view?.insertImage($0) },
+                    insertStress: insertStress,
+                    openParts: { showsParts = true },
+                    accessory: inspectorButton
+                )
+                pinInfoCard
+            }
             .padding(.top, 8)
         }
         .sheet(isPresented: $showsParts) {
@@ -48,6 +53,18 @@ struct SketchEditorView: View {
         }
         .onChange(of: undoManager) { injectUndoManager() }
         .onReceive(undoNotifications) { _ in undoTick += 1 }
+    }
+
+    @ViewBuilder private var pinInfoCard: some View {
+        if let info = netHighlight.info {
+            Text(info.summary)
+                .font(.footnote.monospacedDigit())
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.regularMaterial, in: Capsule())
+                .allowsHitTesting(false)
+                .accessibilityLabel(info.summary)
+        }
     }
 
     /// The single selected part and its definition title, if exactly one part is selected.

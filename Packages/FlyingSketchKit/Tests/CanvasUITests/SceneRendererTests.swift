@@ -15,7 +15,7 @@ private func line(at origin: Vec2, length: Double = 10) -> SceneObject {
 
 private func objectLayers(_ root: CALayer) -> [CAShapeLayer] {
     // root -> content -> [grid, objects]
-    root.sublayers![0].sublayers![1].sublayers?.compactMap { $0 as? CAShapeLayer } ?? []
+    root.sublayers![0].sublayers![2].sublayers?.compactMap { $0 as? CAShapeLayer } ?? []
 }
 
 @Test @MainActor func createsLayersOnlyForVisibleObjects() {

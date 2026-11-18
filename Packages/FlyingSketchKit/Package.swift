@@ -21,7 +21,7 @@ let package = Package(
         .target(name: "InkEngine", dependencies: ["SketchCore"]),
         .target(
             name: "CanvasUI",
-            dependencies: ["InkEngine", "SketchCore", "PartsKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
+            dependencies: ["InkEngine", "SketchCore", "NetKit", "PartsKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "SketchCoreTests", dependencies: ["SketchCore"]),
