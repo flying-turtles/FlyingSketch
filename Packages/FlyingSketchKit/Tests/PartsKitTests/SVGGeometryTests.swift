@@ -76,7 +76,7 @@ private func near(_ a: Vec2?, _ x: Double, _ y: Double, _ tol: Double = 1e-6) ->
         #expect(near(g.centerMM(ofElement: "e"), 5, 0.0005))
         #expect(near(g.centerMM(ofElement: "h"), 5, 5))
         #expect(g.centerMM(ofElement: "bad") == nil)
-        #expect(near(g.centerMM(ofElement: "partial"), 2, 2))
+        #expect(g.centerMM(ofElement: "partial") == nil)
     }
 
     @Test func curvesBoundedByControlPoints() throws {
@@ -122,5 +122,63 @@ private func near(_ a: Vec2?, _ x: Double, _ y: Double, _ tol: Double = 1e-6) ->
         #expect(near(g.centerMM(ofElement: "connector1pin"), 150 * 0.0254, 60 * 0.0254))
         let leg = try #require(g.lineMM(ofElement: "connector2leg"))
         #expect(near(leg.1, 200 * 0.0254, 150 * 0.0254))
+    }
+}
+
+@Suite struct SVGStrictnessTests {
+    @Test func badTransformOnElementAndAncestor() throws {
+        let g = try svg(#"<svg width="10mm" height="10mm"><rect id="a" width="1" height="1" transform="rotate(x)"/><g transform="bogus(1)"><rect id="b" width="1" height="1"/><g><rect id="c" width="1" height="1"/></g></g><rect id="ok" width="1" height="1"/></svg>"#)
+        #expect(g.centerMM(ofElement: "a") == nil)
+        #expect(g.centerMM(ofElement: "b") == nil)
+        #expect(g.centerMM(ofElement: "c") == nil)
+        #expect(near(g.centerMM(ofElement: "ok"), 0.5, 0.5))
+    }
+
+    @Test func malformedPathsAndPolygonsAreNil() throws {
+        let g = try svg(#"<svg width="10mm" height="10mm"><path id="a" d="M0 0 L10 5 L x"/><path id="b" d="M0 0 L1 1 Z 5"/><path id="c" d="M0 0 K1 1"/><polygon id="d" points="0,0 1,1 2"/><polyline id="e" points="0,0 a,b"/></svg>"#)
+        for id in ["a", "b", "c", "d", "e"] { #expect(g.centerMM(ofElement: id) == nil) }
+        #expect(g.lineMM(ofElement: "a") == nil)
+    }
+
+    @Test func badNumbersAreNil() throws {
+        let g = try svg(#"<svg width="10mm" height="10mm"><circle id="a" cx="50%" cy="1" r="1"/><circle id="b" cx="1" cy="1" r="2mm"/><circle id="c" cx="1" cy="1" r="2px"/><rect id="d" x="zz" width="1" height="1"/></svg>"#)
+        #expect(g.centerMM(ofElement: "a") == nil)
+        #expect(g.centerMM(ofElement: "b") == nil)
+        #expect(near(g.centerMM(ofElement: "c"), 1, 1))
+        #expect(g.centerMM(ofElement: "d") == nil)
+    }
+
+    @Test func badViewBoxThrows() {
+        for vb in ["0 0 0 0", "a b c d", "0 0 10", "0 0 10 10 5"] {
+            #expect(throws: SVGError.unsupported("viewBox")) {
+                try svg(#"<svg width="10mm" height="10mm" viewBox="\#(vb)"/>"#)
+            }
+        }
+    }
+
+    @Test func preserveAspectRatioRules() throws {
+        #expect(throws: SVGError.unsupported("preserveAspectRatio")) {
+            try svg(#"<svg width="20mm" height="10mm" viewBox="0 0 10 10" preserveAspectRatio="xMinYMin slice"/>"#)
+        }
+        _ = try svg(#"<svg width="10mm" height="10mm" viewBox="0 0 10 10" preserveAspectRatio="xMinYMin slice"/>"#)
+        _ = try svg(#"<svg width="20mm" height="10mm" viewBox="0 0 10 10" preserveAspectRatio="xMidYMid  meet"/>"#)
+    }
+
+    @Test func rootTransformThrows() throws {
+        #expect(throws: SVGError.unsupported("root transform")) {
+            try svg(#"<svg width="10mm" height="10mm" transform="scale(2)"/>"#)
+        }
+        _ = try svg(#"<svg width="10mm" height="10mm" transform="translate(0)"/>"#)
+    }
+
+    @Test func malformedXMLThrows() {
+        #expect(throws: SVGError.notSVG) { try svg(#"<svg width="10mm" height="10mm"><rect id="a">"#) }
+    }
+
+    @Test func externalEntityNotResolved() throws {
+        let xml = ##"<?xml version="1.0"?><!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg width="10mm" height="10mm"><rect id="&x;" width="1" height="1"/><rect id="r" width="1" height="1"/></svg>"##
+        if let g = try? svg(xml) {
+            #expect(g.centerMM(ofElement: "root:x:0:0") == nil)
+        }
     }
 }

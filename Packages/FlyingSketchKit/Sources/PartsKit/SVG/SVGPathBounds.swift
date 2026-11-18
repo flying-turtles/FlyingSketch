@@ -10,8 +10,8 @@ struct SVGPathShape {
 }
 
 enum SVGPathParser {
-    /// Parses all commands (absolute + relative, implicit repeats). Stops at the first
-    /// malformed token and keeps what was parsed so far; returns nil if no points result.
+    /// Parses all commands (absolute + relative, implicit repeats). Any malformed token,
+    /// unknown command or trailing garbage yields nil (never partial geometry).
     static func parse(_ d: String) -> SVGPathShape? {
         var sc = SVGScanner(d)
         var shape = SVGPathShape()
@@ -35,9 +35,9 @@ enum SVGPathParser {
                     continue
                 }
             } else if cmd == nil || cmd == "z" || cmd == "Z" {
-                break
+                return nil   // number with no command, or trailing number after Z
             } else if cmd == "M" { cmd = "L" } else if cmd == "m" { cmd = "l" }
-            guard let k = cmd else { break }
+            guard let k = cmd else { return nil }
             let rel = k.isLowercase
             let o = rel ? cur : .zero
 
@@ -48,46 +48,46 @@ enum SVGPathParser {
 
             switch k {
             case "M", "m":
-                guard let p = pt() else { break loop }
+                guard let p = pt() else { return nil }
                 cur = p; start = p; add(p); moves += 1; lineStart = p
                 lastCtrl = nil; lastQuad = nil
             case "L", "l":
-                guard let p = pt() else { break loop }
+                guard let p = pt() else { return nil }
                 if lines == 0 { lineEnd = p }
                 cur = p; add(p); lines += 1; lastCtrl = nil; lastQuad = nil
             case "H", "h":
-                guard let x = sc.number() else { break loop }
+                guard let x = sc.number() else { return nil }
                 cur = Vec2(x: x + o.x, y: cur.y); add(cur); lines += 1
                 if lines == 1 { lineEnd = cur }
                 lastCtrl = nil; lastQuad = nil
             case "V", "v":
-                guard let y = sc.number() else { break loop }
+                guard let y = sc.number() else { return nil }
                 cur = Vec2(x: cur.x, y: y + o.y); add(cur); lines += 1
                 if lines == 1 { lineEnd = cur }
                 lastCtrl = nil; lastQuad = nil
             case "C", "c":
-                guard let p1 = pt(), let p2 = pt(), let p = pt() else { break loop }
+                guard let p1 = pt(), let p2 = pt(), let p = pt() else { return nil }
                 add(p1); add(p2); add(p); cur = p; lastCtrl = p2; lastQuad = nil; other += 1
             case "S", "s":
-                guard let p2 = pt(), let p = pt() else { break loop }
+                guard let p2 = pt(), let p = pt() else { return nil }
                 let p1 = lastCtrl.map { cur + (cur - $0) } ?? cur
                 add(p1); add(p2); add(p); cur = p; lastCtrl = p2; lastQuad = nil; other += 1
             case "Q", "q":
-                guard let p1 = pt(), let p = pt() else { break loop }
+                guard let p1 = pt(), let p = pt() else { return nil }
                 add(p1); add(p); cur = p; lastQuad = p1; lastCtrl = nil; other += 1
             case "T", "t":
-                guard let p = pt() else { break loop }
+                guard let p = pt() else { return nil }
                 let p1 = lastQuad.map { cur + (cur - $0) } ?? cur
                 add(p1); add(p); cur = p; lastQuad = p1; lastCtrl = nil; other += 1
             case "A", "a":
                 guard let rx = sc.number(), let ry = sc.number(), let rot = sc.number(),
                       let large = sc.readFlag(), let sweep = sc.readFlag(),
-                      let p = pt() else { break loop }
+                      let p = pt() else { return nil }
                 addArcBox(from: cur, to: p, rx: rx, ry: ry, rotationDeg: rot,
                           large: large, sweep: sweep, add: add)
                 cur = p; lastCtrl = nil; lastQuad = nil; other += 1
             default:
-                break loop
+                return nil   // unknown command
             }
         }
 
