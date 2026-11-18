@@ -7,6 +7,8 @@ import CanvasUI
 /// Sheet listing library parts grouped by family; tap places a part, "Import .fzpz…" adds a personal part.
 struct PartsLibraryView: View {
     let place: (LibraryPart) -> Void
+    /// Called after a successful import (library contents changed).
+    var libraryChanged: () -> Void = {}
     @Environment(PartsLibraryProvider.self) private var provider
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
@@ -100,6 +102,7 @@ struct PartsLibraryView: View {
             _ = try await library.importFzpz(data)
             try Task.checkCancellation()
             generation += 1
+            libraryChanged()
         } catch is CancellationError {
             return
         } catch {

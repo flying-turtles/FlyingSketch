@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import SketchCore
 import CanvasUI
+import PartsKit
 
 struct SketchEditorView: View {
     let document: SketchFileDocument
@@ -19,6 +20,11 @@ struct SketchEditorView: View {
     @State private var netHighlight = NetHighlightState()
     @State private var showsParts = false
     @State private var showsInspector = false
+    @Environment(PartsLibraryProvider.self) private var partsProvider
+    @State private var outdated: [OutdatedPart] = []
+    @State private var showsUpdates = false
+    /// Bumped to recompute `outdated` (library import, undo/redo of an update).
+    @State private var updatesTick = 0
 
     var body: some View {
         CanvasRepresentable(
@@ -35,15 +41,20 @@ struct SketchEditorView: View {
                     insertImage: { _ = canvasHandle.view?.insertImage($0) },
                     insertStress: insertStress,
                     openParts: { showsParts = true },
-                    accessory: inspectorButton
+                    accessory: HStack { updatesButton; inspectorButton }
                 )
                 pinInfoCard
             }
             .padding(.top, 8)
         }
         .sheet(isPresented: $showsParts) {
-            PartsLibraryView { canvasHandle.view?.placePart($0) }
+            PartsLibraryView(place: { canvasHandle.view?.placePart($0) }, libraryChanged: { updatesTick += 1 })
         }
+        .sheet(isPresented: $showsUpdates) {
+            PartUpdatesView(entries: outdated, update: applyUpdate, updateAll: updateAll)
+        }
+        .task(id: UpdatesKey(ready: partsProvider.library != nil, tick: updatesTick)) { await refreshOutdated() }
+        .onReceive(undoRedoNotifications) { _ in updatesTick += 1 }
         .onAppear {
             injectUndoManager()
             #if DEBUG
@@ -53,6 +64,39 @@ struct SketchEditorView: View {
         }
         .onChange(of: undoManager) { injectUndoManager() }
         .onReceive(undoNotifications) { _ in undoTick += 1 }
+    }
+
+    private struct UpdatesKey: Equatable {
+        var ready: Bool
+        var tick: Int
+    }
+
+    @ViewBuilder private var updatesButton: some View {
+        if !outdated.isEmpty {
+            Button { showsUpdates = true } label: {
+                Label("Updates (\(outdated.count))", systemImage: "arrow.triangle.2.circlepath").padding(6)
+            }
+        }
+    }
+
+    /// Compares the document's embedded definitions with the library; the library read runs off the main actor.
+    private func refreshOutdated() async {
+        guard let library = partsProvider.library, let view = canvasHandle.view else { return }
+        let all = await library.allParts()
+        guard !Task.isCancelled else { return }
+        outdated = view.outdatedParts(comparedTo: all).map { OutdatedPart(current: $0.current, newer: $0.newer) }
+        if outdated.isEmpty { showsUpdates = false }
+    }
+
+    private func applyUpdate(_ entry: OutdatedPart) {
+        canvasHandle.view?.updatePart(libraryID: entry.current.libraryID, to: entry.newer)
+        updatesTick += 1
+    }
+
+    /// One edit per part, sequential.
+    private func updateAll() {
+        for entry in outdated { canvasHandle.view?.updatePart(libraryID: entry.current.libraryID, to: entry.newer) }
+        updatesTick += 1
     }
 
     @ViewBuilder private var pinInfoCard: some View {
@@ -94,6 +138,12 @@ struct SketchEditorView: View {
         return Publishers.MergeMany([
             .NSUndoManagerDidUndoChange, .NSUndoManagerDidRedoChange, .NSUndoManagerDidCloseUndoGroup,
         ].map { c.publisher(for: $0, object: undoManager) })
+    }
+
+    private var undoRedoNotifications: some Publisher<Notification, Never> {
+        let c = NotificationCenter.default
+        return Publishers.Merge(c.publisher(for: .NSUndoManagerDidUndoChange, object: undoManager),
+                                c.publisher(for: .NSUndoManagerDidRedoChange, object: undoManager))
     }
 
     private var canUndo: Bool { _ = undoTick; return undoManager?.canUndo ?? false }
