@@ -22,6 +22,8 @@ extension ObjectLayerFactory {
 nonisolated final class PartLayer: CALayer {
     let body = CALayer()
     var legLayers: [CAShapeLayer] = []
+    /// Photo (PNG) parts only: one ring per non-leg connector (white halo; the role-coloured ring is its sublayer).
+    var connectorMarkers: [CAShapeLayer] = []
     var placeholderShape: CAShapeLayer?
     var placeholderText: CATextLayer?
     /// Raster this layer currently wants; async results for other keys are ignored.
@@ -260,6 +262,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         layer.lastInput = (p, vp, size)
         guard let def = parts[p.definitionKey] else {
             clearLegs(layer)
+            updateConnectorMarkers(layer, p, nil, vp, size)
             showPlaceholder(layer, p, vp, size)
             return
         }
@@ -269,6 +272,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         let turns = ((p.quarterTurns % 4) + 4) % 4
         layer.body.transform = CATransform3DMakeRotation(CGFloat(turns) * .pi / 2, 0, 0, 1)
         updateLegs(layer, p, def, vp, size)
+        updateConnectorMarkers(layer, p, def, vp, size)
         if requestRaster(for: layer, def: def, vp: vp) {
             removePlaceholder(layer)
             layer.body.isHidden = false
@@ -302,6 +306,43 @@ final class CALayerObjectFactory: ObjectLayerFactory {
             l.lineCap = .round
             l.strokeColor = cg(spec.color)
             l.fillColor = nil
+        }
+    }
+
+    /// Marker ring radius in mm (never below `connectorMarkerMinRadius` pt on screen).
+    static let connectorMarkerRadius = 0.6
+    static let connectorMarkerMinRadius: CGFloat = 3
+
+    /// Photos don't draw their own pins (Fritzing SVGs do), so PNG parts get a role-coloured ring per connector.
+    private func updateConnectorMarkers(_ layer: PartLayer, _ p: PartInstance, _ def: PartDefinition?,
+                                        _ vp: Viewport, _ size: Vec2) {
+        let connectors = def.map { d in d.graphicKind == .png ? d.connectors.filter { $0.leg == nil } : [] } ?? []
+        while layer.connectorMarkers.count > connectors.count { layer.connectorMarkers.removeLast().removeFromSuperlayer() }
+        while layer.connectorMarkers.count < connectors.count {
+            let halo = CAShapeLayer(), ring = CAShapeLayer()
+            halo.fillColor = nil
+            halo.strokeColor = UIColor.white.withAlphaComponent(0.9).cgColor
+            halo.lineWidth = 3
+            ring.fillColor = nil
+            ring.lineWidth = 1
+            halo.addSublayer(ring)
+            layer.connectorMarkers.append(halo)
+            layer.addSublayer(halo)
+        }
+        guard let def else { return }
+        let radius = max(Self.connectorMarkerMinRadius, Self.connectorMarkerRadius * mm(vp))
+        let side = (radius + 2) * 2
+        let circle = CGPath(ellipseIn: CGRect(x: 2, y: 2, width: radius * 2, height: radius * 2), transform: nil)
+        for (halo, c) in zip(layer.connectorMarkers, connectors) {
+            let center = pt(p.worldPoint(c.position, in: def), vp, size)
+            halo.contentsScale = screenScale
+            halo.frame = CGRect(x: center.x - side / 2, y: center.y - side / 2, width: side, height: side)
+            halo.path = circle
+            guard let ring = halo.sublayers?.first as? CAShapeLayer else { continue }
+            ring.contentsScale = screenScale
+            ring.frame = halo.bounds
+            ring.path = circle
+            ring.strokeColor = StudioOverlayLayers.color(for: c.role).cgColor
         }
     }
 

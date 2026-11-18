@@ -69,7 +69,7 @@ public final class StudioSession {
                 cutoutState = .failed(.noForeground)
             } else if found.count == 1 {
                 instances = found
-                apply(found[0])
+                applyCutout(found[0])
                 cutoutState = .done
             } else {
                 instances = found
@@ -85,14 +85,14 @@ public final class StudioSession {
     public func chooseInstance(at sourcePoint: Vec2) {
         guard case .choosing = cutoutState,
               let i = instanceIndex(at: sourcePoint, in: instances) else { return }
-        apply(instances[i])
+        applyCutout(instances[i])
         cutoutState = .done
     }
 
     public func chooseAllInstances() {
         guard case .choosing = cutoutState, var union = instances.first else { return }
         for m in instances.dropFirst() { try? union.formUnion(m) }
-        apply(union)
+        applyCutout(union)
         cutoutState = .done
     }
 
@@ -107,7 +107,7 @@ public final class StudioSession {
     public func applyTrace(_ sourcePoints: [Vec2]) throws(PhotoPartError) {
         var next = mask
         try next.fillPolygon(sourcePoints)
-        apply(next)
+        applyCutout(next)
     }
 
     public func applyBrush(_ sourcePoints: [Vec2]) {
@@ -131,6 +131,27 @@ public final class StudioSession {
         guard let next = redoStack.popLast() else { return }
         undoStack.append(mask)
         mask = next
+    }
+
+    /// Cutout-flow mask change: also crops to the cutout while the crop is still the untouched default.
+    private func applyCutout(_ new: MaskBitmap) {
+        apply(new)
+        guard draft.crop == CropSpec.full(source.pixelSize), let crop = Self.autoCrop(for: new, in: source.pixelSize,
+                                                                                    quarterTurns: draft.crop.quarterTurns)
+        else { return }
+        draft.crop = crop
+    }
+
+    /// Mask bounding box grown by 2% of its longer side (min 4 px), clamped to the source; nil for an empty mask.
+    static func autoCrop(for mask: MaskBitmap, in size: PixelSize, quarterTurns: Int) -> CropSpec? {
+        guard let box = mask.boundingBox else { return nil }
+        let w = Double(box.maxX - box.minX + 1), h = Double(box.maxY - box.minY + 1)
+        let margin = max(4, 0.02 * max(w, h))
+        let minX = max(0, Double(box.minX) - margin), minY = max(0, Double(box.minY) - margin)
+        let maxX = min(Double(size.width), Double(box.maxX + 1) + margin)
+        let maxY = min(Double(size.height), Double(box.maxY + 1) + margin)
+        return CropSpec(center: Vec2(x: (minX + maxX) / 2, y: (minY + maxY) / 2),
+                        size: Vec2(x: maxX - minX, y: maxY - minY), angle: 0, quarterTurns: quarterTurns)
     }
 
     private func apply(_ new: MaskBitmap) {

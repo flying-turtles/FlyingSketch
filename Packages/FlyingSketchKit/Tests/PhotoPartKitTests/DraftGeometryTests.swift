@@ -68,6 +68,23 @@ import SketchCore
         #expect(close(d.pins[0].position, Vec2(x: 12.3, y: 14.7)))
     }
 
+    @Test func gridSnapOnlyWhenNearGridPoint() {
+        var d = PhotoPartDraft(sourceSize: PixelSize(width: 400, height: 300))
+        d.scale = .twoPoints(Vec2(x: 0, y: 0), Vec2(x: 254, y: 0), mm: 25.4)
+        _ = d.addPin(atOutput: Vec2(x: 10, y: 10))
+        // Offset 3.8 mm / 0 mm: 1.26 mm from the nearest grid point on x -> raw.
+        let far = d.addPin(atOutput: Vec2(x: 48, y: 10))
+        #expect(close(d.pins.first { $0.id == far }!.position, Vec2(x: 48, y: 10)))
+        // Near on x (0.06 mm) but far on y (offset 1.3 mm -> 1.24 mm off) -> raw.
+        let mixed = d.addPin(atOutput: Vec2(x: 36, y: 23))
+        #expect(close(d.pins.first { $0.id == mixed }!.position, Vec2(x: 36, y: 23)))
+        // Within 0.6 mm on both axes -> snaps; moving away again keeps the raw point.
+        let near = d.addPin(atOutput: Vec2(x: 40.5, y: 14))
+        #expect(close(d.pins.first { $0.id == near }!.position, Vec2(x: 35.4, y: 10)))
+        d.movePin(near, toOutput: Vec2(x: 48, y: 30))
+        #expect(close(d.pins.first { $0.id == near }!.position, Vec2(x: 48, y: 30)))
+    }
+
     @Test func noSnapWithoutScaleOrWhenDisabled() {
         var d = PhotoPartDraft(sourceSize: PixelSize(width: 400, height: 300))
         _ = d.addPin(atOutput: Vec2(x: 10, y: 10))

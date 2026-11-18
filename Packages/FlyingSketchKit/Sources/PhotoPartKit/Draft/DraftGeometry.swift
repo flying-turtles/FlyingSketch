@@ -3,14 +3,19 @@ import SketchCore
 
 /// Pin pitch in mm.
 private let pinPitchMM = 2.54
+/// Max per-axis distance (mm) to a grid point for a snap to happen.
+let pinSnapToleranceMM = 0.6
 
-/// Rounds the anchor-relative offset to multiples of 2.54 mm on the output axes.
+/// Snaps the anchor-relative offset to multiples of 2.54 mm on the output axes, but only when the point is within
+/// `pinSnapToleranceMM` of a grid point on both axes; otherwise returns it unchanged (unrelated connectors stay put).
 public func snapToPinGrid(_ outputPoint: Vec2, anchor: Vec2, mmPerPixel: Double) -> Vec2 {
     let pitch = pinPitchMM / mmPerPixel
     guard pitch.isFinite, pitch > 0 else { return outputPoint }
     let d = outputPoint - anchor
-    return Vec2(x: anchor.x + (d.x / pitch).rounded() * pitch,
-                y: anchor.y + (d.y / pitch).rounded() * pitch)
+    let snapped = Vec2(x: (d.x / pitch).rounded() * pitch, y: (d.y / pitch).rounded() * pitch)
+    let tolerance = pinSnapToleranceMM / mmPerPixel + 1e-9
+    guard abs(d.x - snapped.x) <= tolerance, abs(d.y - snapped.y) <= tolerance else { return outputPoint }
+    return anchor + snapped
 }
 
 extension PhotoPartDraft {

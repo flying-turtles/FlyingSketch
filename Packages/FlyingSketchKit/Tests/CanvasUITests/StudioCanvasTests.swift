@@ -231,10 +231,12 @@ private struct FakeCutout: CutoutProviding {
         s.draft.scale = .twoPoints(Vec2(x: 0, y: 0), Vec2(x: 100, y: 0), mm: 25.4) // pitch 10 px = 20 pt
         let v = Self.canvas(s, mode: .pins)
         Self.tap(v, CGPoint(x: 100, y: 200)) // output (50, 50)
-        Self.tap(v, CGPoint(x: 143, y: 212)) // output (71.5, 56) → snapped (70, 60)
-        #expect(s.draft.pins.count == 2)
+        Self.tap(v, CGPoint(x: 143, y: 204)) // output (71.5, 52): within 0.6 mm of (70, 50) → snapped
+        Self.tap(v, CGPoint(x: 100, y: 290)) // output (50, 95): 1.27 mm off the grid on y → raw
+        #expect(s.draft.pins.count == 3)
         #expect(Self.closeV(s.draft.pins[0].position, Vec2(x: 50, y: 50)))
-        #expect(Self.closeV(s.draft.pins[1].position, Vec2(x: 70, y: 60)))
+        #expect(Self.closeV(s.draft.pins[1].position, Vec2(x: 70, y: 50)))
+        #expect(Self.closeV(s.draft.pins[2].position, Vec2(x: 50, y: 95)))
     }
 
     @Test func dragMovesPin() {

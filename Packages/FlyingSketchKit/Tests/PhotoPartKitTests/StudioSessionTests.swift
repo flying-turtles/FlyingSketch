@@ -57,6 +57,53 @@ private struct SlowCutout: CutoutProviding {
         #expect(s.canUndoMask)
     }
 
+    @Test func autoCutoutCropsToMaskBoundsPlusMargin() async {
+        // Mask x 30..59, y 10..39 (30x30): margin max(4, 0.6) = 4 -> x 26...64, y 6...44.
+        var m = MaskBitmap(width: Self.w, height: Self.h, filled: false)
+        for y in 10..<40 { for x in 30..<60 { m.bytes[y * Self.w + x] = 255 } }
+        let s = Self.session(.success([m]))
+        await s.runAutoCutout()
+        #expect(s.draft.crop == CropSpec(center: Vec2(x: 45, y: 25), size: Vec2(x: 38, y: 38)))
+        // Clamped to the source edges.
+        let edge = Self.session(.success([Self.block(x0: 0, x1: 20)]))
+        await edge.runAutoCutout()
+        #expect(edge.draft.crop == CropSpec(center: Vec2(x: 12, y: 25), size: Vec2(x: 24, y: 50)))
+    }
+
+    @Test func autoCropSkippedWhenUserChangedCrop() async {
+        let s = Self.session(.success([Self.block(x0: 30, x1: 60)]))
+        let custom = CropSpec(center: Vec2(x: 50, y: 25), size: Vec2(x: 80, y: 40), quarterTurns: 1)
+        s.draft.crop = custom
+        await s.runAutoCutout()
+        #expect(s.draft.crop == custom)
+    }
+
+    @Test func brushAndWholePhotoLeaveCropAlone() {
+        let s = Self.session(.success([]))
+        let full = CropSpec.full(PixelSize(width: Self.w, height: Self.h))
+        s.brushAdds = false
+        s.brushRadius = 10
+        s.applyBrush([Vec2(x: 10, y: 10)])
+        #expect(s.canUndoMask)
+        #expect(s.draft.crop == full)
+        s.useWholePhoto()
+        #expect(s.draft.crop == full)
+    }
+
+    @Test func chooseAndTraceAutoCrop() async throws {
+        let a = Self.block(x0: 0, x1: 20), b = Self.block(x0: 60, x1: 80)
+        let s = Self.session(.success([a, b]))
+        await s.runAutoCutout()
+        #expect(s.draft.crop == .full(PixelSize(width: Self.w, height: Self.h)))
+        s.chooseAllInstances()
+        #expect(s.draft.crop == CropSpec(center: Vec2(x: 42, y: 25), size: Vec2(x: 84, y: 50)))
+        let t = Self.session(.failure(.cutoutUnavailable))
+        await t.runAutoCutout()
+        try t.applyTrace([Vec2(x: 0, y: 0), Vec2(x: 40, y: 0), Vec2(x: 40, y: 40), Vec2(x: 0, y: 40)])
+        #expect(t.draft.crop != .full(PixelSize(width: Self.w, height: Self.h)))
+        #expect(t.draft.crop.angle == 0)
+    }
+
     @Test func multipleInstancesAskToChoose() async {
         let a = Self.block(x0: 0, x1: 20), b = Self.block(x0: 60, x1: 80)
         let s = Self.session(.success([a, b]))
