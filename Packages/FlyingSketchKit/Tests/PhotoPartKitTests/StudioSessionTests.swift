@@ -190,6 +190,49 @@ private struct SlowCutout: CutoutProviding {
         #expect(s.mask == traced)
     }
 
+    @Test func storedMaskSkipsAutoCutout() async {
+        let stored = Self.block(x0: 10, x1: 30)
+        var draft = PhotoPartDraft(sourceSize: PixelSize(width: Self.w, height: Self.h))
+        draft.metadata.title = "Saved"
+        let s = StudioSession(source: Self.source(), cutout: FakeCutout(result: .success([Self.block(x0: 0, x1: 90)])),
+                              draft: draft, mask: stored)
+        #expect(s.cutoutState == .done)
+        #expect(s.step == .pins)
+        #expect(s.mask == stored && s.draft == draft && !s.canUndoMask)
+        // The view's first-cutout guard only runs from `.idle`; an explicit retry still works.
+        await s.runAutoCutout()
+        #expect(s.mask == Self.block(x0: 0, x1: 90))
+        s.undoMask()
+        #expect(s.mask == stored)
+    }
+
+    @Test func maskIsEmptyTracksUndoRedo() throws {
+        let s = Self.session(.success([]))
+        #expect(!s.maskIsEmpty)
+        s.brushAdds = false
+        s.brushRadius = 200
+        s.applyBrush([Vec2(x: 50, y: 25)])
+        #expect(s.maskIsEmpty && s.blockingError == .emptyMask)
+        s.undoMask()
+        #expect(!s.maskIsEmpty && s.blockingError != .emptyMask)
+        s.redoMask()
+        #expect(s.maskIsEmpty)
+        s.useWholePhoto()
+        #expect(!s.maskIsEmpty)
+        let empty = StudioSession(source: Self.source(), cutout: FakeCutout(result: .success([])),
+                                  mask: MaskBitmap(width: Self.w, height: Self.h, filled: false))
+        #expect(empty.maskIsEmpty && empty.blockingError == .emptyMask)
+    }
+
+    @Test func snapshotBuildsLikeSession() throws {
+        let s = Self.session(.success([]))
+        s.draft.metadata.title = "Part"
+        s.draft.scale = .width(mm: 10)
+        let snap = s.snapshot()
+        #expect(try snap.build() == s.build())
+        #expect(snap.studioFiles() == s.studioFiles())
+    }
+
     @Test func chooseInstanceNoOps() async {
         let s = Self.session(.success([Self.block(x0: 0, x1: 20), Self.block(x0: 60, x1: 80)]))
         s.chooseInstance(at: Vec2(x: 5, y: 5))  // idle
@@ -211,6 +254,56 @@ private struct SlowCutout: CutoutProviding {
         try store.write(part, studio: ["draft.json": Data("garbage".utf8), "source.png": Data([1]), "mask.png": Data([2])])
         let files = try #require(try store.studioFiles(forLibraryID: "p"))
         #expect(throws: PhotoPartError.self) { try StudioFiles.decode(files) }
+    }
+
+    @MainActor @Test func invalidDraftsAreRejected() throws {
+        let s = StudioSession(source: StudioSessionTests.source(), cutout: FakeCutout(result: .success([])))
+        s.draft.metadata.title = "Part"
+        s.draft.scale = .width(mm: 10)
+        s.draft.addPin(atOutput: Vec2(x: 10, y: 10))
+        s.draft.addPin(atOutput: Vec2(x: 30, y: 10))
+        s.draft.buses = [["connector0", "connector1"]]
+        let good = s.draft
+        let base = try s.studioFiles().encoded()
+        func files(_ d: PhotoPartDraft) throws -> [String: Data] {
+            var f = base
+            let enc = JSONEncoder()
+            // Non-finite values can't be plain JSON; written as strings they fail decoding (still rejected).
+            enc.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
+            f["draft.json"] = try enc.encode(d)
+            return f
+        }
+        _ = try StudioFiles.decode(files(good))
+
+        var cases: [(String, (inout PhotoPartDraft) -> Void)] = []
+        cases.append(("quarterTurns", { $0.crop.quarterTurns = 4 }))
+        cases.append(("negative quarterTurns", { $0.crop.quarterTurns = -1 }))
+        cases.append(("angle", { $0.crop.angle = .pi / 4 + 0.01 }))
+        cases.append(("angle nan", { $0.crop.angle = .nan }))
+        cases.append(("center", { $0.crop.center.x = .infinity }))
+        cases.append(("size zero", { $0.crop.size.y = 0 }))
+        cases.append(("size nan", { $0.crop.size.x = .nan }))
+        cases.append(("width scale", { $0.scale = .width(mm: .infinity) }))
+        cases.append(("two-point scale", { $0.scale = .twoPoints(Vec2(x: .nan, y: 0), Vec2(x: 50, y: 0), mm: 10) }))
+        cases.append(("two-point mm", { $0.scale = .twoPoints(Vec2(x: 0, y: 0), Vec2(x: 50, y: 0), mm: .nan) }))
+        cases.append(("duplicate ids", { $0.pins[1].id = $0.pins[0].id }))
+        cases.append(("pin position", { $0.pins[0].position.y = .infinity }))
+        cases.append(("nextPinNumber reused", { $0.nextPinNumber = 1 }))
+        cases.append(("nextPinNumber huge", { $0.nextPinNumber = 100_001 }))
+        cases.append(("nextPinNumber negative", { $0.nextPinNumber = -1 }))
+        cases.append(("bus unknown pin", { $0.buses = [["connector0", "connector9"]] }))
+        for (name, mutate) in cases {
+            var d = good
+            mutate(&d)
+            #expect(!StudioFiles.isStructurallyValid(d), "\(name)")
+            #expect(throws: PhotoPartError.undecodableImage, "\(name)") { try StudioFiles.decode(files(d)) }
+        }
+        // Edge values still accepted.
+        var edge = good
+        edge.crop.angle = -.pi / 4
+        edge.crop.quarterTurns = 3
+        edge.nextPinNumber = 100_000
+        _ = try StudioFiles.decode(files(edge))
     }
 
     @MainActor @Test func wrongSizeMaskIsNotEditable() throws {

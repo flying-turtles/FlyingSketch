@@ -202,6 +202,15 @@ private func makePart(id: String, title: String = "Mine", family: String = "cust
         #expect(try store.studioFiles(forLibraryID: "none") == nil)
     }
 
+    @Test func studioPlaceholderThrowsDownloading() throws {
+        let store = PersonalLibraryStore(rootURL: tempRoot())
+        try store.write(makePart(id: "a"), studio: studio)
+        let studioDir = try store.directory(forLibraryID: "a").appendingPathComponent("studio")
+        try FileManager.default.removeItem(at: studioDir.appendingPathComponent("mask.png"))
+        try Data().write(to: studioDir.appendingPathComponent(".mask.png.icloud"))
+        #expect(throws: PersonalLibraryError.studioDownloading("a")) { try store.studioFiles(forLibraryID: "a") }
+    }
+
     @Test func resaveWithoutStudioDropsFolder() throws {
         let store = PersonalLibraryStore(rootURL: tempRoot())
         try store.write(makePart(id: "a"), studio: studio)

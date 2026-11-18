@@ -30,7 +30,7 @@ struct PartsLibraryView: View {
     @State private var generation = 0
     @State private var showsCamera = false
     /// Camera result, consumed when the camera cover has finished dismissing.
-    @State private var cameraData: Data?
+    @State private var cameraOutcome: CameraPicker.Outcome?
     @State private var choosingPhoto = false
     @State private var photoItem: PhotosPickerItem?
     @State private var studio: StudioLaunch?
@@ -58,8 +58,8 @@ struct PartsLibraryView: View {
                 .disabled(busy)
                 .overlay { if busy { ProgressView().controlSize(.large) } }
                 .fullScreenCover(isPresented: $showsCamera, onDismiss: consumeCameraData) {
-                    CameraPicker { data in
-                        cameraData = data
+                    CameraPicker { outcome in
+                        cameraOutcome = outcome
                         showsCamera = false
                     }
                     .ignoresSafeArea()
@@ -210,9 +210,13 @@ struct PartsLibraryView: View {
     // MARK: Photo parts
 
     private func consumeCameraData() {
-        guard let data = cameraData else { return }
-        cameraData = nil
-        run { await openNewPart(data) }
+        let outcome = cameraOutcome
+        cameraOutcome = nil
+        switch outcome {
+        case .photo(let data)?: run { await openNewPart(data) }
+        case .failed?: alert = AlertInfo(title: "Photo part", message: PhotoPartLauncher.Failure.unreadablePhoto.message)
+        case .cancelled?, nil: break
+        }
     }
 
     private func loadPickedPhoto() {

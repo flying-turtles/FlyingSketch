@@ -24,6 +24,8 @@ public enum PersonalLibraryError: Error, Equatable {
     case escapesRoot(String)
     case invalidStudioFile(String)
     case notPersonal(String)
+    /// A studio file is still an iCloud placeholder; its download was requested.
+    case studioDownloading(String)
 }
 
 /// A per-part problem found while loading; the rest of the library still loads.
@@ -174,15 +176,15 @@ public struct PersonalLibraryStore: Sendable {
     private static let studioReadNames = ["draft.json", "source.png", "mask.png"]
     private static let maxStudioFileBytes = 20 * 1024 * 1024
 
-    /// Studio files of a part (symlinks skipped, failed size lookup = unreadable); nil when absent, `draft.json` missing, or still downloading from iCloud.
-    /// An oversize (> 20 MB) file is treated as unreadable (nil).
+    /// Studio files of a part (symlinks skipped, failed size lookup = unreadable); nil when absent or `draft.json` missing.
+    /// An oversize (> 20 MB) file is treated as unreadable (nil). Throws `studioDownloading` while a file is an iCloud placeholder.
     public func studioFiles(forLibraryID id: String) throws -> [String: Data]? {
         let fm = FileManager.default
         let studioDir = try directory(forLibraryID: id).appendingPathComponent("studio", isDirectory: true)
         var result: [String: Data] = [:]
         for name in Self.studioReadNames {
             let url = studioDir.appendingPathComponent(name)
-            if Self.requestDownloadIfPlaceholder(url) { return nil }
+            if Self.requestDownloadIfPlaceholder(url) { throw PersonalLibraryError.studioDownloading(id) }
             guard fm.fileExists(atPath: url.path) else { continue }
             guard let values = try? url.resourceValues(forKeys: [.fileSizeKey, .isSymbolicLinkKey]),
                   values.isSymbolicLink != true, let size = values.fileSize,

@@ -15,7 +15,11 @@ public final class StudioSession {
 
     public private(set) var source: SourceImage
     public var draft: PhotoPartDraft
-    public private(set) var mask: MaskBitmap
+    public private(set) var mask: MaskBitmap {
+        didSet { maskIsEmpty = mask.boundingBox == nil }
+    }
+    /// Cached `mask.boundingBox == nil`, so `blockingError` doesn't scan the bitmap on every view update.
+    public private(set) var maskIsEmpty: Bool
     public var step: StudioStep = .cutout
     public private(set) var cutoutState: CutoutState = .idle
     public private(set) var instances: [MaskBitmap] = []
@@ -33,16 +37,22 @@ public final class StudioSession {
     private var runToken = 0
 
     /// A `mask` whose size differs from `source.pixelSize` is ignored (full mask instead).
+    /// A valid stored `mask` (re-edit) is kept: `cutoutState` starts `.done` (no auto cutout) and `step` at `.pins`.
     public init(source: SourceImage, cutout: CutoutProviding, draft: PhotoPartDraft? = nil, mask: MaskBitmap? = nil) {
         self.source = source
         self.cutout = cutout
         self.draft = draft ?? PhotoPartDraft(sourceSize: source.pixelSize)
         let full = MaskBitmap(width: source.pixelSize.width, height: source.pixelSize.height, filled: true)
+        let initial: MaskBitmap
         if let mask, mask.width == full.width, mask.height == full.height {
-            self.mask = mask
+            initial = mask
+            cutoutState = .done
+            step = .pins
         } else {
-            self.mask = full
+            initial = full
         }
+        self.mask = initial
+        maskIsEmpty = initial.boundingBox == nil
     }
 
     // MARK: Cutout
@@ -133,10 +143,30 @@ public final class StudioSession {
     // MARK: Validation / output
 
     public var blockingError: PhotoPartError? {
-        if mask.boundingBox == nil { return .emptyMask }
+        if maskIsEmpty { return .emptyMask }
         do { try PhotoPartBuilder.validate(draft) } catch { return error }
         return nil
     }
+
+    public func build() throws(PhotoPartError) -> LibraryPart {
+        try snapshot().build()
+    }
+
+    public func studioFiles() -> StudioFiles {
+        snapshot().studioFiles()
+    }
+
+    /// Value copy of what `build()` / `studioFiles()` need, for building off the main actor.
+    public func snapshot() -> StudioSnapshot {
+        StudioSnapshot(source: source, mask: mask, draft: draft)
+    }
+}
+
+/// Sendable inputs of a save; `build()` and `studioFiles()` are pure and may run on any thread.
+public struct StudioSnapshot: Sendable {
+    public var source: SourceImage
+    public var mask: MaskBitmap
+    public var draft: PhotoPartDraft
 
     public func build() throws(PhotoPartError) -> LibraryPart {
         try PhotoPartBuilder.build(source: source, mask: mask, draft: draft)
@@ -164,16 +194,43 @@ public struct StudioFiles: Sendable, Equatable {
         return ["draft.json": try enc.encode(draft), "source.png": sourcePNG, "mask.png": maskPNG]
     }
 
-    /// `.undecodableImage` doubles as "unreadable studio data" (missing key, bad draft JSON, bad PNG).
+    /// `.undecodableImage` doubles as "unreadable studio data" (missing key, bad draft JSON, bad PNG, invalid draft).
     public static func decode(_ files: [String: Data]) throws(PhotoPartError) -> (SourceImage, MaskBitmap, PhotoPartDraft) {
         guard let draftData = files["draft.json"], let sourceData = files["source.png"],
               let maskData = files["mask.png"] else { throw .undecodableImage }
-        guard let draft = try? JSONDecoder().decode(PhotoPartDraft.self, from: draftData) else {
+        guard let draft = try? JSONDecoder().decode(PhotoPartDraft.self, from: draftData),
+              isStructurallyValid(draft) else {
             throw .undecodableImage
         }
         let source = try SourceImage.load(sourceData)
         guard draft.sourceSize == source.pixelSize else { throw .maskSizeMismatch }
         let mask = try MaskBitmap.decode(png: maskData, expected: source.pixelSize)
         return (source, mask, draft)
+    }
+}
+
+extension StudioFiles {
+    static let maxPinNumber = 100_000
+
+    /// Rejects drafts the studio could never have written (tampered or corrupt `draft.json`).
+    static func isStructurallyValid(_ d: PhotoPartDraft) -> Bool {
+        func finite(_ v: Vec2) -> Bool { v.x.isFinite && v.y.isFinite }
+        let c = d.crop
+        guard (0...3).contains(c.quarterTurns), c.angle.isFinite, abs(c.angle) <= .pi / 4 + 1e-9,
+              finite(c.center), finite(c.size), c.size.x > 0, c.size.y > 0 else { return false }
+        switch d.scale {
+        case nil: break
+        case let .twoPoints(a, b, mm)?: guard finite(a), finite(b), mm.isFinite else { return false }
+        case let .width(mm)?: guard mm.isFinite else { return false }
+        }
+        let ids = d.pins.map(\.id)
+        guard Set(ids).count == ids.count, d.pins.allSatisfy({ finite($0.position) }) else { return false }
+        guard d.nextPinNumber >= 0, d.nextPinNumber <= maxPinNumber else { return false }
+        for id in ids {
+            guard id.hasPrefix("connector"), let n = Int(id.dropFirst("connector".count)) else { continue }
+            guard n < d.nextPinNumber else { return false }
+        }
+        let idSet = Set(ids)
+        return d.buses.allSatisfy { $0.allSatisfy(idSet.contains) }
     }
 }

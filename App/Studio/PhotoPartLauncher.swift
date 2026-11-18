@@ -14,11 +14,13 @@ enum PhotoPartLauncher {
     enum Failure: Error {
         case unreadablePhoto
         case notEditable
+        case downloading
 
         var message: String {
             switch self {
             case .unreadablePhoto: "Could not read photo"
             case .notEditable: "This part can't be edited"
+            case .downloading: "This part is still downloading from iCloud. Try again in a moment."
             }
         }
     }
@@ -30,17 +32,21 @@ enum PhotoPartLauncher {
         return StudioLaunch(session: StudioSession(source: source, cutout: VisionCutout()), isEdit: false)
     }
 
-    /// Re-opens a personal photo part from its stored studio files.
+    /// Re-opens a personal photo part from its stored studio files (stored mask kept; no auto cutout).
     static func edit(_ part: LibraryPart, in library: PartsLibrary) async throws(Failure) -> StudioLaunch {
         guard part.source == .personal, part.isEditable else { throw .notEditable }
+        let libraryID = part.definition.libraryID
         let decoded: (SourceImage, MaskBitmap, PhotoPartDraft)
         do {
-            guard let files = try await library.studioFiles(libraryID: part.definition.libraryID) else { throw Failure.notEditable }
+            guard let files = try await library.studioFiles(libraryID: libraryID) else { throw Failure.notEditable }
             decoded = try await decodeStudio(files)
+        } catch PersonalLibraryError.studioDownloading {
+            throw .downloading
         } catch {
             throw .notEditable
         }
         let (source, mask, draft) = decoded
+        guard draft.libraryID == libraryID else { throw .notEditable }
         return StudioLaunch(session: StudioSession(source: source, cutout: VisionCutout(), draft: draft, mask: mask),
                             isEdit: true)
     }

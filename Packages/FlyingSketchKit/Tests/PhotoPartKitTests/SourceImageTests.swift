@@ -80,4 +80,21 @@ enum PhotoFixtures {
             try SourceImage.load(Data([1, 2, 3, 4, 5]))
         }
     }
+
+    /// PNG whose IHDR claims 20000 x 20000 px (400 MP): rejected from the header, before any decode.
+    @Test func oversizeHeaderRejected() throws {
+        var png = PhotoFixtures.encode(PhotoFixtures.rgbImage(width: 4, height: 4) { _, _ in (1, 2, 3) }, type: .png)
+        // Signature (8) + length (4) + "IHDR" (4): width at 16, height at 20, CRC after 13 data bytes at 29.
+        #expect(png[12..<16] == Data("IHDR".utf8))
+        func put(_ v: UInt32, at i: Int) { for k in 0..<4 { png[i + k] = UInt8((v >> (24 - 8 * UInt32(k))) & 0xFF) } }
+        put(20_000, at: 16)
+        put(20_000, at: 20)
+        var crc: UInt32 = 0xFFFF_FFFF
+        for byte in png[12..<29] {
+            crc ^= UInt32(byte)
+            for _ in 0..<8 { crc = crc & 1 == 1 ? (crc >> 1) ^ 0xEDB8_8320 : crc >> 1 }
+        }
+        put(~crc, at: 29)
+        #expect(throws: PhotoPartError.undecodableImage) { try SourceImage.load(png) }
+    }
 }

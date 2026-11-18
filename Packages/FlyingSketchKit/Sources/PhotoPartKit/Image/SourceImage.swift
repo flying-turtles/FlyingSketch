@@ -24,6 +24,8 @@ public struct PixelSize: Hashable, Codable, Sendable {
 /// Decoded, upright, size-capped photo as 8-bit premultiplied RGBA sRGB.
 public struct SourceImage: Sendable {
     public static let maxEdge = 2048
+    /// Larger headers are rejected before decoding (decompression-bomb guard).
+    public static let maxSourcePixels = 100_000_000
 
     public let image: CGImage
 
@@ -33,6 +35,12 @@ public struct SourceImage: Sendable {
         let options: [CFString: Any] = [kCGImageSourceShouldCache: false]
         guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else {
             throw .undecodableImage
+        }
+        if let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+           let w = (props[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
+           let h = (props[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue {
+            guard w > 0, h > 0, w.multipliedReportingOverflow(by: h).overflow == false,
+                  w * h <= maxSourcePixels else { throw .undecodableImage }
         }
         let thumbOptions: [CFString: Any] = [
             kCGImageSourceCreateThumbnailWithTransform: true,

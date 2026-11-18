@@ -155,6 +155,7 @@ struct PhotoPartStudioView: View {
     private var hasChanges: Bool { session.draft != initialDraft || session.mask != initialMask }
 
     /// The first automatic cutout is not a user change: re-baseline the mask for the Cancel confirmation.
+    /// Re-edits start `.done` with their stored mask, so this never replaces it.
     private func runFirstCutout() async {
         guard session.cutoutState == .idle else { return }
         let before = session.mask
@@ -175,8 +176,7 @@ struct PhotoPartStudioView: View {
         Task {
             defer { saving = false }
             do {
-                let part = try session.build()
-                let files = try session.studioFiles().encoded()
+                let (part, files) = try await Self.buildOutput(session.snapshot())
                 try await library.save(part, studio: files)
                 onSave(part)
             } catch let error as PhotoPartError {
@@ -185,6 +185,12 @@ struct PhotoPartStudioView: View {
                 alertMessage = "The part couldn't be saved: \(error.localizedDescription)"
             }
         }
+    }
+
+    /// Pixel work (crop, mask, PNG encoding) runs off the main actor so "Saving…" shows at once.
+    @concurrent private static func buildOutput(_ snapshot: StudioSnapshot) async throws -> (LibraryPart, [String: Data]) {
+        let part = try snapshot.build()
+        return (part, try snapshot.studioFiles().encoded())
     }
 
     #if DEBUG
