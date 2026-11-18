@@ -159,4 +159,23 @@ import Testing
         let img = try #require(Self.decode(part.graphic))
         #expect(img.width == 100 && img.height == 50)
     }
+
+    @Test func pinNamesAreTrimmedInDefinition() throws {
+        var d = Self.draft(100, 50)
+        let id = d.addPin(atOutput: Vec2(x: 10, y: 10))
+        d.pins[0].name = " A "
+        d.pins[0].description = " d "
+        let part = try PhotoPartBuilder.build(source: Self.source(100, 50),
+                                              mask: MaskBitmap(width: 100, height: 50, filled: true), draft: d)
+        let c = try #require(part.definition.connectors.first { $0.id == id })
+        #expect(c.name == "A" && c.description == "d")
+    }
+
+    @Test func edgePinAfterQuarterTurnAccepted() throws {
+        var d = Self.draft(100, 50)
+        d.crop.quarterTurns = 1
+        // Output is 50x100; place pin exactly on the right edge.
+        d.pins = [DraftPin(id: "a", name: "A", position: d.toSource(Vec2(x: 50, y: 40)))]
+        try PhotoPartBuilder.validate(d)
+    }
 }

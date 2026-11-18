@@ -75,9 +75,10 @@ public enum PhotoPartBuilder {
         guard !draft.metadata.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw .emptyTitle }
         let mm = try draft.mmPerPixel()
         let out = draft.outputSize()
+        let eps = 1e-6
         for pin in draft.pins {
             let p = draft.toOutput(pin.position)
-            guard p.x.isFinite, p.y.isFinite, p.x >= 0, p.y >= 0, p.x <= out.x, p.y <= out.y else {
+            guard p.x.isFinite, p.y.isFinite, p.x >= -eps, p.y >= -eps, p.x <= out.x + eps, p.y <= out.y + eps else {
                 throw .pinOutside(pin.name)
             }
         }
@@ -113,7 +114,8 @@ public enum PhotoPartBuilder {
             family: meta.family, labelPrefix: meta.labelPrefix, tags: meta.tags, properties: meta.properties,
             size: out * mm, graphicAsset: "", graphicKind: .png,
             connectors: draft.pins.map {
-                ConnectorDef(id: $0.id, name: $0.name, description: $0.description, kind: $0.kind,
+                ConnectorDef(id: $0.id, name: $0.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                             description: $0.description.trimmingCharacters(in: .whitespacesAndNewlines), kind: $0.kind,
                              position: draft.toOutput($0.position) * mm, role: $0.role)
             },
             buses: draft.buses)
