@@ -33,6 +33,8 @@ targets:
         product: CanvasUI
       - package: FlyingSketchKit
         product: PartsKit
+      - package: FlyingSketchKit
+        product: PhotoPartKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flyingturtle.flyingsketch

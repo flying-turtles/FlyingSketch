@@ -3,6 +3,7 @@ import Combine
 import SketchCore
 import CanvasUI
 import PartsKit
+import PhotoPartKit
 
 struct SketchEditorView: View {
     let document: SketchFileDocument
@@ -25,6 +26,8 @@ struct SketchEditorView: View {
     @State private var showsUpdates = false
     /// Bumped to recompute `outdated` (library import, undo/redo of an update).
     @State private var updatesTick = 0
+    /// `-photoStudioDemo` (DEBUG): studio over the editor; the saved part is placed on the canvas.
+    @State private var demoStudio: StudioSession?
 
     var body: some View {
         CanvasRepresentable(
@@ -60,10 +63,24 @@ struct SketchEditorView: View {
             #if DEBUG
             // Simulator screenshots: `simctl launch … -showPartsLibrary` opens the library sheet.
             if ProcessInfo.processInfo.arguments.contains("-showPartsLibrary") { showsParts = true }
+            if PhotoStudioDemo.claim() { demoStudio = PhotoStudioDemo.makeSession() }
             #endif
         }
         .onChange(of: undoManager) { injectUndoManager() }
+        .fullScreenCover(isPresented: Binding(get: { demoStudio != nil }, set: { if !$0 { demoStudio = nil } })) {
+            demoStudioContent
+        }
         .onReceive(undoNotifications) { _ in undoTick += 1 }
+    }
+
+    @ViewBuilder private var demoStudioContent: some View {
+        if let session = demoStudio, let library = partsProvider.library {
+            PhotoPartStudioView(session: session, library: library,
+                                onSave: { canvasHandle.view?.placePart($0); demoStudio = nil; updatesTick += 1 },
+                                onCancel: { demoStudio = nil })
+        } else {
+            ProgressView()
+        }
     }
 
     private struct UpdatesKey: Equatable {

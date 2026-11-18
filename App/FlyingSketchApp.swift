@@ -4,7 +4,15 @@ import PartsKit
 @main
 struct FlyingSketchApp: App {
     /// One parts library shared by every open document.
-    @State private var parts = PartsLibraryProvider()
+    @State private var parts: PartsLibraryProvider
+
+    init() {
+        let parts = PartsLibraryProvider()
+        _parts = State(initialValue: parts)
+        #if DEBUG
+        PhotoStudioDemo.presentOverRootIfUnclaimed(parts: parts)
+        #endif
+    }
 
     var body: some Scene {
         DocumentGroup(newDocument: { SketchFileDocument() }) { file in
