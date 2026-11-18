@@ -13,6 +13,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     private var activeGestures = 0
 
     private var storedViewport: Viewport
+    private let undoTap = UITapGestureRecognizer()
+    private let redoTap = UITapGestureRecognizer()
+    /// Called on a Pencil double-tap whose system preferred action is not `.ignore`; the app swaps tools.
+    public var onPencilDoubleTap: (() -> Void)?
 
     public var toolState = ToolState() {
         didSet { if toolState.kind != oldValue.kind { endTextEditing() } }
@@ -94,6 +98,28 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             g.addTarget(self, action: #selector(handle(_:)))
             addGestureRecognizer(g)
         }
+
+        // Two-finger tap = undo, three-finger tap = redo. A tap fails once fingers travel (allowableMovement),
+        // so it cannot fire after a pan/pinch has begun; the handler also ignores taps during a live gesture.
+        for (tap, count, action) in [(undoTap, 2, #selector(handleUndoTap)), (redoTap, 3, #selector(handleRedoTap))] {
+            tap.numberOfTouchesRequired = count
+            tap.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+            tap.cancelsTouchesInView = false
+            tap.delegate = self
+            tap.addTarget(self, action: action)
+            addGestureRecognizer(tap)
+        }
+        addInteraction(UIPencilInteraction(delegate: self))
+    }
+
+    @objc private func handleUndoTap() {
+        guard liveViewport == nil, activeGestures == 0 else { return }
+        if model.undoManager.canUndo { model.undoManager.undo() }
+    }
+
+    @objc private func handleRedoTap() {
+        guard liveViewport == nil, activeGestures == 0 else { return }
+        if model.undoManager.canRedo { model.undoManager.redo() }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not supported") }
@@ -390,5 +416,12 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     public func gestureRecognizer(_ a: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith b: UIGestureRecognizer) -> Bool {
         true
+    }
+}
+
+extension CanvasView: UIPencilInteractionDelegate {
+    public func pencilInteraction(_ interaction: UIPencilInteraction, didReceiveTap tap: UIPencilInteraction.Tap) {
+        if UIPencilInteraction.preferredTapAction == .ignore { return }
+        onPencilDoubleTap?()
     }
 }

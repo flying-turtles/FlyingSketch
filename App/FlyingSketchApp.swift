@@ -3,6 +3,8 @@ import SwiftUI
 @main
 struct FlyingSketchApp: App {
     var body: some Scene {
-        WindowGroup { Text("FlyingSketch") }
+        DocumentGroup(newDocument: { SketchFileDocument() }) { file in
+            SketchEditorView(document: file.document)
+        }
     }
 }
