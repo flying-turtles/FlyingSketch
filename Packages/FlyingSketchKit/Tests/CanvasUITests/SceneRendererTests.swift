@@ -1,4 +1,5 @@
 import QuartzCore
+import UIKit
 import Testing
 import SketchCore
 @testable import CanvasUI
@@ -95,7 +96,30 @@ private func objectLayers(_ root: CALayer) -> [CAShapeLayer] {
     r.update(document: doc, viewport: Viewport(center: .zero, zoom: 1), viewSize: viewSize, settled: true)
     r.update(document: doc, viewport: Viewport(center: .zero, zoom: 2), viewSize: viewSize, settled: false)
     let content = root.sublayers![0]
-    #expect(content.sublayerTransform.m11 == 2)
+    let vp2 = Viewport(center: .zero, zoom: 2)
+    let t = content.sublayerTransform
+    #expect(t.m11 == 2 && t.m22 == 2)
+    #expect(abs(t.m41 - viewSize.x / 2 * (1 - 2)) < 1e-9)
+    #expect(abs(t.m42 - viewSize.y / 2 * (1 - 2)) < 1e-9)
+    // Round trip: world point lands at the same view position before and after settle.
+    let world = Vec2(x: 7, y: -3)
+    let old = Viewport(center: .zero, zoom: 1).worldToView(world, viewSize: viewSize)
+    let transformed = CGPoint(x: t.m11 * old.x + t.m41, y: t.m22 * old.y + t.m42)
+    let settledPt = vp2.worldToView(world, viewSize: viewSize)
+    #expect(abs(transformed.x - settledPt.x) < 1e-6 && abs(transformed.y - settledPt.y) < 1e-6)
     r.update(document: doc, viewport: Viewport(center: .zero, zoom: 2), viewSize: viewSize, settled: true)
     #expect(CATransform3DIsIdentity(content.sublayerTransform))
+}
+
+@Test @MainActor func gestureEndSettlesExactlyOnce() {
+    let model = DocumentModel(document: SketchDocument(objects: [line(at: .zero)]))
+    let view = CanvasView(model: model)
+    view.frame = CGRect(x: 0, y: 0, width: 1024, height: 1366)
+    view.layoutIfNeeded()
+    let before = view.renderer.settleCount
+    let v = Viewport(center: Vec2(x: 20, y: 10), zoom: 1.5)
+    view.endGesture(with: v)
+    #expect(view.renderer.settleCount == before + 1)
+    #expect(model.document.viewport == v)
+    #expect(view.viewport == v)
 }

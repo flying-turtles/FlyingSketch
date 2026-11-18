@@ -5,14 +5,20 @@ import SketchCore
 public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     let model: DocumentModel
     private let factory = CALayerObjectFactory()
-    private var renderer: SceneRenderer!
+    private(set) var renderer: SceneRenderer!
     private let pan = UIPanGestureRecognizer()
     private let pinch = UIPinchGestureRecognizer()
     private var liveViewport: Viewport?
     private var activeGestures = 0
 
+    private var storedViewport: Viewport
+
     public var viewport: Viewport {
-        didSet { if liveViewport == nil { render(settled: true) } }
+        get { storedViewport }
+        set {
+            storedViewport = newValue
+            if liveViewport == nil { render(settled: true) }
+        }
     }
 
     public var showsGrid: Bool = true {
@@ -24,7 +30,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     public init(model: DocumentModel) {
         self.model = model
-        self.viewport = model.document.viewport
+        self.storedViewport = model.document.viewport
         super.init(frame: .zero)
         renderer = SceneRenderer(rootLayer: layer, factory: factory)
         backgroundColor = .white
@@ -36,6 +42,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         }
 
         pan.minimumNumberOfTouches = 2
+        pan.maximumNumberOfTouches = 2
         pan.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
         pinch.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
         for g in [pan, pinch] as [UIGestureRecognizer] {
@@ -82,14 +89,16 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             render(settled: false)
         case .ended, .cancelled:
             activeGestures = max(activeGestures - 1, 0)
-            if activeGestures == 0, let v = liveViewport {
-                liveViewport = nil
-                viewport = v
-                render(settled: true)
-                model.setViewport(v)
-            }
+            if activeGestures == 0, let v = liveViewport { endGesture(with: v) }
         default: break
         }
+    }
+
+    /// Persists the viewport; `model.onChange` performs the single settle.
+    func endGesture(with v: Viewport) {
+        liveViewport = nil
+        storedViewport = v
+        model.setViewport(v)
     }
 
     public func gestureRecognizer(_ a: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith b: UIGestureRecognizer) -> Bool {

@@ -25,6 +25,10 @@ final class SceneRenderer {
     private var settledViewSize: Vec2 = .zero
 
     var showsGrid = true
+    /// Ids whose object changed in the latest `syncIndex`.
+    private var dirty: Set<ObjectID> = []
+    /// Number of settled updates performed (debug/test).
+    private(set) var settleCount = 0
 
     /// Object layers only (no grid or container layers).
     var liveLayerCount: Int { entries.count }
@@ -65,6 +69,7 @@ final class SceneRenderer {
     // MARK: Settle
 
     private func settle(_ document: SketchDocument, _ vp: Viewport, _ size: Vec2) {
+        settleCount += 1
         syncIndex(document.objects)
         factory.prepare(assets: document.assets)
         content.sublayerTransform = CATransform3DIdentity
@@ -90,7 +95,7 @@ final class SceneRenderer {
     private func show(_ object: SceneObject, _ vp: Viewport, _ size: Vec2) {
         let z = CGFloat(zIndex[object.id] ?? 0)
         if var e = entries[object.id] {
-            if e.object != object || e.viewport != vp || e.viewSize != size {
+            if e.viewport != vp || e.viewSize != size || dirty.contains(object.id) {
                 if sameKind(e.object, object) {
                     factory.update(e.layer, for: object, viewport: vp, viewSize: size)
                 } else {
@@ -121,6 +126,7 @@ final class SceneRenderer {
 
     /// Inserts, moves and removes index entries by diffing against the previous object list.
     private func syncIndex(_ list: [SceneObject]) {
+        dirty.removeAll(keepingCapacity: true)
         guard list != lastObjects else { return }
         var next: [ObjectID: SceneObject] = [:]
         next.reserveCapacity(list.count)
@@ -131,7 +137,10 @@ final class SceneRenderer {
             z[o.id] = i
         }
         for id in objectsByID.keys where next[id] == nil { index.remove(id) }
-        for (id, o) in next where objectsByID[id] != o { index.insert(id, bounds: bounds(of: o)) }
+        for (id, o) in next where objectsByID[id] != o {
+            index.insert(id, bounds: bounds(of: o))
+            dirty.insert(id)
+        }
         objectsByID = next
         zIndex = z
         lastObjects = list
