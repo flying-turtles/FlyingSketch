@@ -11,6 +11,9 @@ let package = Package(
         .library(name: "InkEngine", targets: ["InkEngine"]),
         .library(name: "CanvasUI", targets: ["CanvasUI"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/swhitty/SwiftDraw", exact: "0.30.0"),
+    ],
     targets: [
         .target(name: "SketchCore"),
         .target(name: "NetKit", dependencies: ["SketchCore"]),
@@ -18,7 +21,7 @@ let package = Package(
         .target(name: "InkEngine", dependencies: ["SketchCore"]),
         .target(
             name: "CanvasUI",
-            dependencies: ["InkEngine", "SketchCore"],
+            dependencies: ["InkEngine", "SketchCore", .product(name: "SwiftDraw", package: "SwiftDraw")],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "SketchCoreTests", dependencies: ["SketchCore"]),

@@ -18,6 +18,7 @@ final class SceneRenderer {
 
     private var index = SpatialIndex(cellSize: 50)
     private var lastObjects: [SceneObject] = []
+    private var lastParts: [String: PartDefinition] = [:]
     private var objectsByID: [ObjectID: SceneObject] = [:]
     private var zIndex: [ObjectID: Int] = [:]
     private var entries: [ObjectID: Entry] = [:]
@@ -118,8 +119,8 @@ final class SceneRenderer {
         settleCount += 1
         clearFeedback()
         defer { applyFeedback() }
-        syncIndex(document.objects)
-        factory.prepare(assets: document.assets)
+        syncIndex(document)
+        factory.prepare(document: document)
         content.sublayerTransform = CATransform3DIdentity
         content.bounds = CGRect(x: 0, y: 0, width: size.x, height: size.y)
         settledViewport = vp
@@ -167,15 +168,19 @@ final class SceneRenderer {
 
     private func sameKind(_ a: SceneObject, _ b: SceneObject) -> Bool {
         switch (a, b) {
-        case (.ink, .ink), (.shape, .shape), (.text, .text), (.image, .image): true
+        case (.ink, .ink), (.shape, .shape), (.text, .text), (.image, .image), (.part, .part), (.wire, .wire): true
         default: false
         }
     }
 
     /// Inserts, moves and removes index entries by diffing against the previous object list.
-    private func syncIndex(_ list: [SceneObject]) {
+    private func syncIndex(_ doc: SketchDocument) {
+        let list = doc.objects
         dirty.removeAll(keepingCapacity: true)
-        guard list != lastObjects else { return }
+        // Part bounds depend on definitions: a changed definition set re-indexes everything.
+        let force = doc.parts != lastParts
+        lastParts = doc.parts
+        guard force || list != lastObjects else { return }
         var next: [ObjectID: SceneObject] = [:]
         next.reserveCapacity(list.count)
         var z: [ObjectID: Int] = [:]
@@ -185,8 +190,8 @@ final class SceneRenderer {
             z[o.id] = i
         }
         for id in objectsByID.keys where next[id] == nil { index.remove(id) }
-        for (id, o) in next where objectsByID[id] != o {
-            index.insert(id, bounds: bounds(of: o))
+        for (id, o) in next where force || objectsByID[id] != o {
+            index.insert(id, bounds: bounds(of: o, in: doc))
             dirty.insert(id)
         }
         objectsByID = next

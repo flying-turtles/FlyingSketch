@@ -1,27 +1,76 @@
 import UIKit
 import SketchCore
 import InkEngine
+import SwiftDraw
 
 /// Renderer seam: builds/updates one layer per scene object, geometry in view coordinates.
 protocol ObjectLayerFactory {
     func makeLayer(for object: SceneObject, viewport: Viewport, viewSize: Vec2) -> CALayer
     func update(_ layer: CALayer, for object: SceneObject, viewport: Viewport, viewSize: Vec2)
-    /// Called before each settle so image layers can resolve `document.assets`.
-    func prepare(assets: [String: Data])
+    /// Called before each settle so image and part layers can resolve `document.assets` and `document.parts`.
+    func prepare(document: SketchDocument)
 }
 
 extension ObjectLayerFactory {
-    func prepare(assets: [String: Data]) {}
+    func prepare(document: SketchDocument) {}
+}
+
+/// Part layer: zero-size container in view coordinates. `body` holds the (rotated) graphic; legs and the
+/// placeholder are siblings above it, already in view coordinates (never rotated twice).
+nonisolated final class PartLayer: CALayer {
+    let body = CALayer()
+    var legLayers: [CAShapeLayer] = []
+    var placeholderShape: CAShapeLayer?
+    var placeholderText: CATextLayer?
+    /// Raster this layer currently wants; async results for other keys are ignored.
+    var desiredKey: PartRasterCache.Key?
+    /// Pixel size of the wanted raster (debug/test).
+    var rasterPixelSize: CGSize = .zero
+    var isPlaceholder: Bool { placeholderShape != nil }
+
+    override init() {
+        super.init()
+        body.contentsGravity = .resize
+        body.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        addSublayer(body)
+    }
+
+    override init(layer: Any) { super.init(layer: layer) }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) not supported") }
 }
 
 /// Core Animation implementation. Layers are sized to their content; paths are local to the layer frame.
 final class CALayerObjectFactory: ObjectLayerFactory {
     var screenScale: CGFloat = 2
     private var assets: [String: Data] = [:]
+    private var parts: [String: PartDefinition] = [:]
     private var imageCache: [String: CGImage] = [:]
 
-    func prepare(assets: [String: Data]) {
-        self.assets = assets
+    let rasterCache: PartRasterCache
+    /// Number of rasterizations started (debug/test).
+    private(set) var rasterJobCount = 0
+    private var pending: [PartRasterCache.Key: [WeakPartLayer]] = [:]
+    private var rasterTasks: [Task<Void, Never>] = []
+
+    private struct WeakPartLayer { weak var layer: PartLayer? }
+
+    init(rasterCache: PartRasterCache = PartRasterCache()) {
+        self.rasterCache = rasterCache
+    }
+
+    func prepare(document: SketchDocument) {
+        assets = document.assets
+        parts = document.parts
+    }
+
+    /// Waits for every started rasterization and its main-actor delivery (tests).
+    func waitForRasters() async {
+        while !rasterTasks.isEmpty {
+            let tasks = rasterTasks
+            rasterTasks.removeAll()
+            for t in tasks { await t.value }
+        }
     }
 
     func makeLayer(for object: SceneObject, viewport: Viewport, viewSize: Vec2) -> CALayer {
@@ -29,7 +78,9 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         switch object {
         case .ink, .shape: layer = CAShapeLayer()
         case .text: layer = CATextLayer()
-        case .image, .part, .wire: layer = CALayer() // part/wire rendering arrives in Plan 2 Task 9
+        case .image: layer = CALayer()
+        case .part: layer = PartLayer()
+        case .wire: layer = CAShapeLayer()
         }
         layer.contentsScale = screenScale
         update(layer, for: object, viewport: viewport, viewSize: viewSize)
@@ -42,7 +93,8 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         case .shape(let s): updateShape(layer, s, viewport, viewSize)
         case .text(let t): updateText(layer, t, viewport, viewSize)
         case .image(let i): updateImage(layer, i, viewport, viewSize)
-        case .part, .wire: break
+        case .part(let p): updatePart(layer, p, viewport, viewSize)
+        case .wire(let w): updateWire(layer, w, viewport, viewSize)
         }
     }
 
@@ -162,5 +214,200 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         guard let data = assets[name], let cg = UIImage(data: data)?.cgImage else { return nil }
         imageCache[name] = cg
         return cg
+    }
+
+    // MARK: Parts and wires
+
+    private func updateWire(_ layer: CALayer, _ w: Wire, _ vp: Viewport, _ size: Vec2) {
+        guard let layer = layer as? CAShapeLayer else { return }
+        let path = CGMutablePath()
+        let points = w.polyline.map { pt($0, vp, size) }
+        path.move(to: points[0])
+        for p in points.dropFirst() { path.addLine(to: p) }
+        let radius = Self.freeEndRadius * mm(vp)
+        for end in [w.start, w.end] where end.attachment == nil {
+            let c = pt(end.position, vp, size)
+            path.addEllipse(in: CGRect(x: c.x - radius, y: c.y - radius, width: radius * 2, height: radius * 2))
+        }
+        let lineWidth = w.width * mm(vp)
+        setPath(layer, path, pad: lineWidth)
+        layer.lineWidth = lineWidth
+        layer.lineCap = .round
+        layer.lineJoin = .round
+        layer.strokeColor = cg(w.color)
+        layer.fillColor = nil
+        layer.opacity = 1
+        layer.compositingFilter = nil
+    }
+
+    /// Radius (mm) of the open circle marking a free wire end.
+    static let freeEndRadius = 0.6
+    /// Side (mm) of the placeholder square for unknown part definitions.
+    static let placeholderSide = 10.0
+
+    private func updatePart(_ layer: CALayer, _ p: PartInstance, _ vp: Viewport, _ size: Vec2) {
+        guard let layer = layer as? PartLayer else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        guard let def = parts[p.definitionKey] else {
+            showPlaceholder(layer, p, vp, size)
+            return
+        }
+        removePlaceholder(layer)
+        let s = mm(vp)
+        layer.body.isHidden = false
+        layer.body.bounds = CGRect(x: 0, y: 0, width: def.size.x * s, height: def.size.y * s)
+        layer.body.position = pt(p.center, vp, size)
+        let turns = ((p.quarterTurns % 4) + 4) % 4
+        layer.body.transform = CATransform3DMakeRotation(CGFloat(turns) * .pi / 2, 0, 0, 1)
+        requestRaster(for: layer, def: def, vp: vp)
+        updateLegs(layer, p, def, vp, size)
+    }
+
+    private func updateLegs(_ layer: PartLayer, _ p: PartInstance, _ def: PartDefinition, _ vp: Viewport, _ size: Vec2) {
+        let legs = def.connectors.compactMap { c in p.legSegment(for: c, in: def).map { (c, $0) } }
+        while layer.legLayers.count > legs.count { layer.legLayers.removeLast().removeFromSuperlayer() }
+        while layer.legLayers.count < legs.count {
+            let l = CAShapeLayer()
+            layer.legLayers.append(l)
+            layer.addSublayer(l)
+        }
+        for (l, (c, seg)) in zip(layer.legLayers, legs) {
+            guard let spec = c.leg else { continue }
+            let path = CGMutablePath()
+            path.move(to: pt(seg.origin, vp, size))
+            path.addLine(to: pt(seg.end, vp, size))
+            let lineWidth = spec.width * mm(vp)
+            setPath(l, path, pad: lineWidth)
+            l.lineWidth = lineWidth
+            l.lineCap = .round
+            l.strokeColor = cg(spec.color)
+            l.fillColor = nil
+        }
+    }
+
+    private func removePlaceholder(_ layer: PartLayer) {
+        layer.placeholderShape?.removeFromSuperlayer()
+        layer.placeholderText?.removeFromSuperlayer()
+        layer.placeholderShape = nil
+        layer.placeholderText = nil
+    }
+
+    private func showPlaceholder(_ layer: PartLayer, _ p: PartInstance, _ vp: Viewport, _ size: Vec2) {
+        layer.body.isHidden = true
+        layer.body.contents = nil
+        layer.desiredKey = nil
+        for l in layer.legLayers { l.removeFromSuperlayer() }
+        layer.legLayers.removeAll()
+        let shape: CAShapeLayer, text: CATextLayer
+        if let s = layer.placeholderShape, let t = layer.placeholderText {
+            shape = s
+            text = t
+        } else {
+            shape = CAShapeLayer()
+            text = CATextLayer()
+            layer.addSublayer(shape)
+            layer.addSublayer(text)
+            layer.placeholderShape = shape
+            layer.placeholderText = text
+        }
+        let s = mm(vp)
+        let side = Self.placeholderSide * s
+        let c = pt(p.center, vp, size)
+        let lineWidth = max(0.5, 0.4 * s)
+        shape.frame = CGRect(x: c.x - side / 2 - lineWidth, y: c.y - side / 2 - lineWidth,
+                             width: side + lineWidth * 2, height: side + lineWidth * 2)
+        shape.path = CGPath(rect: CGRect(x: lineWidth, y: lineWidth, width: side, height: side), transform: nil)
+        shape.lineWidth = lineWidth
+        shape.lineDashPattern = [NSNumber(value: lineWidth * 4), NSNumber(value: lineWidth * 3)]
+        shape.strokeColor = CGColor(gray: 0.4, alpha: 1)
+        shape.fillColor = nil
+
+        let fontSize = 2.5 * s
+        let font = UIFont.systemFont(ofSize: fontSize)
+        let label = p.label.isEmpty ? "?" : p.label
+        let measured = (label as NSString).size(withAttributes: [.font: font])
+        let width = ceil(measured.width) + 2, height = ceil(measured.height) + 2
+        text.contentsScale = Self.cappedContentsScale(width: width, height: height, screenScale: screenScale)
+        text.string = label
+        text.font = font
+        text.fontSize = fontSize
+        text.foregroundColor = CGColor(gray: 0.4, alpha: 1)
+        text.alignmentMode = .center
+        text.isWrapped = false
+        text.bounds = CGRect(x: 0, y: 0, width: width, height: height)
+        text.position = c
+    }
+
+    // MARK: Raster
+
+    /// Raster scale bucket for the viewport, capped so neither edge exceeds `maxBackingEdge` pixels.
+    func rasterBucket(for def: PartDefinition, vp: Viewport) -> Int {
+        let needed = mm(vp) * screenScale
+        var bucket = PartRasterCache.bucket(forPixelsPerMM: needed)
+        let longest = max(def.size.x, def.size.y)
+        if longest > 0 {
+            let cap = Int(floor(log2(Double(Self.maxBackingEdge) / longest)))
+            bucket = min(bucket, cap)
+        }
+        return bucket
+    }
+
+    private func requestRaster(for layer: PartLayer, def: PartDefinition, vp: Viewport) {
+        let isSVG = def.graphicKind == .svg
+        // PNGs decode once at native size; only SVG has scale buckets.
+        let bucket = isSVG ? rasterBucket(for: def, vp: vp) : 0
+        let key = PartRasterCache.Key(asset: def.graphicAsset, bucket: bucket)
+        let scale = pow(2.0, Double(bucket))
+        let width = isSVG ? max(1, Int(ceil(def.size.x * scale))) : 0
+        let height = isSVG ? max(1, Int(ceil(def.size.y * scale))) : 0
+        layer.desiredKey = key
+        layer.rasterPixelSize = CGSize(width: width, height: height)
+        if let image = rasterCache.image(for: key) {
+            layer.body.contents = image
+            return
+        }
+        // Blurry stand-in until the right bucket is ready.
+        if layer.body.contents == nil, let stand = rasterCache.anyImage(forAsset: def.graphicAsset) {
+            layer.body.contents = stand
+        }
+        if pending[key] != nil {
+            pending[key]?.append(WeakPartLayer(layer: layer))
+            return
+        }
+        guard let data = assets[def.graphicAsset] else { return }
+        pending[key] = [WeakPartLayer(layer: layer)]
+        rasterJobCount += 1
+        let task = Task { [weak self] in
+            let result = await Task.detached(priority: .userInitiated) {
+                Self.rasterize(data: data, isSVG: isSVG, width: width, height: height)
+            }.value
+            self?.finishRaster(key, result.image)
+        }
+        rasterTasks.append(task)
+    }
+
+    private func finishRaster(_ key: PartRasterCache.Key, _ image: CGImage?) {
+        let waiting = pending.removeValue(forKey: key) ?? []
+        guard let image else { return }
+        rasterCache.insert(image, for: key)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        for w in waiting {
+            if let l = w.layer, l.desiredKey == key { l.body.contents = image }
+        }
+    }
+
+    private struct RasterResult: @unchecked Sendable { var image: CGImage? }
+
+    nonisolated private static func rasterize(data: Data, isSVG: Bool, width: Int, height: Int) -> RasterResult {
+        if isSVG {
+            guard let svg = SVG(data: data) else { return RasterResult(image: nil) }
+            let image = svg.rasterize(size: CGSize(width: width, height: height), scale: 1)
+            return RasterResult(image: image.cgImage)
+        }
+        return RasterResult(image: UIImage(data: data)?.cgImage)
     }
 }
