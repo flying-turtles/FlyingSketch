@@ -3,14 +3,16 @@ import PackageDescription
 
 let package = Package(
     name: "FlyingSketchKit",
-    platforms: [.iOS(.v26)],
+    platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "SketchCore", targets: ["SketchCore"]),
+        .library(name: "NetKit", targets: ["NetKit"]),
         .library(name: "InkEngine", targets: ["InkEngine"]),
         .library(name: "CanvasUI", targets: ["CanvasUI"]),
     ],
     targets: [
         .target(name: "SketchCore"),
+        .target(name: "NetKit", dependencies: ["SketchCore"]),
         .target(name: "InkEngine", dependencies: ["SketchCore"]),
         .target(
             name: "CanvasUI",
@@ -18,6 +20,7 @@ let package = Package(
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "SketchCoreTests", dependencies: ["SketchCore"]),
+        .testTarget(name: "NetKitTests", dependencies: ["NetKit", "SketchCore"]),
         .testTarget(name: "InkEngineTests", dependencies: ["InkEngine"]),
         .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI"]),
     ],
