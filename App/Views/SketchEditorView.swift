@@ -4,6 +4,7 @@ import SketchCore
 import CanvasUI
 import PartsKit
 import PhotoPartKit
+import ExportKit
 
 struct SketchEditorView: View {
     let document: SketchFileDocument
@@ -28,6 +29,9 @@ struct SketchEditorView: View {
     @State private var updatesTick = 0
     /// `-photoStudioDemo` (DEBUG): studio over the editor; the saved part is placed on the canvas.
     @State private var demoStudio: StudioSession?
+    @Environment(\.documentConfiguration) private var documentConfiguration
+    /// Snapshot taken on the main actor when the export sheet opens.
+    @State private var exportSession: ExportSession?
 
     var body: some View {
         CanvasRepresentable(
@@ -44,7 +48,7 @@ struct SketchEditorView: View {
                     insertImage: { _ = canvasHandle.view?.insertImage($0) },
                     insertStress: insertStress,
                     openParts: { showsParts = true },
-                    accessory: HStack { updatesButton; inspectorButton }
+                    accessory: HStack { exportMenu; updatesButton; inspectorButton }
                 )
                 pinInfoCard
             }
@@ -52,6 +56,9 @@ struct SketchEditorView: View {
         }
         .sheet(isPresented: $showsParts) {
             PartsLibraryView(place: { canvasHandle.view?.placePart($0) }, libraryChanged: { updatesTick += 1 })
+        }
+        .sheet(item: $exportSession) { session in
+            ExportSheet(format: session.format, snapshot: session.snapshot, selectionIDs: session.selectionIDs, baseName: session.baseName)
         }
         .sheet(isPresented: $showsUpdates) {
             PartUpdatesView(entries: outdated, update: applyUpdate, updateAll: updateAll)
@@ -86,6 +93,31 @@ struct SketchEditorView: View {
     private struct UpdatesKey: Equatable {
         var ready: Bool
         var tick: Int
+    }
+
+    private struct ExportSession: Identifiable {
+        let id = UUID()
+        var format: ExportFormat
+        var snapshot: SketchDocument
+        var selectionIDs: Set<ObjectID>
+        var baseName: String
+    }
+
+    private var exportMenu: some View {
+        Menu {
+            ForEach(ExportFormat.allCases) { format in
+                Button(format.title) { openExport(format) }
+            }
+        } label: {
+            Image(systemName: "square.and.arrow.up").padding(6)
+        }
+        .accessibilityLabel("Export")
+    }
+
+    private func openExport(_ format: ExportFormat) {
+        let name = documentConfiguration?.fileURL?.deletingPathExtension().lastPathComponent ?? ""
+        exportSession = ExportSession(format: format, snapshot: document.model.document, selectionIDs: selection.ids,
+                                      baseName: name.isEmpty ? "Sketch" : name)
     }
 
     @ViewBuilder private var updatesButton: some View {
