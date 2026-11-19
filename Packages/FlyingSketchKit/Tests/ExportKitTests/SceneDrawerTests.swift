@@ -57,10 +57,16 @@ private func anyDark(_ img: CGImage, x: ClosedRange<Double>, y: ClosedRange<Doub
 }
 
 @Test func wireFreeEndCircle() {
-    let w = Wire(start: WireEnd(position: Vec2(x: 10, y: 10)), end: WireEnd(position: Vec2(x: 30, y: 10)))
+    // Thin wire so the 0.6 mm ring is distinguishable from the line at 10 px/mm.
+    let attached = WireAttachment.connector(part: ObjectID.new(), connector: "a")
+    let w = Wire(start: WireEnd(position: Vec2(x: 10, y: 10)),
+                 end: WireEnd(position: Vec2(x: 30, y: 10), attachment: attached), width: 0.2)
     let img = render(content([.wire(w)]), pxPerMM: ppm)
-    #expect(px(img, 10.6, 10).r < 0.3)
-    #expect(px(img, 10, 11.5).r > 0.9)   // circle interior, off the wire line, not filled
+    #expect(px(img, 10, 10.6).r < 0.3)    // ring below the line
+    #expect(px(img, 10, 9.4).r < 0.3)     // ring above the line
+    #expect(px(img, 10, 10.3).r > 0.9)    // inside ring, off the line: not filled
+    #expect(px(img, 30, 10.6).r > 0.9)    // attached end: no ring
+    #expect(px(img, 30, 9.4).r > 0.9)
 }
 
 @Test func textDrawsBelowAndRightOfPosition() {
