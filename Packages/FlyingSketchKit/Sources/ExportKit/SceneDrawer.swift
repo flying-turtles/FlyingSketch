@@ -30,7 +30,7 @@ public enum SceneDrawer {
         }
     }
 
-    private static func cg(_ c: RGBAColor) -> CGColor { CGColor(red: c.r, green: c.g, blue: c.b, alpha: c.a) }
+    private static func cg(_ c: RGBAColor) -> CGColor { CGColor(srgbRed: c.r, green: c.g, blue: c.b, alpha: c.a) }
     private static func cgp(_ v: Vec2) -> CGPoint { CGPoint(x: v.x, y: v.y) }
 
     private static func drawInk(_ s: InkStroke, _ ctx: CGContext, _ pixelSize: Double) {
