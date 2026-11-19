@@ -129,28 +129,23 @@ public enum SceneDrawer {
         guard let def = doc.parts[p.definitionKey] else { return drawPlaceholder(p, ctx) }
         let w = def.size.x, h = def.size.y
         var drawn = false
-        if w > 0, h > 0, let data = doc.assets[def.graphicAsset] {
+        if let graphic = partGraphic(def, doc) {
             ctx.saveGState()
             ctx.translateBy(x: p.center.x, y: p.center.y)
             ctx.rotate(by: Double(((p.quarterTurns % 4) + 4) % 4) * .pi / 2)
             ctx.translateBy(x: -w / 2, y: -h / 2)
             let rect = CGRect(x: 0, y: 0, width: w, height: h)
-            switch def.graphicKind {
-            case .svg:
-                if PartInputGuard.isAcceptableSVG(data), let svg = SVG(data: data) {
-                    ctx.draw(svg, in: rect)
-                    drawn = true
-                }
-            case .png:
-                if let img = ImageDecoding.cgImage(data) {
-                    ctx.translateBy(x: 0, y: h)
-                    ctx.scaleBy(x: 1, y: -1)
-                    ctx.interpolationQuality = .high
-                    ctx.draw(img, in: rect)
-                    drawn = true
-                }
+            switch graphic {
+            case .svg(let svg, _):
+                ctx.draw(svg, in: rect)
+            case .png(let img, _):
+                ctx.translateBy(x: 0, y: h)
+                ctx.scaleBy(x: 1, y: -1)
+                ctx.interpolationQuality = .high
+                ctx.draw(img, in: rect)
             }
             ctx.restoreGState()
+            drawn = true
         }
         guard drawn else { return drawPlaceholder(p, ctx) }
         // Legs sit above the body, as in the canvas PartLayer.
@@ -165,11 +160,32 @@ public enum SceneDrawer {
         }
     }
 
+    enum PartGraphic {
+        case svg(SVG, Data)
+        case png(CGImage, Data)
+    }
+
+    /// The drawable graphic of a part, or nil when the placeholder applies. Shared with `SVGWriter`.
+    static func partGraphic(_ def: PartDefinition, _ doc: SketchDocument) -> PartGraphic? {
+        guard def.size.x > 0, def.size.y > 0, let data = doc.assets[def.graphicAsset] else { return nil }
+        switch def.graphicKind {
+        case .svg:
+            guard PartInputGuard.isAcceptableSVG(data), let svg = SVG(data: data) else { return nil }
+            return .svg(svg, data)
+        case .png:
+            guard let img = ImageDecoding.cgImage(data) else { return nil }
+            return .png(img, data)
+        }
+    }
+
+    static let placeholderLineWidth = 0.4
+    static let placeholderGray = 0.4
+
     private static func drawPlaceholder(_ p: PartInstance, _ ctx: CGContext) {
-        let side = placeholderSide, lw = 0.4
+        let side = placeholderSide, lw = placeholderLineWidth
         ctx.setLineWidth(lw)
         ctx.setLineDash(phase: 0, lengths: [lw * 4, lw * 3])
-        ctx.setStrokeColor(CGColor(gray: 0.4, alpha: 1))
+        ctx.setStrokeColor(CGColor(gray: placeholderGray, alpha: 1))
         ctx.stroke(CGRect(x: p.center.x - side / 2, y: p.center.y - side / 2, width: side, height: side))
     }
 }

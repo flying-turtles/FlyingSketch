@@ -172,7 +172,7 @@ public enum SVGWriter {
         let w = def.size.x, h = def.size.y
         let turns = ((p.quarterTurns % 4) + 4) % 4
         var out = "<g>\n<g transform=\"translate(\(pt(p.center))) rotate(\(turns * 90)) translate(\(n(-w / 2)) \(n(-h / 2)))\">"
-        out += "<image width=\"\(n(w))\" height=\"\(n(h))\" href=\"\(dataURI(mime, bytes))\"/></g>\n"
+        out += "<image width=\"\(n(w))\" height=\"\(n(h))\" preserveAspectRatio=\"none\" href=\"\(dataURI(mime, bytes))\"/></g>\n"
         for c in def.connectors {
             guard let spec = c.leg, let seg = p.legSegment(for: c, in: def) else { continue }
             out += "<line x1=\"\(n(seg.origin.x))\" y1=\"\(n(seg.origin.y))\" x2=\"\(n(seg.end.x))\" y2=\"\(n(seg.end.y))\" fill=\"none\""
@@ -181,22 +181,17 @@ public enum SVGWriter {
         return out + "</g>\n"
     }
 
-    /// Same conditions as `SceneDrawer.drawPart` for a drawable graphic.
     private static func partPayload(_ def: PartDefinition, _ doc: SketchDocument) -> (String, Data)? {
-        guard def.size.x > 0, def.size.y > 0, let data = doc.assets[def.graphicAsset] else { return nil }
-        switch def.graphicKind {
-        case .svg:
-            guard PartInputGuard.isAcceptableSVG(data), SVG(data: data) != nil else { return nil }
-            return ("image/svg+xml", data)
-        case .png:
-            guard ImageDecoding.cgImage(data) != nil else { return nil }
-            return ("image/png", data)
+        switch SceneDrawer.partGraphic(def, doc) {
+        case .svg(_, let data): return ("image/svg+xml", data)
+        case .png(_, let data): return rasterPayload(data)
+        case nil: return nil
         }
     }
 
     private static func placeholder(_ p: PartInstance) -> String {
-        let side = SceneDrawer.placeholderSide, lw = 0.4
-        return "<rect x=\"\(n(p.center.x - side / 2))\" y=\"\(n(p.center.y - side / 2))\" width=\"\(n(side))\" height=\"\(n(side))\" fill=\"none\" stroke=\"#666666\" stroke-width=\"\(n(lw))\" stroke-dasharray=\"\(n(lw * 4)) \(n(lw * 3))\"/>\n"
+        let side = SceneDrawer.placeholderSide, lw = SceneDrawer.placeholderLineWidth
+        return "<rect x=\"\(n(p.center.x - side / 2))\" y=\"\(n(p.center.y - side / 2))\" width=\"\(n(side))\" height=\"\(n(side))\" fill=\"none\" stroke=\"\(hex(RGBAColor(r: SceneDrawer.placeholderGray, g: SceneDrawer.placeholderGray, b: SceneDrawer.placeholderGray)))\" stroke-width=\"\(n(lw))\" stroke-dasharray=\"\(n(lw * 4)) \(n(lw * 3))\"/>\n"
     }
 
     // MARK: Image payloads

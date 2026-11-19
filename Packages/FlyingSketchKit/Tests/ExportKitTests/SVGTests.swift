@@ -110,6 +110,7 @@ private func probe(_ data: Data) throws -> Probe {
     #expect(Data(base64Encoded: String(href.dropFirst(prefix.count))) == svg)
     #expect(p.attrsByName["image"]?.first?["width"] == "10")
     #expect(p.attrsByName["image"]?.first?["height"] == "4")
+    #expect(p.attrsByName["image"]?.first?["preserveAspectRatio"] == "none")
     #expect(p.attrsByName["g"]?.contains { $0["transform"] == "translate(20 20) rotate(90) translate(-5 -2)" } == true)
 
     // PNG part.
@@ -221,6 +222,42 @@ private func tiffBytes() -> Data {
     ctx.setFillColor(CGColor(red: 0, green: 1, blue: 0, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
     let out = NSMutableData()
     let dest = CGImageDestinationCreateWithData(out, UTType.tiff.identifier as CFString, 1, nil)!
+    CGImageDestinationAddImage(dest, ctx.makeImage()!, nil)
+    CGImageDestinationFinalize(dest)
+    return out as Data
+}
+
+@Test func pngKindPartWithJPEGBytesIsLabelledJPEG() throws {
+    var f = Fix()
+    var d = f.res
+    d.size = Vec2(x: 10, y: 4)
+    d.graphicKind = .png
+    f.doc.parts[d.key] = d
+    let jpeg = jpegBytes()
+    f.doc.assets[d.graphicAsset] = jpeg
+    let p = try probe(SVGWriter.svg(make([.part(PartInstance(definitionKey: d.key, center: .zero))], doc: f.doc)))
+    let img = try #require(p.attrsByName["image"]?.first)
+    let href = try #require(img["href"])
+    #expect(href.hasPrefix("data:image/jpeg;base64,"))
+    #expect(Data(base64Encoded: String(href.dropFirst("data:image/jpeg;base64,".count))) == jpeg)
+    #expect(img["preserveAspectRatio"] == "none")
+
+    // TIFF bytes in a .png part are transcoded to real PNG.
+    f.doc.assets[d.graphicAsset] = tiffBytes()
+    let q = try probe(SVGWriter.svg(make([.part(PartInstance(definitionKey: d.key, center: .zero))], doc: f.doc)))
+    let h2 = try #require(q.attrsByName["image"]?.first?["href"])
+    #expect(h2.hasPrefix("data:image/png;base64,"))
+    let raw = try #require(Data(base64Encoded: String(h2.dropFirst("data:image/png;base64,".count))))
+    #expect([UInt8](raw.prefix(4)) == [0x89, 0x50, 0x4E, 0x47])
+}
+
+private func jpegBytes() -> Data {
+    let ctx = CGContext(data: nil, width: 4, height: 4, bitsPerComponent: 8, bytesPerRow: 0,
+                        space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    ctx.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: 4, height: 4))
+    let out = NSMutableData()
+    let dest = CGImageDestinationCreateWithData(out, UTType.jpeg.identifier as CFString, 1, nil)!
     CGImageDestinationAddImage(dest, ctx.makeImage()!, nil)
     CGImageDestinationFinalize(dest)
     return out as Data
