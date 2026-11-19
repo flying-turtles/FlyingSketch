@@ -267,7 +267,7 @@ private func jpegBytes() -> Data {
 }
 
 @Test func controlCharactersAreDroppedFromText() throws {
-    let t = TextObject(text: "a\u{1}b\u{0}c\u{B}d\te", position: .zero, fontSize: 5)
+    let t = TextObject(text: "a\u{1}b\u{0}c\u{8}d\te", position: .zero, fontSize: 5)
     let p = try probe(SVGWriter.svg(make([.text(t)])))
     #expect(p.tspanText == ["abcd\te"])
 }

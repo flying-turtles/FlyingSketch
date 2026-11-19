@@ -38,7 +38,7 @@ struct ExportSheet: View {
                     Section("Scope") {
                         Picker("Scope", selection: $useSelection) {
                             Text("Whole drawing").tag(false)
-                            Text("Selection (\(selectionIDs.count) objects)").tag(true)
+                            Text("Selection (\(selectionIDs.count) \(selectionIDs.count == 1 ? "object" : "objects"))").tag(true)
                         }
                         .pickerStyle(.segmented)
                         .disabled(selectionIDs.isEmpty)
@@ -86,10 +86,11 @@ struct ExportSheet: View {
         errorText = nil
         sizeLine = nil
         do {
-            let result = try await ExportJob.run(request, document: snapshot, baseName: baseName)
+            let url = try await ExportQueue.shared.run(request, document: snapshot, baseName: baseName) { line in
+                sizeLine = line
+            }
             guard !Task.isCancelled else { return }
-            fileURL = result.url
-            sizeLine = result.sizeLine
+            fileURL = url
         } catch is CancellationError {
             return
         } catch {
