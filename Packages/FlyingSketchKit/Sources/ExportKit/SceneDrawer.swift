@@ -2,7 +2,9 @@ import CoreGraphics
 import CoreText
 import Foundation
 import InkEngine
+import PartsKit
 import SketchCore
+import SwiftDraw
 
 /// Draws scene objects into a context whose CTM is 1 unit = 1 mm, y-down, origin at world (0, 0).
 public enum SceneDrawer {
@@ -22,7 +24,7 @@ public enum SceneDrawer {
                 }
                 if let img = images[i.assetName] ?? nil { drawImage(i, img, ctx) }
             case .wire(let w): drawWire(w, ctx)
-            case .part: break  // Task 4
+            case .part(let p): drawPart(p, content.document, ctx)
             }
             ctx.restoreGState()
         }
@@ -118,5 +120,56 @@ public enum SceneDrawer {
         ctx.scaleBy(x: 1, y: -1)
         ctx.interpolationQuality = .high
         ctx.draw(img, in: CGRect(x: 0, y: 0, width: w, height: h))
+    }
+
+    /// Side (mm) of the placeholder square; mirrors the canvas `placeholderSide`.
+    static let placeholderSide = 10.0
+
+    private static func drawPart(_ p: PartInstance, _ doc: SketchDocument, _ ctx: CGContext) {
+        guard let def = doc.parts[p.definitionKey] else { return drawPlaceholder(p, ctx) }
+        let w = def.size.x, h = def.size.y
+        var drawn = false
+        if w > 0, h > 0, let data = doc.assets[def.graphicAsset] {
+            ctx.saveGState()
+            ctx.translateBy(x: p.center.x, y: p.center.y)
+            ctx.rotate(by: Double(((p.quarterTurns % 4) + 4) % 4) * .pi / 2)
+            ctx.translateBy(x: -w / 2, y: -h / 2)
+            let rect = CGRect(x: 0, y: 0, width: w, height: h)
+            switch def.graphicKind {
+            case .svg:
+                if PartInputGuard.isAcceptableSVG(data), let svg = SVG(data: data) {
+                    ctx.draw(svg, in: rect)
+                    drawn = true
+                }
+            case .png:
+                if let img = ImageDecoding.cgImage(data) {
+                    ctx.translateBy(x: 0, y: h)
+                    ctx.scaleBy(x: 1, y: -1)
+                    ctx.interpolationQuality = .high
+                    ctx.draw(img, in: rect)
+                    drawn = true
+                }
+            }
+            ctx.restoreGState()
+        }
+        guard drawn else { return drawPlaceholder(p, ctx) }
+        // Legs sit above the body, as in the canvas PartLayer.
+        for c in def.connectors {
+            guard let spec = c.leg, let seg = p.legSegment(for: c, in: def) else { continue }
+            ctx.setLineWidth(spec.width)
+            ctx.setLineCap(.round)
+            ctx.setStrokeColor(cg(spec.color))
+            ctx.move(to: cgp(seg.origin))
+            ctx.addLine(to: cgp(seg.end))
+            ctx.strokePath()
+        }
+    }
+
+    private static func drawPlaceholder(_ p: PartInstance, _ ctx: CGContext) {
+        let side = placeholderSide, lw = 0.4
+        ctx.setLineWidth(lw)
+        ctx.setLineDash(phase: 0, lengths: [lw * 4, lw * 3])
+        ctx.setStrokeColor(CGColor(gray: 0.4, alpha: 1))
+        ctx.stroke(CGRect(x: p.center.x - side / 2, y: p.center.y - side / 2, width: side, height: side))
     }
 }
