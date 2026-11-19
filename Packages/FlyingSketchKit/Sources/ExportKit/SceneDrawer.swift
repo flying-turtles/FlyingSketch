@@ -128,7 +128,6 @@ public enum SceneDrawer {
     private static func drawPart(_ p: PartInstance, _ doc: SketchDocument, _ ctx: CGContext) {
         guard let def = doc.parts[p.definitionKey] else { return drawPlaceholder(p, ctx) }
         let w = def.size.x, h = def.size.y
-        var drawn = false
         if let graphic = partGraphic(def, doc) {
             ctx.saveGState()
             ctx.translateBy(x: p.center.x, y: p.center.y)
@@ -145,9 +144,9 @@ public enum SceneDrawer {
                 ctx.draw(img, in: rect)
             }
             ctx.restoreGState()
-            drawn = true
+        } else {
+            drawPlaceholder(p, ctx)
         }
-        guard drawn else { return drawPlaceholder(p, ctx) }
         // Legs sit above the body, as in the canvas PartLayer.
         for c in def.connectors {
             guard let spec = c.leg, let seg = p.legSegment(for: c, in: def) else { continue }

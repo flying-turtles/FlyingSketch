@@ -115,3 +115,8 @@ private func expectLeftRed(_ img: CGImage) {
     f.add(f.res, at: center)
     #expect(topEdgeInk(ExportContent(document: f.doc, objects: f.doc.objects, bounds: bounds)))
 }
+
+@Test func brokenGraphicStillDrawsLegs() {
+    let img = render(scene(asset: Data("not svg".utf8), legEnds: ["a": Vec2(x: 20, y: 35)], legs: true), pxPerMM: ppm)
+    #expect(isLegGray(px(img, 18.41, 30)))
+}

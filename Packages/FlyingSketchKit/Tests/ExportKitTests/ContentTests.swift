@@ -1,3 +1,5 @@
+import Foundation
+import CoreGraphics
 import Testing
 import SketchCore
 @testable import ExportKit
@@ -19,4 +21,28 @@ import SketchCore
     #expect(c.objects.map(\.id) == [doc.objects[0].id, doc.objects[2].id])
     let raw = try #require(contentBounds(of: c.objects, in: doc))
     #expect(c.bounds == raw.insetBy(-5))
+}
+
+@Test func textBoundsUseMeasuredWidthAndStayInsideRender() throws {
+    var doc = SketchDocument()
+    doc.objects = [.text(TextObject(text: "WWWW", position: Vec2(x: 0, y: 0), fontSize: 10))]
+    let c = try ExportContent.make(doc, scope: .all)
+    let size = TextLayout.measuredSize(try #require({ if case .text(let t) = doc.objects[0] { t } else { nil } }()))
+    #expect(size.x > 24) // estimate was 24
+    #expect(c.bounds.maxX >= size.x + 5 - 1e-6)
+    let ppm = 10.0
+    let img = render(c, pxPerMM: ppm)
+    let data = img.dataProvider!.data! as Data
+    var maxDarkX = -1
+    for y in 0..<img.height { for x in 0..<img.width {
+        let o = y * img.bytesPerRow + x * 4
+        if data[o] < 200 { maxDarkX = max(maxDarkX, x) }
+    } }
+    #expect(maxDarkX >= 0)
+    #expect(Double(img.width - 1 - maxDarkX) / ppm >= 4)
+}
+
+@Test func crlfSplitsLines() {
+    #expect(TextLayout.lines(TextObject(text: "a\r\nb", position: .zero, fontSize: 5)).count == 2)
+    #expect(TextLayout.lines(TextObject(text: "a\rb\nc", position: .zero, fontSize: 5)).count == 3)
 }

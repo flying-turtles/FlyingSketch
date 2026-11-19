@@ -146,7 +146,10 @@ private func probe(_ data: Data) throws -> Probe {
     f.doc.parts[def.key] = def
     f.doc.assets[def.graphicAsset] = Data("not svg".utf8)
     let p2 = try probe(SVGWriter.svg(make([.part(PartInstance(definitionKey: def.key, center: .zero))], doc: f.doc)))
-    #expect(p2.rootChildren == ["rect"])
+    // Placeholder plus legs (the canvas still draws legs for a broken graphic).
+    #expect(p2.rootChildren == ["g"])
+    #expect(p2.attrsByName["rect"]?.count == 1)
+    #expect(p2.attrsByName["line"]?.isEmpty == false)
 
     // Legs: lines after the body, outside the transformed g.
     var f3 = Fix()
@@ -261,4 +264,10 @@ private func jpegBytes() -> Data {
     CGImageDestinationAddImage(dest, ctx.makeImage()!, nil)
     CGImageDestinationFinalize(dest)
     return out as Data
+}
+
+@Test func controlCharactersAreDroppedFromText() throws {
+    let t = TextObject(text: "a\u{1}b\u{0}c\u{B}d\te", position: .zero, fontSize: 5)
+    let p = try probe(SVGWriter.svg(make([.text(t)])))
+    #expect(p.tspanText == ["abcd\te"])
 }

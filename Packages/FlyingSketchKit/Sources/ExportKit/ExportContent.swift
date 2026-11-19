@@ -30,7 +30,17 @@ public struct ExportContent: Sendable {
         case .all: objects = doc.objects
         case .selection(let ids): objects = doc.objects.filter { ids.contains($0.id) }
         }
-        guard !objects.isEmpty, let raw = contentBounds(of: objects, in: doc) else { throw .nothingToExport }
+        guard !objects.isEmpty else { throw .nothingToExport }
+        // Text uses CoreText-measured frames; SketchCore's estimate is too narrow for real Helvetica.
+        var raw = contentBounds(of: objects.filter { if case .text = $0 { false } else { true } }, in: doc)
+        for case .text(let t) in objects {
+            let size = TextLayout.measuredSize(t)
+            let corners = [Vec2.zero, Vec2(x: size.x, y: 0), size, Vec2(x: 0, y: size.y)]
+                .map { t.position + $0.rotated(by: t.rotation) }
+            let r = Rect.bounding(corners)!
+            raw = raw.map { $0.union(r) } ?? r
+        }
+        guard let raw else { throw .nothingToExport }
         return ExportContent(document: doc, objects: objects, bounds: raw.insetBy(-margin))
     }
 }

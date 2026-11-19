@@ -18,7 +18,10 @@ enum XMLEscape {
             case ">": out += "&gt;"
             case "\"": out += "&quot;"
             case "'": out += "&apos;"
-            default: out.append(ch)
+            default:
+                // Drop XML 1.0 forbidden control characters; tab, LF, CR stay.
+                if let v = ch.unicodeScalars.first, ch.unicodeScalars.count == 1, v.value < 0x20, v != "\t", v != "\n", v != "\r" { continue }
+                out.append(ch)
             }
         }
         return out
@@ -168,17 +171,23 @@ public enum SVGWriter {
     }
 
     private static func part(_ p: PartInstance, _ doc: SketchDocument) -> String {
-        guard let def = doc.parts[p.definitionKey], let (mime, bytes) = partPayload(def, doc) else { return placeholder(p) }
-        let w = def.size.x, h = def.size.y
-        let turns = ((p.quarterTurns % 4) + 4) % 4
-        var out = "<g>\n<g transform=\"translate(\(pt(p.center))) rotate(\(turns * 90)) translate(\(n(-w / 2)) \(n(-h / 2)))\">"
-        out += "<image width=\"\(n(w))\" height=\"\(n(h))\" preserveAspectRatio=\"none\" href=\"\(dataURI(mime, bytes))\"/></g>\n"
+        guard let def = doc.parts[p.definitionKey] else { return placeholder(p) }
+        var out = "<g>\n"
+        if let (mime, bytes) = partPayload(def, doc) {
+            let w = def.size.x, h = def.size.y
+            let turns = ((p.quarterTurns % 4) + 4) % 4
+            out += "<g transform=\"translate(\(pt(p.center))) rotate(\(turns * 90)) translate(\(n(-w / 2)) \(n(-h / 2)))\">"
+            out += "<image width=\"\(n(w))\" height=\"\(n(h))\" preserveAspectRatio=\"none\" href=\"\(dataURI(mime, bytes))\"/></g>\n"
+        } else {
+            out += placeholder(p)
+        }
+        var legs = ""
         for c in def.connectors {
             guard let spec = c.leg, let seg = p.legSegment(for: c, in: def) else { continue }
-            out += "<line x1=\"\(n(seg.origin.x))\" y1=\"\(n(seg.origin.y))\" x2=\"\(n(seg.end.x))\" y2=\"\(n(seg.end.y))\" fill=\"none\""
-            out += "\(stroke(spec.color)) stroke-width=\"\(n(spec.width))\" stroke-linecap=\"round\"/>\n"
+            legs += "<line x1=\"\(n(seg.origin.x))\" y1=\"\(n(seg.origin.y))\" x2=\"\(n(seg.end.x))\" y2=\"\(n(seg.end.y))\" fill=\"none\""
+            legs += "\(stroke(spec.color)) stroke-width=\"\(n(spec.width))\" stroke-linecap=\"round\"/>\n"
         }
-        return out + "</g>\n"
+        return out + legs + "</g>\n"
     }
 
     private static func partPayload(_ def: PartDefinition, _ doc: SketchDocument) -> (String, Data)? {
