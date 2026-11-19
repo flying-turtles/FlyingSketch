@@ -364,6 +364,12 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         guard let touch = activeTouch, touches.contains(touch), let kind = interaction else { return }
         activeTouch = nil
         interaction = nil
+        // One transaction for the whole gesture end: clearing a preview (move, wire end, leg, erase) and
+        // committing the edit must reach the screen together. An explicit top-level transaction flushes on
+        // commit, so a separate clear would show the old geometry for a frame before the edit lands.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
         switch kind {
         case .ink:
             _ = ink.move(coalesced: coalescedSamples(touch, event), predicted: [])

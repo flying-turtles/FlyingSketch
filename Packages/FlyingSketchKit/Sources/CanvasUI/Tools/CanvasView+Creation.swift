@@ -130,6 +130,10 @@ extension CanvasView {
         s.view.delegate = nil
         let text = s.view.text ?? ""
         s.view.removeFromSuperview() // resigns first responder
+        // Unhide and commit in one transaction, so the old text doesn't flash before the edit lands.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
         if let id = s.existing?.id { renderer.hiddenIDs.remove(id) }
         textController.commit(text, existing: s.existing, position: s.position, fontSize: s.fontSize, color: s.color)
     }
