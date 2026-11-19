@@ -42,3 +42,38 @@ import SketchCore
     f.wire((r3, "a"), nil)  // dangling: its own 1-pin net, omitted; consumes N2
     #expect(NetlistExporter.csv(f.doc) == "\u{FEFF}Net,Pins\r\nVCC,R2.b U1.VCC\r\nN3,R1.b R2.a\r\n")
 }
+
+@Test func csvQuotesCRLFAndCombiningSequences() {
+    #expect(CSV.field("a\r\nb") == "\"a\r\nb\"")
+    #expect(CSV.field("a\rb") == "\"a\rb\"")
+    #expect(CSV.field(",\u{301}") == "\",\u{301}\"")
+    #expect(CSV.field("\"\u{301}") == "\"\"\"\u{301}\"")
+}
+
+@Test func netlistFallbacks() {
+    var f = Fix()
+    // empty label -> definition title
+    let r1 = f.add(f.res, at: Vec2(x: 100, y: 0), label: "")
+    let r2 = f.add(f.res, at: Vec2(x: 100, y: 50), label: "R2")
+    f.wire((r1, "a"), (r2, "a"))
+    // empty connector name -> connector id
+    var unnamed = f.res
+    unnamed.libraryID = "unnamed"
+    unnamed.connectors = unnamed.connectors.map { var c = $0; c.name = ""; return c }
+    f.doc.parts[unnamed.key] = unnamed
+    let u = f.add(unnamed, at: Vec2(x: 200, y: 0), label: "X1")
+    f.wire((u, "a"), (r2, "b"))
+    // capitalised family is skipped
+    var bb = f.board
+    bb.libraryID = "bb-cap"
+    bb.family = "Breadboard"
+    f.doc.parts[bb.key] = bb
+    let b = f.add(bb, at: Vec2(x: 300, y: 0), label: "BB1")
+    f.wire((b, "c0r0"), (r1, "b"))
+    f.wire((b, "c0r0"), (u, "b"))
+    let csv = NetlistExporter.csv(f.doc)
+    #expect(csv.contains("R2.a Resistor.a"))
+    #expect(csv.contains("R2.b X1.a"))
+    #expect(csv.contains("Resistor.b X1.b"))
+    #expect(!csv.contains("BB1"))
+}
