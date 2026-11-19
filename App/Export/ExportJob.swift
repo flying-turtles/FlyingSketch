@@ -7,16 +7,25 @@ enum ExportJob {
     private nonisolated(unsafe) static var lastDirectory: URL?
 
     /// Renders `request` and writes it to a fresh temp directory; the previous export directory is removed.
-    @concurrent static func run(_ request: ExportRequest, document: SketchDocument, baseName: String) async throws -> URL {
+    @concurrent static func run(_ request: ExportRequest, document: SketchDocument, baseName: String) async throws -> (url: URL, sizeLine: String?) {
         let data: Data
+        var sizeLine: String?
         switch request.format {
         case .png:
             let content = try ExportContent.make(document, scope: request.scope)
+            let plan = try RasterExporter.plan(content, options: request.png)
+            var line = "\(plan.width) × \(plan.height) px"
+            if plan.effectiveDPI < request.png.dpi { line += " (reduced to \(Int(plan.effectiveDPI.rounded(.down))) dpi)" }
+            sizeLine = line
             data = try RasterExporter.png(content, options: request.png).data
         case .pdf:
-            data = try PDFExporter.pdf(ExportContent.make(document, scope: request.scope))
+            let content = try ExportContent.make(document, scope: request.scope)
+            sizeLine = mmLine(content)
+            data = try PDFExporter.pdf(content)
         case .svg:
-            data = SVGWriter.svg(try ExportContent.make(document, scope: request.scope))
+            let content = try ExportContent.make(document, scope: request.scope)
+            sizeLine = mmLine(content)
+            data = SVGWriter.svg(content)
         case .bom:
             data = Data(BOMExporter.csv(document).utf8)
         case .netlist:
@@ -34,7 +43,11 @@ enum ExportJob {
             return lastDirectory
         }
         if let previous { try? FileManager.default.removeItem(at: previous) }
-        return url
+        return (url, sizeLine)
+    }
+
+    nonisolated private static func mmLine(_ content: ExportContent) -> String {
+        "\(Int(content.bounds.size.x.rounded())) × \(Int(content.bounds.size.y.rounded())) mm"
     }
 
     /// `<name>[ (selection)].ext`, `<name> BOM.csv`, `<name> Netlist.csv`; `/` and `:` become `-`.

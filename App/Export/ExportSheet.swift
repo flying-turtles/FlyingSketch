@@ -14,6 +14,7 @@ struct ExportSheet: View {
     @State private var background = PNGOptions.Background.white
     @State private var fileURL: URL?
     @State private var errorText: String?
+    @State private var sizeLine: String?
 
     init(format: ExportFormat, snapshot: SketchDocument, selectionIDs: Set<ObjectID>, baseName: String) {
         self.format = format
@@ -83,28 +84,17 @@ struct ExportSheet: View {
     private func generate(_ request: ExportRequest) async {
         fileURL = nil
         errorText = nil
+        sizeLine = nil
         do {
-            let url = try await ExportJob.run(request, document: snapshot, baseName: baseName)
+            let result = try await ExportJob.run(request, document: snapshot, baseName: baseName)
             guard !Task.isCancelled else { return }
-            fileURL = url
+            fileURL = result.url
+            sizeLine = result.sizeLine
         } catch is CancellationError {
             return
         } catch {
             guard !Task.isCancelled else { return }
             errorText = error.localizedDescription
         }
-    }
-
-    private var sizeLine: String? {
-        guard format == .png || format == .pdf || format == .svg else { return nil }
-        guard let content = try? ExportContent.make(snapshot, scope: scope) else { return nil }
-        if format == .png {
-            guard let plan = try? RasterExporter.plan(content, options: request.png) else { return nil }
-            var line = "\(plan.width) × \(plan.height) px"
-            if plan.effectiveDPI < dpi { line += " (reduced to \(Int(plan.effectiveDPI.rounded(.down))) dpi)" }
-            return line
-        }
-        let size = content.bounds.size
-        return "\(Int(size.x.rounded())) × \(Int(size.y.rounded())) mm"
     }
 }
