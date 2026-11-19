@@ -35,6 +35,8 @@ targets:
         product: PartsKit
       - package: FlyingSketchKit
         product: PhotoPartKit
+      - package: FlyingSketchKit
+        product: ExportKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flyingturtle.flyingsketch

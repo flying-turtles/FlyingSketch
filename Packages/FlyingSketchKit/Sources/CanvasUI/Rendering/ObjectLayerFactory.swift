@@ -150,19 +150,18 @@ final class CALayerObjectFactory: ObjectLayerFactory {
     private func updateShape(_ layer: CALayer, _ s: ShapeObject, _ vp: Viewport, _ size: Vec2) {
         guard let layer = layer as? CAShapeLayer else { return }
         let a = pt(s.start, vp, size), b = pt(s.end, vp, size)
-        let rect = CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
+        let world = ShapeGeometry.rect(of: s)
+        let o = pt(world.origin, vp, size), e = pt(Vec2(x: world.maxX, y: world.maxY), vp, size)
+        let rect = CGRect(x: min(o.x, e.x), y: min(o.y, e.y), width: abs(e.x - o.x), height: abs(e.y - o.y))
         let path = CGMutablePath()
         switch s.kind {
         case .line, .arrow:
             path.move(to: a)
             path.addLine(to: b)
-            if s.kind == .arrow {
-                let dir = (s.end - s.start).normalized
-                let head = max(s.lineWidth * 5, 4)
-                for sign in [1.0, -1.0] {
-                    let back = dir.rotated(by: .pi + sign * 0.45) * head
+            if let (b1, b2) = ShapeGeometry.arrowBarbs(of: s) {
+                for barb in [b1, b2] {
                     path.move(to: b)
-                    path.addLine(to: pt(s.end + back, vp, size))
+                    path.addLine(to: pt(barb, vp, size))
                 }
             }
         case .rectangle: path.addRect(rect)
@@ -233,7 +232,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         let points = w.polyline.map { pt($0, vp, size) }
         path.move(to: points[0])
         for p in points.dropFirst() { path.addLine(to: p) }
-        let radius = Self.freeEndRadius * mm(vp)
+        let radius = Wire.freeEndRadius * mm(vp)
         for end in [w.start, w.end] where end.attachment == nil {
             let c = pt(end.position, vp, size)
             path.addEllipse(in: CGRect(x: c.x - radius, y: c.y - radius, width: radius * 2, height: radius * 2))
@@ -249,8 +248,6 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         layer.compositingFilter = nil
     }
 
-    /// Radius (mm) of the open circle marking a free wire end.
-    static let freeEndRadius = 0.6
     /// Side (mm) of the placeholder square for unknown part definitions.
     static let placeholderSide = 10.0
 
