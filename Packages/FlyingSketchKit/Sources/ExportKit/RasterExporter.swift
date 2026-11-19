@@ -27,11 +27,16 @@ public enum RasterExporter {
     /// Cheap size: no allocation.
     public static func plan(_ content: ExportContent, options: PNGOptions) throws(ExportError) -> (width: Int, height: Int, effectiveDPI: Double) {
         let wMM = content.bounds.size.x, hMM = content.bounds.size.y
-        guard wMM > 0, hMM > 0, options.dpi > 0 else { throw .nothingToExport }
-        func size(_ dpi: Double) -> (Int, Int) {
-            (max(1, Int((wMM * dpi / 25.4).rounded(.up))), max(1, Int((hMM * dpi / 25.4).rounded(.up))))
+        guard options.dpi.isFinite, options.dpi > 0 else { throw .encodingFailed }
+        guard wMM.isFinite, hMM.isFinite else { throw .tooLarge }
+        guard wMM > 0, hMM > 0 else { throw .nothingToExport }
+        /// Clamps to Int.max / 4 (still over every cap) so conversion and the w*h product never trap.
+        func px(_ mm: Double, _ dpi: Double) -> Int {
+            let v = (mm * dpi / 25.4).rounded(.up)
+            return v >= Double(Int.max / 4) ? Int.max / 4 : max(1, Int(v))
         }
-        func fits(_ s: (Int, Int)) -> Bool { s.0 <= maxEdge && s.1 <= maxEdge && s.0 * s.1 <= maxPixels }
+        func size(_ dpi: Double) -> (Int, Int) { (px(wMM, dpi), px(hMM, dpi)) }
+        func fits(_ s: (Int, Int)) -> Bool { s.0 <= maxEdge && s.1 <= maxEdge && s.0 <= maxPixels / s.1 }
 
         var dpi = options.dpi
         var s = size(dpi)

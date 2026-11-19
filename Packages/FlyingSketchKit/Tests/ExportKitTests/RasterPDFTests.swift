@@ -125,3 +125,22 @@ private func rgba(_ img: CGImage, _ x: Int, _ y: Int) -> (Double, Double, Double
     #expect(rgba(pdfImg, 150, 350).1 < 0.1)  // red in leg
     #expect(rgba(pdfImg, 650, 350).1 > 0.9)  // white
 }
+
+private func contentWith(width: Double, height: Double = 10) -> ExportContent {
+    ExportContent(document: SketchDocument(), objects: [], bounds: Rect(origin: .zero, size: Vec2(x: width, y: height)))
+}
+
+@Test func nonFiniteOrHugeBoundsThrowTooLarge() {
+    for w in [Double.infinity, 1e300, 1e18] {
+        #expect(throws: ExportError.tooLarge) { try RasterExporter.plan(contentWith(width: w), options: PNGOptions()) }
+    }
+    #expect(throws: ExportError.tooLarge) { try PDFExporter.pdf(contentWith(width: .infinity)) }
+    #expect(throws: ExportError.tooLarge) { try PDFExporter.pdf(contentWith(width: .nan)) }
+    #expect(throws: ExportError.nothingToExport) { try RasterExporter.plan(contentWith(width: 0), options: PNGOptions()) }
+}
+
+@Test func badDPIThrows() {
+    for d in [Double.nan, .infinity, 0, -5] {
+        #expect(throws: ExportError.self) { try RasterExporter.plan(contentWith(width: 10), options: PNGOptions(dpi: d)) }
+    }
+}

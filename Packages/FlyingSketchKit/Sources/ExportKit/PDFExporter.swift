@@ -5,6 +5,7 @@ public enum PDFExporter {
     public static func pdf(_ content: ExportContent) throws(ExportError) -> Data {
         let k = 72.0 / 25.4
         let wMM = content.bounds.size.x, hMM = content.bounds.size.y
+        guard wMM.isFinite, hMM.isFinite else { throw .tooLarge }
         guard wMM > 0, hMM > 0 else { throw .nothingToExport }
         var box = CGRect(x: 0, y: 0, width: wMM * k, height: hMM * k)
         let data = NSMutableData()
