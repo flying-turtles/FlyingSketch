@@ -107,7 +107,7 @@ Three plans, each shippable: (1) free rotation, (2) bodies + hinges + solver + m
 - Wires cannot join a body.
 - Plugged parts ride along with a moving part; partial selections do not change a mechanism drag.
 - Grouping merges bodies and removes hinges between them; ungroup re-attaches pins to the member under the spot.
-- Text keeps its stored top-left anchor; its rotation is about that anchor's box centre only visually (old documents unchanged).
+- Text keeps its stored top-left position (old documents unchanged) and rotates about the centre of its box.
 - No plug snapping at the end of a mechanism drag.
 - Pins always draw on top.
 - Unreachable drags stop silently at the limit.
