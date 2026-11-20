@@ -46,7 +46,10 @@ public func bounds(of object: SceneObject) -> Rect {
         guard let r = Rect.bounding(s.points.map(\.position)) else { return Rect(origin: .zero, size: .zero) }
         return r.insetBy(-s.baseWidth / 2)
     case .shape(let s):
-        return Rect.bounding([s.start, s.end])!.insetBy(-s.lineWidth / 2)
+        switch s.kind {
+        case .line, .arrow: return Rect.bounding([s.start, s.end])!.insetBy(-s.lineWidth / 2)
+        case .rectangle, .ellipse: return Rect.bounding(ShapeGeometry.corners(of: s))!.insetBy(-s.lineWidth / 2)
+        }
     case .text, .image:
         let (frame, rotation, pivot) = rotatedFrame(of: object)!
         return Rect.bounding(rotatedCorners(frame, by: rotation, around: pivot))!
@@ -106,20 +109,23 @@ public func hitTest(_ object: SceneObject, point: Vec2, tolerance: Double) -> Bo
 
     case .shape(let s):
         let reach = tolerance + s.lineWidth / 2
-        let box = Rect.bounding([s.start, s.end])!
+        let box = ShapeGeometry.rect(of: s)
+        // Box shapes: test in the unrotated frame.
+        let p = s.kind == .rectangle || s.kind == .ellipse
+            ? ShapeGeometry.center(of: s) + (point - ShapeGeometry.center(of: s)).rotated(by: -s.rotation) : point
         switch s.kind {
         case .line, .arrow:
-            return distance(from: point, toSegment: s.start, s.end) <= reach
+            return distance(from: p, toSegment: s.start, s.end) <= reach
         case .rectangle:
-            if s.fillColor != nil, box.contains(point) { return true }
-            return distance(from: point, toPolyline: corners(box), closed: true) <= reach
+            if s.fillColor != nil, box.contains(p) { return true }
+            return distance(from: p, toPolyline: corners(box), closed: true) <= reach
         case .ellipse:
             if s.fillColor != nil, box.size.x > 0, box.size.y > 0 {
-                let dx = (point.x - (box.minX + box.size.x / 2)) / (box.size.x / 2)
-                let dy = (point.y - (box.minY + box.size.y / 2)) / (box.size.y / 2)
+                let dx = (p.x - (box.minX + box.size.x / 2)) / (box.size.x / 2)
+                let dy = (p.y - (box.minY + box.size.y / 2)) / (box.size.y / 2)
                 if dx * dx + dy * dy <= 1 { return true }
             }
-            return distance(from: point, toPolyline: ellipseOutline(box), closed: true) <= reach
+            return distance(from: p, toPolyline: ellipseOutline(box), closed: true) <= reach
         }
 
     case .text, .image:

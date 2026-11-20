@@ -86,7 +86,7 @@ public enum DocumentPackage {
             let ok: Bool
             switch o {
             case .ink(let s): ok = s.points.allSatisfy { vec($0.position) } && size(s.baseWidth)
-            case .shape(let s): ok = vec(s.start) && vec(s.end) && size(s.lineWidth)
+            case .shape(let s): ok = vec(s.start) && vec(s.end) && size(s.lineWidth) && s.rotation.isFinite
             case .text(let t): ok = vec(t.position) && size(t.fontSize) && t.rotation.isFinite
             case .image(let i):
                 ok = vec(i.frame.origin) && size(i.frame.size.x) && size(i.frame.size.y) && i.rotation.isFinite

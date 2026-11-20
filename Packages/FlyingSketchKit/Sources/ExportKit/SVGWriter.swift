@@ -131,11 +131,13 @@ public enum SVGWriter {
             return "<path d=\"\(d)\" fill=\"none\"\(style)/>\n"
         case .rectangle, .ellipse:
             let r = ShapeGeometry.rect(of: s)
+            let c = ShapeGeometry.center(of: s)
             let fillAttr = s.fillColor.map(fill) ?? " fill=\"none\""
+            let spin = s.rotation == 0 ? "" : " transform=\"rotate(\(deg(s.rotation)) \(pt(c)))\""
             if s.kind == .rectangle {
-                return "<rect x=\"\(n(r.minX))\" y=\"\(n(r.minY))\" width=\"\(n(r.size.x))\" height=\"\(n(r.size.y))\"\(fillAttr)\(style)/>\n"
+                return "<rect x=\"\(n(r.minX))\" y=\"\(n(r.minY))\" width=\"\(n(r.size.x))\" height=\"\(n(r.size.y))\"\(fillAttr)\(style)\(spin)/>\n"
             }
-            return "<ellipse cx=\"\(n(r.minX + r.size.x / 2))\" cy=\"\(n(r.minY + r.size.y / 2))\" rx=\"\(n(r.size.x / 2))\" ry=\"\(n(r.size.y / 2))\"\(fillAttr)\(style)/>\n"
+            return "<ellipse cx=\"\(n(c.x))\" cy=\"\(n(c.y))\" rx=\"\(n(r.size.x / 2))\" ry=\"\(n(r.size.y / 2))\"\(fillAttr)\(style)\(spin)/>\n"
         }
     }
 

@@ -169,3 +169,19 @@ private func pngData(width: Int, height: Int) -> Data {
     let s = CALayerObjectFactory.cappedContentsScale(width: 7200, height: 1200, screenScale: 2)
     #expect(7200 * s <= 4096 && 1200 * s <= 4096 && s < 2)
 }
+
+@Test @MainActor func rotatedRectangleLayerPathIsRotated() throws {
+    let s = ShapeObject(kind: .rectangle, start: .zero, end: Vec2(x: 20, y: 4), lineWidth: 0, rotation: .pi / 2)
+    let root = CALayer()
+    let r = SceneRenderer(rootLayer: root)
+    let vp = Viewport(center: .zero, zoom: 1)
+    let size = Vec2(x: 1024, y: 1366)
+    r.update(document: SketchDocument(objects: [.shape(s)]), viewport: vp, viewSize: size, settled: true)
+    let layer = try #require(root.sublayers?[0].sublayers?[1].sublayers?.compactMap { $0 as? CAShapeLayer }.first)
+    let box = try #require(layer.path?.boundingBoxOfPath)
+    // Layer path is relative to the layer frame: back to view coordinates, then world mm.
+    let a = vp.viewToWorld(Vec2(x: layer.frame.minX + box.minX, y: layer.frame.minY + box.minY), viewSize: size)
+    let b = vp.viewToWorld(Vec2(x: layer.frame.minX + box.maxX, y: layer.frame.minY + box.maxY), viewSize: size)
+    #expect(abs(a.x - 8) < 0.01 && abs(a.y + 8) < 0.01)
+    #expect(abs(b.x - 12) < 0.01 && abs(b.y - 12) < 0.01)
+}

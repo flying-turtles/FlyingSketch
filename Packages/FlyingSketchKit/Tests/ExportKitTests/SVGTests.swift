@@ -271,3 +271,15 @@ private func jpegBytes() -> Data {
     let p = try probe(SVGWriter.svg(make([.text(t)])))
     #expect(p.tspanText == ["abcd\te"])
 }
+
+@Test func rotatedShapeCarriesTransform() throws {
+    func shape(_ kind: ShapeKind, _ r: Double) -> SceneObject {
+        .shape(ShapeObject(kind: kind, start: .zero, end: Vec2(x: 20, y: 4), rotation: r))
+    }
+    let q = try probe(SVGWriter.svg(make([shape(.rectangle, .pi / 2), shape(.ellipse, .pi / 2),
+                                          shape(.rectangle, 0), shape(.line, 1)])))
+    #expect(try #require(q.attrsByName["rect"])[0]["transform"] == "rotate(90 10 2)")
+    #expect(try #require(q.attrsByName["rect"])[1]["transform"] == nil)
+    #expect(try #require(q.attrsByName["ellipse"])[0]["transform"] == "rotate(90 10 2)")
+    #expect(try #require(q.attrsByName["line"])[0]["transform"] == nil)
+}

@@ -98,3 +98,20 @@ private func anyDark(_ img: CGImage, x: ClosedRange<Double>, y: ClosedRange<Doub
     #expect(px(img, 20, 20).r < 0.2)
     #expect(px(img, 20, 15).r > 0.9)
 }
+
+private func rotatedRed() -> SceneObject {
+    let red = RGBAColor(r: 1, g: 0, b: 0)
+    return .shape(ShapeObject(kind: .rectangle, start: .zero, end: Vec2(x: 20, y: 4), strokeColor: red,
+                              fillColor: red, lineWidth: 0.5, rotation: .pi / 2))
+}
+
+@Test func rotatedRectangleDrawsAboutItsCentre() {
+    let b = Rect(origin: Vec2(x: -5, y: -10), size: Vec2(x: 40, y: 30))
+    let c = ExportContent(document: SketchDocument(), objects: [rotatedRed()], bounds: b)
+    let img = render(c, pxPerMM: ppm)
+    func at(_ x: Double, _ y: Double) -> (r: Double, g: Double, b: Double, a: Double) {
+        pixel(img, mmX: x, mmY: y, bounds: b, pxPerMM: ppm)
+    }
+    #expect(at(10, -7).r > 0.9 && at(10, -7).g < 0.2)
+    #expect(at(2, 2).g > 0.9)
+}

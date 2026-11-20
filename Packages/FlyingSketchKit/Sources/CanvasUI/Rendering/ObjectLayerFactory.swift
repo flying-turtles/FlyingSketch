@@ -153,6 +153,10 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         let world = ShapeGeometry.rect(of: s)
         let o = pt(world.origin, vp, size), e = pt(Vec2(x: world.maxX, y: world.maxY), vp, size)
         let rect = CGRect(x: min(o.x, e.x), y: min(o.y, e.y), width: abs(e.x - o.x), height: abs(e.y - o.y))
+        // View is y-down like the world, so the same clockwise angle applies about the box centre.
+        let centre = CGPoint(x: rect.midX, y: rect.midY)
+        let spin = CGAffineTransform(translationX: centre.x, y: centre.y).rotated(by: s.rotation)
+            .translatedBy(x: -centre.x, y: -centre.y)
         let path = CGMutablePath()
         switch s.kind {
         case .line, .arrow:
@@ -164,8 +168,8 @@ final class CALayerObjectFactory: ObjectLayerFactory {
                     path.addLine(to: pt(barb, vp, size))
                 }
             }
-        case .rectangle: path.addRect(rect)
-        case .ellipse: path.addEllipse(in: rect)
+        case .rectangle: path.addRect(rect, transform: spin)
+        case .ellipse: path.addEllipse(in: rect, transform: spin)
         }
         let lineWidth = s.lineWidth * mm(vp)
         setPath(layer, path, pad: lineWidth)

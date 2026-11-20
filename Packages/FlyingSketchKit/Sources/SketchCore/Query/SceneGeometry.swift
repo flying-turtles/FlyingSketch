@@ -6,6 +6,20 @@ public enum ShapeGeometry {
         Rect.bounding([s.start, s.end])!
     }
 
+    /// Box centre: the rotation pivot.
+    public static func center(of s: ShapeObject) -> Vec2 {
+        let r = rect(of: s)
+        return Vec2(x: r.minX + r.size.x / 2, y: r.minY + r.size.y / 2)
+    }
+
+    /// The 4 world corners of the (rotated) box, clockwise from the top-left before rotation.
+    public static func corners(of s: ShapeObject) -> [Vec2] {
+        let r = rect(of: s), c = center(of: s)
+        return [Vec2(x: r.minX, y: r.minY), Vec2(x: r.maxX, y: r.minY),
+                Vec2(x: r.maxX, y: r.maxY), Vec2(x: r.minX, y: r.maxY)]
+            .map { c + ($0 - c).rotated(by: s.rotation) }
+    }
+
     /// Arrow head barb end points (mm). Nil for non-arrows and zero-length arrows.
     public static func arrowBarbs(of s: ShapeObject) -> (Vec2, Vec2)? {
         guard s.kind == .arrow else { return nil }

@@ -52,6 +52,9 @@ public enum SceneDrawer {
     private static func drawShape(_ s: ShapeObject, _ ctx: CGContext) {
         let r = ShapeGeometry.rect(of: s)
         let rect = CGRect(x: r.minX, y: r.minY, width: r.size.x, height: r.size.y)
+        let centre = ShapeGeometry.center(of: s)
+        let spin = CGAffineTransform(translationX: centre.x, y: centre.y).rotated(by: s.rotation)
+            .translatedBy(x: -centre.x, y: -centre.y)
         let path = CGMutablePath()
         switch s.kind {
         case .line, .arrow:
@@ -63,8 +66,8 @@ public enum SceneDrawer {
                     path.addLine(to: cgp(barb))
                 }
             }
-        case .rectangle: path.addRect(rect)
-        case .ellipse: path.addEllipse(in: rect)
+        case .rectangle: path.addRect(rect, transform: spin)
+        case .ellipse: path.addEllipse(in: rect, transform: spin)
         }
         ctx.setLineWidth(s.lineWidth)
         ctx.setLineCap(.round)
