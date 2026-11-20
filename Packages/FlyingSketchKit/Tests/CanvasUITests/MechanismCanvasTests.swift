@@ -507,6 +507,14 @@ private func crossedBars() -> (doc: SketchDocument, bar1: ShapeObject, bar2: Sha
     #expect(view.rotateHandleCenter == nil)
 }
 
+@Test @MainActor func rotateHandleShownForPartInJointFreeDocument() {
+    let def = PartDefinition.fixtureModule()
+    let module = PartInstance(definitionKey: def.key, center: v(10, 10))
+    let doc = SketchDocument(objects: [.part(module), .ink(looseStroke)], parts: [def.key: def])
+    let (view, _) = canvas(doc, select: [module.id])
+    #expect(view.rotateHandleCenter != nil)
+}
+
 @Test @MainActor func rotateHandleHiddenWhenCarriedPartPinnedOutside() {
     let boardDef = PartDefinition.fixtureBreadboardMini(), moduleDef = PartDefinition.fixtureModule()
     let board = PartInstance(definitionKey: boardDef.key, center: v(40, 0))

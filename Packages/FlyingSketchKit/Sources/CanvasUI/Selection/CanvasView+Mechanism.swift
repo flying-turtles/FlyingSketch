@@ -34,11 +34,14 @@ extension CanvasView {
     var selectionIsPinned: Bool { selectionIsPinnedToOutside(selection.ids, in: model.document) }
 
     /// Whether the rotate handle would break a pin: the selection plus the parts it carries (`rotateObjects` turns
-    /// them too) is pinned to anything outside.
+    /// them too) is pinned to anything outside. Runs on every overlay update (pan / pinch frames too), so a
+    /// joint-free document skips the contact search entirely.
     var rotationIsPinned: Bool {
         let doc = model.document
+        guard doc.objects.contains(where: { if case .joint = $0 { true } else { false } }) else { return false }
         let parts = Set(selectedObjects.filter { if case .part = $0 { true } else { false } }.map(\.id))
-        return selectionIsPinnedToOutside(selection.ids.union(carriedParts(by: parts, in: doc)), in: doc)
+        let ids = parts.isEmpty ? selection.ids : selection.ids.union(carriedParts(by: parts, in: doc))
+        return selectionIsPinnedToOutside(ids, in: doc)
     }
 
     /// Quarter turns spin a part about its own centre without moving pins, so they are unavailable when any
