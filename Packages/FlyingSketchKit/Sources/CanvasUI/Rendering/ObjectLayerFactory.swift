@@ -17,6 +17,22 @@ extension ObjectLayerFactory {
     func prepare(document: SketchDocument) {}
 }
 
+/// Joint layer: zero-size container; `ring`, `marks` and `dot` are shape layers with paths in view coordinates.
+nonisolated final class JointLayer: CALayer {
+    let ring = CAShapeLayer()
+    let marks = CAShapeLayer()
+    let dot = CAShapeLayer()
+
+    override init() {
+        super.init()
+        for l in [ring, marks, dot] { addSublayer(l) }
+    }
+
+    override init(layer: Any) { super.init(layer: layer) }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+}
+
 /// Part layer: zero-size container in view coordinates. `body` holds the (rotated) graphic; legs and the
 /// placeholder are siblings above it, already in view coordinates (never rotated twice).
 nonisolated final class PartLayer: CALayer {
@@ -90,7 +106,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         case .image: layer = CALayer()
         case .part: layer = PartLayer()
         case .wire: layer = CAShapeLayer()
-        case .joint: layer = CALayer() // Joint drawing: Task 3
+        case .joint: layer = JointLayer()
         }
         layer.contentsScale = screenScale
         update(layer, for: object, viewport: viewport, viewSize: viewSize)
@@ -105,7 +121,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         case .image(let i): updateImage(layer, i, viewport, viewSize)
         case .part(let p): updatePart(layer, p, viewport, viewSize)
         case .wire(let w): updateWire(layer, w, viewport, viewSize)
-        case .joint: break // Joint drawing: Task 3
+        case .joint(let j): updateJoint(layer, j, viewport, viewSize)
         }
     }
 
@@ -228,6 +244,45 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         guard let data = assets[name], let cg = UIImage(data: data)?.cgImage else { return nil }
         imageCache[name] = cg
         return cg
+    }
+
+    // MARK: Joints
+
+    /// Hinge: white-filled ring plus centre dot (and ground mark when grounded); fixed: lock mark only.
+    private func updateJoint(_ layer: CALayer, _ j: Joint, _ vp: Viewport, _ size: Vec2) {
+        guard let layer = layer as? JointLayer else { return }
+        let s = mm(vp)
+        let accent = cg(JointGeometry.accent)
+        let lineWidth = JointGeometry.strokeWidth * s
+        let centre = pt(j.position, vp, size)
+
+        let ring = CGMutablePath()
+        let dot = CGMutablePath()
+        if j.kind == .hinge {
+            let r = JointGeometry.ringRadius * s, d = JointGeometry.dotRadius * s
+            ring.addEllipse(in: CGRect(x: centre.x - r, y: centre.y - r, width: 2 * r, height: 2 * r))
+            dot.addEllipse(in: CGRect(x: centre.x - d, y: centre.y - d, width: 2 * d, height: 2 * d))
+        }
+        let marks = CGMutablePath()
+        for line in JointGeometry.marks(of: j) {
+            let pts = line.map { pt($0, vp, size) }
+            marks.move(to: pts[0])
+            for p in pts.dropFirst() { marks.addLine(to: p) }
+        }
+
+        layer.ring.path = ring
+        layer.ring.fillColor = cg(JointGeometry.ringFill)
+        layer.ring.strokeColor = accent
+        layer.ring.lineWidth = lineWidth
+        layer.marks.path = marks
+        layer.marks.fillColor = nil
+        layer.marks.strokeColor = accent
+        layer.marks.lineWidth = lineWidth
+        layer.marks.lineCap = .round
+        layer.marks.lineJoin = .round
+        layer.dot.path = dot
+        layer.dot.fillColor = accent
+        layer.dot.strokeColor = nil
     }
 
     // MARK: Parts and wires

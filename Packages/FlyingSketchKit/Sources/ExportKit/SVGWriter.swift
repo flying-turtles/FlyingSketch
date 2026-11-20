@@ -58,7 +58,8 @@ public enum SVGWriter {
         var out = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         out += "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\(n(b.size.x))mm\" height=\"\(n(b.size.y))mm\" "
         out += "viewBox=\"\(n(b.minX)) \(n(b.minY)) \(n(b.size.x)) \(n(b.size.y))\">\n"
-        for object in content.objects {
+        // Joints last: pins sit above every other object.
+        for object in content.objects.filter({ !$0.isJoint }) + content.objects.filter(\.isJoint) {
             switch object {
             case .ink(let s): out += ink(s)
             case .shape(let s): out += shape(s)
@@ -66,7 +67,7 @@ public enum SVGWriter {
             case .image(let i): out += image(i, content.document)
             case .wire(let w): out += wire(w)
             case .part(let p): out += part(p, content.document)
-            case .joint: break // Joint drawing: Task 3
+            case .joint(let j): out += joint(j)
             }
         }
         out += "</svg>\n"
@@ -140,6 +141,20 @@ public enum SVGWriter {
             }
             return "<ellipse cx=\"\(n(c.x))\" cy=\"\(n(c.y))\" rx=\"\(n(r.size.x / 2))\" ry=\"\(n(r.size.y / 2))\"\(fillAttr)\(style)\(spin)/>\n"
         }
+    }
+
+    private static func joint(_ j: Joint) -> String {
+        let style = strokeStyle(width: JointGeometry.strokeWidth, color: JointGeometry.accent)
+        let c = "<circle cx=\"\(n(j.position.x))\" cy=\"\(n(j.position.y))\""
+        var out = "<g class=\"joint\">\n"
+        if j.kind == .hinge {
+            out += "\(c) r=\"\(n(JointGeometry.ringRadius))\"\(fill(JointGeometry.ringFill))\(style)/>\n"
+            out += "\(c) r=\"\(n(JointGeometry.dotRadius))\"\(fill(JointGeometry.accent))/>\n"
+        }
+        for line in JointGeometry.marks(of: j) {
+            out += "<polyline points=\"\(line.map(pt).joined(separator: " "))\" fill=\"none\"\(style)/>\n"
+        }
+        return out + "</g>\n"
     }
 
     private static func wire(_ w: Wire) -> String {

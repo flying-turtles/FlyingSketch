@@ -12,7 +12,9 @@ public enum SceneDrawer {
 
     static func draw(_ content: ExportContent, in ctx: CGContext, pixelSize: Double) {
         var images: [String: CGImage?] = [:]
-        for object in content.objects {
+        // Joints last: pins sit above every other object.
+        let ordered = content.objects.filter { !$0.isJoint } + content.objects.filter(\.isJoint)
+        for object in ordered {
             ctx.saveGState()
             switch object {
             case .ink(let s): drawInk(s, ctx, pixelSize)
@@ -25,7 +27,7 @@ public enum SceneDrawer {
                 if let img = images[i.assetName] ?? nil { drawImage(i, img, ctx) }
             case .wire(let w): drawWire(w, ctx)
             case .part(let p): drawPart(p, content.document, ctx)
-            case .joint: break // Joint drawing: Task 3
+            case .joint(let j): drawJoint(j, ctx)
             }
             ctx.restoreGState()
         }
@@ -81,6 +83,27 @@ public enum SceneDrawer {
         ctx.setStrokeColor(cg(s.strokeColor))
         ctx.addPath(path)
         ctx.strokePath()
+    }
+
+    private static func drawJoint(_ j: Joint, _ ctx: CGContext) {
+        let accent = cg(JointGeometry.accent)
+        ctx.setLineWidth(JointGeometry.strokeWidth)
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+        ctx.setStrokeColor(accent)
+        if j.kind == .hinge {
+            let r = JointGeometry.ringRadius, d = JointGeometry.dotRadius
+            let ring = CGRect(x: j.position.x - r, y: j.position.y - r, width: 2 * r, height: 2 * r)
+            ctx.setFillColor(cg(JointGeometry.ringFill))
+            ctx.fillEllipse(in: ring)
+            ctx.strokeEllipse(in: ring)
+            ctx.setFillColor(accent)
+            ctx.fillEllipse(in: CGRect(x: j.position.x - d, y: j.position.y - d, width: 2 * d, height: 2 * d))
+        }
+        for line in JointGeometry.marks(of: j) {
+            ctx.addLines(between: line.map(cgp))
+            ctx.strokePath()
+        }
     }
 
     private static func drawWire(_ w: Wire, _ ctx: CGContext) {
@@ -191,4 +214,8 @@ public enum SceneDrawer {
         ctx.setStrokeColor(CGColor(gray: placeholderGray, alpha: 1))
         ctx.stroke(CGRect(x: p.center.x - side / 2, y: p.center.y - side / 2, width: side, height: side))
     }
+}
+
+extension SceneObject {
+    var isJoint: Bool { if case .joint = self { true } else { false } }
 }

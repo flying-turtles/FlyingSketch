@@ -269,3 +269,11 @@ private func repaired(_ doc: SketchDocument) -> SketchDocument {
     #expect(fixed.groups == [g1])
     #expect(jointIntegrityEdits(in: fixed).isEmpty)
 }
+
+@Test func groundedJointBoundsCoverGroundMark() {
+    let b = bounds(of: .joint(Joint(position: v(5, 5), grounded: true)))
+    #expect(abs(b.minX - 3.2) < 1e-9 && abs(b.size.x - 3.6) < 1e-9) // base line is wider than the ring
+    #expect(b.maxY >= 5 + JointGeometry.groundDrop + JointGeometry.hatchLength - 1e-9)
+    let lock = bounds(of: .joint(Joint(kind: .fixed, position: v(5, 5), grounded: true)))
+    #expect(lock.minY <= 5 - JointGeometry.lockHalfHeight - JointGeometry.shackleRadius + 1e-9)
+}

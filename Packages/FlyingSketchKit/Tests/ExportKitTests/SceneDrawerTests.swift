@@ -129,3 +129,29 @@ private func rotatedRed() -> SceneObject {
     #expect(at(cw).r > 0.9 && at(cw).g < 0.2)
     #expect(at(ccw).g > 0.9)
 }
+
+private let accent = JointGeometry.accent
+
+@Test func hingeDrawsRingAndDot() {
+    let img = render(content([.joint(Joint(position: Vec2(x: 10, y: 10)))]), pxPerMM: ppm)
+    let ring = px(img, 10 + 1.2, 10)
+    #expect(abs(ring.r - accent.r) < 0.1 && abs(ring.g - accent.g) < 0.1 && abs(ring.b - accent.b) < 0.1)
+    #expect(px(img, 10 + 0.8, 10).r > 0.95 && px(img, 10 + 0.8, 10).g > 0.95)
+    let dot = px(img, 10, 10)
+    #expect(dot.r < 0.2 && dot.b > 0.9)
+}
+
+@Test func jointDrawsOverLaterObjects() {
+    let cover = SceneObject.shape(ShapeObject(kind: .rectangle, start: Vec2(x: 5, y: 5), end: Vec2(x: 15, y: 15),
+                                              strokeColor: .black, fillColor: .black, lineWidth: 0.5))
+    let img = render(content([.joint(Joint(position: Vec2(x: 10, y: 10))), cover]), pxPerMM: ppm)
+    let dot = px(img, 10, 10)
+    #expect(dot.b > 0.9 && dot.r < 0.2 && dot.g > 0.3)
+    #expect(px(img, 10 + 0.8, 10).r > 0.95)
+}
+
+@Test func groundedHingeDrawsBaseLine() {
+    let img = render(content([.joint(Joint(position: Vec2(x: 10, y: 10), grounded: true))]), pxPerMM: ppm)
+    let base = px(img, 10 + 1.0, 10 + JointGeometry.groundDrop)
+    #expect(base.r < 0.2 && base.b > 0.9)
+}

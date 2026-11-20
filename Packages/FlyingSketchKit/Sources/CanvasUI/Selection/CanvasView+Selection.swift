@@ -87,7 +87,9 @@ extension CanvasView {
         let tol = Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
         let box = Rect(origin: w - Vec2(x: tol, y: tol), size: Vec2(x: 2 * tol, y: 2 * tol))
         let doc = model.document
-        return renderer.objects(in: box).last { objectHit($0, w, tol, doc) }
+        let hits = renderer.objects(in: box).filter { objectHit($0, w, tol, doc) }
+        // Pins win every tap, whatever the z-order.
+        return hits.last { if case .joint = $0 { true } else { false } } ?? hits.last
     }
 
     /// Finger tap outside the selection: a pin of a selected part (or end of a selected wire) highlights its net,

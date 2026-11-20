@@ -177,8 +177,16 @@ final class SceneRenderer {
         }
     }
 
-    private func show(_ object: SceneObject, _ vp: Viewport, _ size: Vec2) {
+    /// Joints sit above every other object: their z is offset past the highest document index. Layers keep
+    /// their zPosition when a move preview swaps their content, so previews stay in order too.
+    private func layerZ(of object: SceneObject) -> CGFloat {
         let z = CGFloat(zIndex[object.id] ?? 0)
+        if case .joint = object { return z + CGFloat(lastObjects.count) }
+        return z
+    }
+
+    private func show(_ object: SceneObject, _ vp: Viewport, _ size: Vec2) {
+        let z = layerZ(of: object)
         if var e = entries[object.id] {
             if e.viewport != vp || e.viewSize != size || dirty.contains(object.id) {
                 if sameKind(e.object, object) {
@@ -204,7 +212,8 @@ final class SceneRenderer {
 
     private func sameKind(_ a: SceneObject, _ b: SceneObject) -> Bool {
         switch (a, b) {
-        case (.ink, .ink), (.shape, .shape), (.text, .text), (.image, .image), (.part, .part), (.wire, .wire): true
+        case (.ink, .ink), (.shape, .shape), (.text, .text), (.image, .image), (.part, .part), (.wire, .wire),
+             (.joint, .joint): true
         default: false
         }
     }

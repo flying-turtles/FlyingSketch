@@ -289,3 +289,28 @@ private func jpegBytes() -> Data {
     let q = try probe(SVGWriter.svg(make([r])))
     #expect(try #require(q.attrsByName["rect"])[0]["transform"] == "rotate(30 10 2)")
 }
+
+private func jointGroup(_ s: String, _ index: Int = 0) -> Substring {
+    let parts = s.components(separatedBy: "<g class=\"joint\">")
+    guard parts.count > index + 1 else { return "" }
+    return parts[index + 1].prefix(upTo: parts[index + 1].range(of: "</g>")?.lowerBound ?? parts[index + 1].endIndex)
+}
+
+@Test func jointsAreLastGroupsOnePerJoint() {
+    let a = Joint(position: Vec2(x: 5, y: 5)), b = Joint(position: Vec2(x: 20, y: 5), grounded: true)
+    let rect = SceneObject.shape(ShapeObject(kind: .rectangle, start: .zero, end: Vec2(x: 30, y: 10)))
+    let s = svgString(make([.joint(a), rect, .joint(b)]))
+    #expect(s.components(separatedBy: "<g class=\"joint\">").count == 3)
+    let lastOther = s.range(of: "<rect", options: .backwards)!.upperBound
+    #expect(s.range(of: "<g class=\"joint\">")!.lowerBound > lastOther)
+    let plain = jointGroup(s, 0), grounded = jointGroup(s, 1)
+    func strokes(_ g: Substring) -> Int { g.components(separatedBy: "<polyline").count - 1 }
+    #expect(strokes(plain) == 0)
+    #expect(strokes(grounded) == 4) // base line + three hatches
+}
+
+@Test func fixedJointDrawsLockNotRing() {
+    let s = svgString(make([.joint(Joint(kind: .fixed, position: Vec2(x: 5, y: 5), grounded: true))]))
+    #expect(!s.contains("<circle"))
+    #expect(jointGroup(s).contains("<polyline"))
+}

@@ -59,7 +59,8 @@ public func bounds(of object: SceneObject) -> Rect {
         return Rect.bounding(w.polyline)!.insetBy(-w.width / 2)
     case .joint(let j):
         let r = Joint.radius
-        return Rect(origin: j.position - Vec2(x: r, y: r), size: Vec2(x: 2 * r, y: 2 * r))
+        let ring = Rect(origin: j.position - Vec2(x: r, y: r), size: Vec2(x: 2 * r, y: 2 * r))
+        return JointGeometry.marks(of: j).reduce(ring) { $0.union(Rect.bounding($1)!) }
     }
 }
 
