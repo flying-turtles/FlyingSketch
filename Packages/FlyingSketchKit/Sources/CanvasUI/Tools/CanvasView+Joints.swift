@@ -8,12 +8,14 @@ extension CanvasView {
     func pinTap(at viewPoint: CGPoint) {
         let raw = worldPoint(viewPoint)
         let doc = model.document
-        if let joint = hitObjects(atWorld: raw).last(where: { if case .joint = $0 { true } else { false } }),
-           case .joint(let j) = joint {
-            model.perform(toggleGroundEdits(joint: j.id, in: doc), actionName: j.grounded ? "Release Pin" : "Pin to Background")
-            return
-        }
         let spot = snapsToGrid ? snap(raw, grid: ShapeController.gridSize) : raw
+        // An existing pin at the tap, or at the snapped spot, is toggled; never stack a second one.
+        for probe in (spot == raw ? [raw] : [raw, spot]) {
+            if case .joint(let j)? = hitObjects(atWorld: probe).last(where: { if case .joint = $0 { true } else { false } }) {
+                model.perform(toggleGroundEdits(joint: j.id, in: doc), actionName: j.grounded ? "Release Pin" : "Pin to Background")
+                return
+            }
+        }
         let under = hitObjects(atWorld: spot).filter { if case .wire = $0 { false } else if case .joint = $0 { false } else { true } }
             .map(\.id)
         let bodies = Set(under.map { bodyID(of: $0, in: doc) })
@@ -59,9 +61,15 @@ extension CanvasView {
 
     // MARK: Actions
 
+    /// Drops ids that left the document (e.g. a hinge integrity removed), then expands to whole groups.
+    private func refreshSelection() {
+        let existing = Set(model.document.objects.map(\.id))
+        selection.ids = expandedToGroups(selection.ids.intersection(existing))
+    }
+
     public func groupSelection() {
         model.perform(groupEdits(selection.ids, in: model.document), actionName: "Group")
-        selection.ids = expandedToGroups(selection.ids)
+        refreshSelection()
     }
 
     /// Dissolves every group the selection touches, as one undo step.
@@ -70,16 +78,21 @@ extension CanvasView {
         var doc = model.document
         var edits: [SceneEdit] = []
         for g in doc.groups where g.members.contains(where: selected.contains) {
-            let step = ungroupEdits(group: g.id, objectsAt: { [self] p in hitObjects(atWorld: p).map(\.id) }, in: doc)
+            let members = Set(g.members)
+            let step = ungroupEdits(group: g.id, objectsAt: { [self] p in
+                hitObjects(atWorld: p, tolerance: Joint.radius).map(\.id).filter(members.contains)
+            }, in: doc)
             for e in step { _ = e.apply(to: &doc) }
             edits += step
         }
         model.perform(edits, actionName: "Ungroup")
+        refreshSelection()
     }
 
     public func toggleLockSelection() {
         guard selectionCanLock, let first = selectedBodyObjects.first else { return }
         model.perform(toggleLockEdits(object: first.id, in: model.document),
                       actionName: selectionIsLocked ? "Unlock" : "Lock in Place")
+        refreshSelection()
     }
 }

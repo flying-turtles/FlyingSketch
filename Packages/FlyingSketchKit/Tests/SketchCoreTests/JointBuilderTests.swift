@@ -147,3 +147,42 @@ private func joints(_ d: SketchDocument) -> [Joint] {
     #expect(jointIntegrityEdits(in: after).isEmpty)
     #expect(ungroupEdits(group: ObjectID.new(), objectsAt: at, in: doc).isEmpty)
 }
+
+@Test func pinAtExistingHingeAddsNoDuplicate() {
+    let (a, b, c) = (bar(0, 0, 40, 40), bar(10, 10, 50, 50), bar(20, 20, 60, 60))
+    let hinge = Joint(position: v(30, 30), anchors: [JointAnchor(object: a.id, point: v(30, 30)),
+                                                     JointAnchor(object: b.id, point: v(30, 30))])
+    let doc = SketchDocument(objects: [a, b, c, .joint(hinge)])
+    #expect(pinEdits(at: v(30, 30), under: [a.id, b.id], in: doc).isEmpty)
+    let after = apply(pinEdits(at: v(30, 30), under: [a.id, b.id, c.id], in: doc), to: doc)
+    #expect(joints(after).count == 1 && joints(after)[0].id == hinge.id)
+    #expect(joints(after)[0].anchors.map(\.object) == [a.id, b.id, c.id])
+    #expect(jointIntegrityEdits(in: after).isEmpty)
+}
+
+@Test func ungroupKeepsLocks() {
+    let (a, b) = (bar(0, 0, 40, 10), bar(100, 0, 140, 10))
+    let g = ObjectGroup(members: [a.id, b.id])
+    var doc = SketchDocument(objects: [a, b], groups: [g])
+    doc = apply(toggleLockEdits(object: b.id, in: doc), to: doc)
+    let lock = joints(doc)[0]
+    let after = apply(ungroupEdits(group: g.id, objectsAt: { _ in [] }, in: doc), to: doc)
+    #expect(after.groups.isEmpty)
+    #expect(joints(after) == [lock])
+}
+
+@Test func undoRestoresGroupAndGroundToggles() {
+    let (a, b) = (bar(0, 0, 40, 10), bar(30, 0, 70, 10))
+    let hinge = Joint(position: v(35, 5), anchors: [JointAnchor(object: a.id, point: v(35, 5)),
+                                                    JointAnchor(object: b.id, point: v(35, 5))])
+    let doc = SketchDocument(objects: [a, b, .joint(hinge)])
+    for edits in [groupEdits([a.id, b.id], in: doc), toggleGroundEdits(joint: hinge.id, in: doc),
+                  toggleLockEdits(object: a.id, in: doc)] {
+        var d = doc
+        var inverses: [SceneEdit] = []
+        for e in edits { inverses.append(e.apply(to: &d)) }
+        #expect(d != doc)
+        for e in inverses.reversed() { _ = e.apply(to: &d) }
+        #expect(d == doc)
+    }
+}

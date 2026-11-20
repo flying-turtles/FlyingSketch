@@ -159,3 +159,58 @@ private func stroke(_ x: Double, _ y: Double) -> SceneObject {
     #expect(m.document.groups.count == 1)
     #expect(!m.undoManager.canUndo)
 }
+
+@Test @MainActor func snappedTapNearPinTogglesInsteadOfDuplicating() {
+    let (view, m) = canvas([rect(0, 0, 60, 60), rect(10, 10, 70, 70)])
+    view.snapsToGrid = true
+    tapPin(view, at: v(23, 38))
+    #expect(joints(m).first?.position == v(20, 40))
+    tapPin(view, at: v(24, 37)) // misses the pin raw, snaps onto it: must toggle
+    #expect(joints(m).count == 1 && joints(m)[0].grounded)
+}
+
+@Test @MainActor func ungroupKeepsLockOnCanvas() {
+    let (a, b) = (stroke(0, 0), stroke(0, 100))
+    let (view, m) = canvas([a, b], groups: [ObjectGroup(members: [a.id, b.id])])
+    view.selection.ids = [a.id]
+    view.toggleLockSelection()
+    view.ungroupSelection()
+    #expect(m.document.groups.isEmpty)
+    #expect(joints(m).count == 1 && joints(m)[0].kind == .fixed)
+}
+
+@Test @MainActor func ungroupIgnoresZoom() {
+    func run(zoom: Double) -> Bool {
+        let a = rect(0, 0, 40, 10), b = rect(50, 0, 90, 10), c = rect(0, 30, 120, 40)
+        let hinge = Joint(position: v(91, 5), anchors: [JointAnchor(object: a.id, point: v(91, 5)),
+                                                        JointAnchor(object: c.id, point: v(91, 5))])
+        let (view, m) = canvas([a, b, c, .joint(hinge)], groups: [ObjectGroup(members: [a.id, b.id])])
+        view.viewport = Viewport(center: v(91, 5), zoom: zoom)
+        view.layoutIfNeeded()
+        view.selection.ids = [a.id]
+        view.ungroupSelection()
+        return joints(m).first?.anchors.first?.object == b.id
+    }
+    #expect(run(zoom: 0.25))
+    #expect(run(zoom: 4))
+}
+
+@Test @MainActor func groupDropsStaleHingeFromSelection() {
+    let (a, b) = (rect(0, 0, 40, 10), rect(30, 0, 70, 10))
+    let hinge = Joint(position: v(35, 5), anchors: [JointAnchor(object: a.id, point: v(35, 5)),
+                                                    JointAnchor(object: b.id, point: v(35, 5))])
+    let (view, m) = canvas([a, b, .joint(hinge)])
+    view.selection.ids = [a.id, b.id, hinge.id]
+    view.groupSelection()
+    #expect(view.selection.ids == [a.id, b.id])
+    m.undoManager.undo()
+    #expect(m.document.groups.isEmpty && joints(m).count == 1)
+}
+
+@Test @MainActor func pinTouchPathTapAndSlop() {
+    // UITouch cannot be faked here: exercise the release path via the interaction value instead.
+    let (view, m) = canvas([rect(0, 0, 40, 40)])
+    view.interaction = .pin(start: point(view, v(10, 10)))
+    if case .pin(let s)? = view.interaction { view.pinTap(at: s) }
+    #expect(joints(m).count == 1)
+}

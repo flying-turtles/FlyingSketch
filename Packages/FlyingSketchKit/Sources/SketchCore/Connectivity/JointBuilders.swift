@@ -16,13 +16,22 @@ private func isBody(_ o: SceneObject) -> Bool {
 }
 
 /// `under`: non-wire, non-joint objects hit at `point`, bottom to top. Joins their bodies on one hinge at
-/// `point`; exactly one body -> grounded hinge; none -> [].
+/// `point`; exactly one body -> grounded hinge; none -> []. A hinge already at `point` gains the missing bodies
+/// (nothing missing -> []).
 public func pinEdits(at point: Vec2, under objects: [ObjectID], in doc: SketchDocument) -> [SceneEdit] {
     let usable = Set(doc.objects.filter(isBody).map(\.id))
     var seen = Set<ObjectID>()
     let anchors = objects.filter { usable.contains($0) && seen.insert(bodyID(of: $0, in: doc)).inserted }
         .map { JointAnchor(object: $0, point: point) }
     guard !anchors.isEmpty else { return [] }
+    // A hinge already sits here: complete it instead of stacking a second one.
+    for case .joint(var existing) in doc.objects where existing.kind == .hinge && existing.position.distance(to: point) < 1e-6 {
+        let held = Set(existing.anchors.map { bodyID(of: $0.object, in: doc) })
+        let missing = anchors.filter { !held.contains(bodyID(of: $0.object, in: doc)) }
+        guard !missing.isEmpty else { return [] }
+        existing.anchors += missing
+        return withIntegrity([.replace([.joint(existing)])], in: doc)
+    }
     let joint = Joint(kind: .hinge, position: point, anchors: anchors, grounded: anchors.count == 1)
     return withIntegrity([.insert([.joint(joint)], at: nil)], in: doc)
 }
@@ -67,12 +76,13 @@ public func groupEdits(_ ids: Set<ObjectID>, in doc: SketchDocument) -> [SceneEd
 }
 
 /// Dissolves `group`; each joint anchor on a former member moves to the topmost former member at its point, or is
-/// dropped when none is there. `objectsAt`: objects hit at a point, bottom to top (the canvas supplies hit-testing).
+/// dropped when none is there. A `fixed` joint stays on its anchor object (that object alone stays locked).
+/// `objectsAt`: objects hit at a point, bottom to top (the canvas supplies hit-testing).
 public func ungroupEdits(group id: ObjectID, objectsAt: (Vec2) -> [ObjectID], in doc: SketchDocument) -> [SceneEdit] {
     guard let group = doc.groups.first(where: { $0.id == id }) else { return [] }
     let members = Set(group.members)
     var replaced: [SceneObject] = []
-    for case .joint(var j) in doc.objects where j.anchors.contains(where: { members.contains($0.object) }) {
+    for case .joint(var j) in doc.objects where j.kind == .hinge && j.anchors.contains(where: { members.contains($0.object) }) {
         j.anchors = j.anchors.compactMap { a in
             guard members.contains(a.object) else { return a }
             guard let top = objectsAt(a.point).last(where: members.contains) else { return nil }

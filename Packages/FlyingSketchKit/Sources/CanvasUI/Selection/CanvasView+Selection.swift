@@ -83,8 +83,9 @@ extension CanvasView {
     // MARK: Tap and lasso
 
     /// Objects hit at a world point (tolerance `hitSlop`), bottom to top.
-    func hitObjects(atWorld w: Vec2) -> [SceneObject] {
-        let tol = Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
+    /// `tolerance` (world mm) defaults to `hitSlop` at the current zoom.
+    func hitObjects(atWorld w: Vec2, tolerance: Double? = nil) -> [SceneObject] {
+        let tol = tolerance ?? Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
         let box = Rect(origin: w - Vec2(x: tol, y: tol), size: Vec2(x: 2 * tol, y: 2 * tol))
         let doc = model.document
         return renderer.objects(in: box).filter { objectHit($0, w, tol, doc) }
