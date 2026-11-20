@@ -249,3 +249,16 @@ private func stroke(_ x: Double, _ y: Double) -> SceneObject {
     #expect(hinge.map { Set($0.anchors.map(\.object)) } == [plate.id, other.id])
     #expect(hinge?.grounded == false)
 }
+
+@Test @MainActor func redoGroupReexpandsSelection() {
+    let (a, b) = (stroke(0, 0), stroke(0, 30))
+    let (view, m) = canvas([a, b])
+    view.selection.ids = [a.id, b.id]
+    view.groupSelection()
+    m.undoManager.undo()
+    #expect(m.document.groups.isEmpty)
+    view.selection.ids = [a.id]
+    m.undoManager.redo()
+    #expect(m.document.groups.count == 1)
+    #expect(view.selection.ids == [a.id, b.id])
+}

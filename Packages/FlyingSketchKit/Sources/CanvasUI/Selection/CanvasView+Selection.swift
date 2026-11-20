@@ -39,8 +39,10 @@ extension CanvasView {
 
     func documentChanged(_ doc: SketchDocument) {
         if !selection.ids.isEmpty {
+            // Drop vanished ids, then select whole groups (undo / redo may have regrouped).
             let existing = Set(doc.objects.map(\.id))
-            if !selection.ids.isSubset(of: existing) { selection.ids.formIntersection(existing) }
+            let ids = expandedToGroups(selection.ids.intersection(existing))
+            if ids != selection.ids { selection.ids = ids }
         }
         if let id = textSession?.existing?.id, !doc.objects.contains(where: { $0.id == id }) {
             endTextEditing() // edited text vanished (undo etc.): drop the editor, commit is a no-op
