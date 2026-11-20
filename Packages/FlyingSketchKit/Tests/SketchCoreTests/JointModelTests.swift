@@ -277,3 +277,67 @@ private func repaired(_ doc: SketchDocument) -> SketchDocument {
     let lock = bounds(of: .joint(Joint(kind: .fixed, position: v(5, 5), grounded: true)))
     #expect(lock.minY <= 5 - JointGeometry.lockHalfHeight - JointGeometry.shackleRadius + 1e-9)
 }
+
+/// Group [s1, s2, s3] plus bar c; `joint(s1, c)` builds the joint under test.
+private func groupedLink(_ joint: (ObjectID, ObjectID) -> Joint) -> (doc: SketchDocument, s: [ObjectID], c: ObjectID, j: Joint) {
+    let (s1, s2, s3, c) = (bar(0), bar(20), bar(40), bar(60))
+    let j = joint(s1.id, c.id)
+    let doc = SketchDocument(objects: [s1, s2, s3, c, .joint(j)], groups: [ObjectGroup(members: [s1.id, s2.id, s3.id])])
+    return (doc, [s1.id, s2.id, s3.id], c.id, j)
+}
+
+@MainActor private func deleting(_ ids: Set<ObjectID>, in doc: SketchDocument) -> (after: SketchDocument, undone: SketchDocument) {
+    let um = UndoManager()
+    um.groupsByEvent = false
+    let model = DocumentModel(document: doc, undoManager: um)
+    um.beginUndoGrouping()
+    model.perform(deletionEdits(ids, in: doc), actionName: "Delete")
+    um.endUndoGrouping()
+    let after = model.document
+    um.undo()
+    return (after, model.document)
+}
+
+private func joints(_ doc: SketchDocument) -> [Joint] {
+    doc.objects.compactMap { if case .joint(let j) = $0 { j } else { nil } }
+}
+
+@Test @MainActor func deletingGroupMemberKeepsPins() {
+    let pivot = v(65, 0)
+    let link = groupedLink { s1, c in
+        Joint(position: pivot, anchors: [JointAnchor(object: s1, point: pivot), JointAnchor(object: c, point: pivot)])
+    }
+    let (after, undone) = deleting([link.s[0]], in: link.doc)
+    #expect(jointIntegrityEdits(in: after).isEmpty)
+    let js = joints(after)
+    #expect(js.count == 1)
+    #expect(js.first?.id == link.j.id)
+    #expect(js.first?.anchors == [JointAnchor(object: link.s[1], point: pivot), JointAnchor(object: link.c, point: pivot)])
+    #expect(after.groups.map(\.members) == [[link.s[1], link.s[2]]])
+    #expect(undone == link.doc)
+}
+
+@Test @MainActor func deletingGroupMemberKeepsLock() {
+    let centre = v(25, 0)
+    let link = groupedLink { s1, _ in
+        Joint(kind: .fixed, position: centre, anchors: [JointAnchor(object: s1, point: centre)], grounded: true)
+    }
+    let (after, undone) = deleting([link.s[0]], in: link.doc)
+    let js = joints(after)
+    #expect(js.count == 1)
+    #expect(js.first?.kind == .fixed)
+    #expect(js.first?.anchors == [JointAnchor(object: link.s[1], point: centre)])
+    #expect(undone == link.doc)
+}
+
+@Test @MainActor func deletingWholeGroupDropsPins() {
+    let pivot = v(65, 0)
+    let link = groupedLink { s1, c in
+        Joint(position: pivot, anchors: [JointAnchor(object: s1, point: pivot), JointAnchor(object: c, point: pivot)])
+    }
+    let (after, undone) = deleting(Set(link.s), in: link.doc)
+    #expect(joints(after).isEmpty)
+    #expect(after.groups.isEmpty)
+    #expect(after.objects.map(\.id) == [link.c])
+    #expect(undone == link.doc)
+}

@@ -149,6 +149,29 @@ private func shapes(_ doc: SketchDocument) -> [ShapeObject] { doc.objects.compac
         #expect(!m.undoManager.canUndo)
     }
 
+    @Test func eraseGroupedStrokeKeepsPin() {
+        func stroke(_ y: Double) -> InkStroke {
+            InkStroke(points: [InkPoint(position: Vec2(x: 0, y: y), pressure: 0.5, time: 0),
+                               InkPoint(position: Vec2(x: 10, y: y), pressure: 0.5, time: 0.1)], tool: .pen, baseWidth: 0.5)
+        }
+        let (s1, s2) = (stroke(0), stroke(30))
+        let pivot = Vec2(x: 10, y: 0)
+        let bar = ShapeObject(kind: .line, start: pivot, end: Vec2(x: 40, y: 0))
+        let hinge = Joint(position: pivot, anchors: [JointAnchor(object: s1.id, point: pivot), JointAnchor(object: bar.id, point: pivot)])
+        let doc = SketchDocument(objects: [.ink(s1), .ink(s2), .shape(bar), .joint(hinge)],
+                                 groups: [ObjectGroup(members: [s1.id, s2.id])])
+        let m = DocumentModel(document: doc)
+        let e = EraserController(model: m)
+        e.begin(at: Vec2(x: 2, y: 0), radius: 1)
+        #expect(e.hit == [s1.id])
+        e.end()
+        #expect(Set(m.document.objects.map(\.id)) == [s2.id, bar.id, hinge.id])
+        #expect(joints(m.document).first?.anchors.map(\.object) == [s2.id, bar.id])
+        #expect(jointIntegrityEdits(in: m.document).isEmpty)
+        m.undoManager.undo()
+        #expect(m.document == doc)
+    }
+
     @Test func eraseJoint() {
         let fb = fourBarDocument()
         let m = DocumentModel(document: fb.doc)

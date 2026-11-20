@@ -147,14 +147,42 @@ public func reconcileWires(in doc: SketchDocument) -> [SceneObject] {
 }
 
 /// Edits that delete `ids` as one action: wires attached to removed parts (and not removed themselves) are
-/// detached (attachment cleared, position kept), then everything in `ids` is removed, then joints and groups are
-/// repaired for what is left (`jointIntegrityEdits`). Empty when nothing to do.
+/// detached (attachment cleared, position kept); joint anchors on removed group members move to the group's first
+/// surviving member (point kept: pins and locks belong to the body and go only with its last object); then
+/// everything in `ids` is removed, then joints and groups are repaired for what is left (`jointIntegrityEdits`).
+/// Empty when nothing to do.
 public func deletionEdits(_ ids: Set<ObjectID>, in doc: SketchDocument) -> [SceneEdit] {
     let existing = ids.intersection(doc.objects.map(\.id))
     guard !existing.isEmpty else { return [] }
     let detached = removeParts(existing, in: doc).detachedWires.filter { !existing.contains($0.id) }
-    let edits: [SceneEdit] = (detached.isEmpty ? [] : [.replace(detached)]) + [.remove(existing)]
+    let rehomed = rehomedJoints(deleting: existing, in: doc)
+    let edits: [SceneEdit] = (detached.isEmpty ? [] : [.replace(detached)]) + (rehomed.isEmpty ? [] : [.replace(rehomed)])
+        + [.remove(existing)]
     var after = doc
     for edit in edits { _ = edit.apply(to: &after) }
     return edits + jointIntegrityEdits(in: after)
+}
+
+/// Surviving joints with anchors on deleted objects that are moved to the first surviving member of the object's
+/// group (in the group's member order). Anchors on ungrouped objects, or on wholly deleted groups, are left for
+/// the integrity pass to drop.
+private func rehomedJoints(deleting ids: Set<ObjectID>, in doc: SketchDocument) -> [SceneObject] {
+    var heir: [ObjectID: ObjectID] = [:]
+    for g in doc.groups {
+        guard let survivor = g.members.first(where: { !ids.contains($0) }) else { continue }
+        for m in g.members where ids.contains(m) && heir[m] == nil { heir[m] = survivor }
+    }
+    guard !heir.isEmpty else { return [] }
+    var result: [SceneObject] = []
+    for case .joint(var j) in doc.objects where !ids.contains(j.id) {
+        var changed = false
+        for k in j.anchors.indices {
+            if let to = heir[j.anchors[k].object] {
+                j.anchors[k].object = to
+                changed = true
+            }
+        }
+        if changed { result.append(.joint(j)) }
+    }
+    return result
 }
