@@ -22,11 +22,23 @@ private func partLabels(in doc: SketchDocument) -> [String] {
 /// Copies of `objects` for insertion into `doc`: fresh ids, translated by `delta`. Wire ends stay attached only to
 /// parts copied in the same batch (ids remapped); other attachments are cleared (position kept). Parts get the next
 /// free label for their definition's prefix (`doc.parts`, else `definitions`); prefix "" keeps the label.
-func cloned(_ objects: [SceneObject], by delta: Vec2, into doc: SketchDocument,
-            definitions: [String: PartDefinition] = [:]) -> [SceneObject] {
+/// A joint is copied only when every anchor's object is copied too (anchors remapped, never partial); a group in
+/// `groups` is copied (new id, remapped members) only when all its members are. Both move by `delta`.
+func cloned(_ objects: [SceneObject], groups: [ObjectGroup] = [], by delta: Vec2, into doc: SketchDocument,
+            definitions: [String: PartDefinition] = [:]) -> (objects: [SceneObject], groups: [ObjectGroup]) {
+    let bodies = Set(objects.compactMap { o -> ObjectID? in
+        switch o {
+        case .wire, .joint: nil
+        default: o.id
+        }
+    })
+    let kept = objects.filter { o in
+        guard case .joint(let j) = o else { return true }
+        return !j.anchors.isEmpty && j.anchors.allSatisfy { bodies.contains($0.object) }
+    }
     var newIDs: [ObjectID: ObjectID] = [:]
     var partIDs: Set<ObjectID> = []
-    for o in objects {
+    for o in kept {
         newIDs[o.id] = .new()
         if case .part = o { partIDs.insert(o.id) }
     }
@@ -36,7 +48,7 @@ func cloned(_ objects: [SceneObject], by delta: Vec2, into doc: SketchDocument,
         guard partIDs.contains(part), let id = newIDs[part] else { return WireEnd(position: end.position) }
         return WireEnd(position: end.position, attachment: .connector(part: id, connector: connector))
     }
-    return objects.map { o in
+    let copies = kept.map { o -> SceneObject in
         let copy = o.translated(by: delta).withID(newIDs[o.id]!)
         switch copy {
         case .part(var p):
@@ -50,10 +62,17 @@ func cloned(_ objects: [SceneObject], by delta: Vec2, into doc: SketchDocument,
             w.start = remap(w.start)
             w.end = remap(w.end)
             return .wire(w)
+        case .joint(var j):
+            for i in j.anchors.indices { j.anchors[i].object = newIDs[j.anchors[i].object]! }
+            return .joint(j)
         default:
             return copy
         }
     }
+    let copiedGroups = groups.filter { $0.members.allSatisfy { bodies.contains($0) } }.map { g in
+        ObjectGroup(members: g.members.map { newIDs[$0]! })
+    }
+    return (copies, copiedGroups)
 }
 
 /// Part placement, rotation and editing; part-aware move geometry.

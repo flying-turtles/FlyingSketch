@@ -199,11 +199,17 @@ extension CanvasView {
         selection.ids = []
     }
 
+    /// Insert `objects` and append `groups` to the table (no-op when empty).
+    private func insertEdits(_ objects: [SceneObject], groups: [ObjectGroup], into doc: SketchDocument) -> [SceneEdit] {
+        [.insert(objects, at: nil)] + (groups.isEmpty ? [] : [.setGroups(doc.groups + groups)])
+    }
+
     public func duplicateSelection() {
-        let copies = cloned(selectedObjects, by: Self.duplicateOffset, into: model.document)
-        guard !copies.isEmpty else { return }
-        model.perform(.insert(copies, at: nil), actionName: "Duplicate")
-        selection.ids = Set(copies.map(\.id))
+        let doc = model.document
+        let copies = cloned(selectedObjects, groups: doc.groups, by: Self.duplicateOffset, into: doc)
+        guard !copies.objects.isEmpty else { return }
+        model.perform(insertEdits(copies.objects, groups: copies.groups, into: doc), actionName: "Duplicate")
+        selection.ids = Set(copies.objects.map(\.id))
     }
 
     public func copySelection() {
@@ -224,17 +230,20 @@ extension CanvasView {
                 break
             }
         }
-        Clipboard.write(objects, assets: assets, definitions: definitions)
+        let ids = Set(objects.map(\.id))
+        let groups = doc.groups.filter { $0.members.allSatisfy(ids.contains) }
+        Clipboard.write(objects, assets: assets, definitions: definitions, groups: groups)
     }
 
     public func paste() {
         guard let clip = Clipboard.read(), !clip.objects.isEmpty else { return }
         let prepared = Clipboard.prepare(clip.objects, assets: clip.assets, definitions: clip.definitions,
-                                         for: model.document, centeredAt: viewport.center)
+                                         groups: clip.groups, for: model.document, centeredAt: viewport.center)
         guard !prepared.objects.isEmpty else { return }
         guard (try? model.addAssets(prepared.assets)) != nil else { return } // prepare drops unsafe names
         let defs: [SceneEdit] = prepared.definitions.isEmpty ? [] : [.setDefinitions(prepared.definitions.mapValues { $0 })]
-        model.perform(defs + [.insert(prepared.objects, at: nil)], actionName: "Paste")
+        model.perform(defs + insertEdits(prepared.objects, groups: prepared.groups, into: model.document),
+                      actionName: "Paste")
         selection.ids = Set(prepared.objects.map(\.id))
     }
 
