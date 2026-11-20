@@ -43,7 +43,7 @@ extension CanvasView {
         let bendPath = CGMutablePath()
         let insertPath = CGMutablePath()
         let r = 0.6 * legHandleRadius * scale // insert handle radius (pt)
-        for (handle, pos) in selectedWireHandles() {
+        for (handle, pos) in rotator.isActive ? [] : selectedWireHandles() {
             let v = currentViewport.worldToView(pos, viewSize: viewSize)
             switch handle {
             case .bend:
@@ -79,6 +79,7 @@ extension CanvasView {
         bendPreview = preview
         renderer.setMovePreview(ids: [], offset: .zero, replacing: [.wire(preview)])
         updateWireHandles()
+        updateRotateHandle()
     }
 
     func endWireBendDrag(at world: Vec2) {
@@ -96,5 +97,6 @@ extension CanvasView {
         bendPreview = nil
         renderer.setMovePreview(ids: [], offset: .zero)
         updateWireHandles()
+        updateRotateHandle()
     }
 }

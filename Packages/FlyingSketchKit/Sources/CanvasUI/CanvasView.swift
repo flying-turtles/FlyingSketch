@@ -77,6 +77,18 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         l.isHidden = true
         return l
     }()
+    private(set) var rotator: RotationController!
+    /// Replacement objects shown while the rotate handle is dragged.
+    var rotatePreview: [SceneObject] = []
+    /// Knob and stem above the selection box.
+    let rotateHandle: CAShapeLayer = {
+        let l = CAShapeLayer()
+        l.fillColor = UIColor.systemBlue.withAlphaComponent(0.25).cgColor
+        l.strokeColor = UIColor.systemBlue.cgColor
+        l.lineWidth = 1
+        l.isHidden = true
+        return l
+    }()
     /// Selected objects; the app may observe or set it.
     public let selection: SelectionState
     /// Highlighted net and pin info; the app may supply it (like `selection`) so SwiftUI observes it from the first render.
@@ -127,6 +139,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         layer.addSublayer(legHandles)
         layer.addSublayer(wireInsertHandles)
         layer.addSublayer(wireBendHandles)
+        layer.addSublayer(rotateHandle)
         layer.addSublayer(lassoPath.layer)
 
         let lookup: (Rect) -> [SceneObject] = { [weak self] rect in self?.renderer.objects(in: rect) ?? [] }
@@ -137,6 +150,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         wires = WireController(model: model, candidates: lookup)
         legs = LegController(model: model)
         bends = WireBendController(model: model)
+        rotator = RotationController(model: model)
         textController = TextController(model: model)
 
         let previous = model.onChange
@@ -174,7 +188,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     static func allowsUndoTap(during interaction: Interaction?) -> Bool {
         switch interaction {
         case nil, .pending, .text, .ignored: true
-        case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd, .wireBend: false
+        case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd, .wireBend, .rotate: false
         }
     }
 
@@ -229,6 +243,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case wireEnd
         /// Selected wire's bend or insert handle dragged (lasso tool or finger selection mode).
         case wireBend(WireHandle)
+        /// Selection's rotate handle dragged (lasso tool or finger selection mode).
+        case rotate
         /// Text tool tap; the editor opens on release.
         case text(start: CGPoint)
         /// Text-tool touch that travelled too far to be a tap; does nothing.
@@ -248,6 +264,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         let selecting = (isPencil || !toolState.pencilOnly) ? toolState.kind == .lasso : true
         if selecting, let end = legEnd(at: p) { return .leg(end) }
         if selecting, let handle = wireHandle(at: p) { return .wireBend(handle) }
+        if selecting, rotateHandleHit(at: p) { return .rotate }
         if isPencil || !toolState.pencilOnly {
             switch toolState.kind {
             case .ink: return .ink
@@ -349,6 +366,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             beginLegDrag(ref, at: sample(touch).position)
         case .wireBend(let handle):
             beginWireBendDrag(handle, at: sample(touch).position)
+        case .rotate:
+            beginRotate(at: sample(touch).position)
         case .pending, .text, .ignored:
             break
         }
@@ -376,6 +395,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             moveLeg(to: sample(touch).position)
         case .wireBend:
             moveWireBend(to: sample(touch).position)
+        case .rotate:
+            moveRotate(to: sample(touch).position)
         case .text(let start):
             let p = location(of: touch)
             if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
@@ -430,6 +451,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             endLegDrag(at: sample(touch).position)
         case .wireBend:
             endWireBendDrag(at: sample(touch).position)
+        case .rotate:
+            endRotate(at: sample(touch).position)
         case .text(let start):
             beginTextEditing(at: start)
         case .ignored:
@@ -463,6 +486,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .wireEnd: cancelWireEndDrag()
         case .leg: cancelLegDrag()
         case .wireBend: cancelWireBendDrag()
+        case .rotate: cancelRotate()
         case .pending, .text, .ignored: break
         }
     }

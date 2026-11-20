@@ -41,7 +41,7 @@ extension CanvasView {
     func updateLegHandles() {
         let scale = Viewport.pointsPerMillimetre * currentViewport.zoom
         let path = CGMutablePath()
-        for (_, pos) in selectedLegEnds() {
+        for (_, pos) in rotator.isActive ? [] : selectedLegEnds() {
             let v = currentViewport.worldToView(pos, viewSize: viewSize)
             path.addEllipse(in: CGRect(x: v.x - scale, y: v.y - scale, width: 2 * scale, height: 2 * scale))
         }
@@ -64,6 +64,7 @@ extension CanvasView {
         legPreview = legs.move(to: world)
         renderer.setMovePreview(ids: [], offset: .zero, replacing: legPreview)
         updateLegHandles()
+        updateRotateHandle()
     }
 
     func endLegDrag(at world: Vec2) {
@@ -87,5 +88,6 @@ extension CanvasView {
         legPreview = []
         renderer.setMovePreview(ids: [], offset: .zero)
         updateLegHandles()
+        updateRotateHandle()
     }
 }

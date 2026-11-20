@@ -47,6 +47,7 @@ extension CanvasView {
         }
         if wires.documentDidChange(doc) { clearWirePreview() }
         if bends.documentDidChange(doc) { cancelWireBendDrag() }
+        if rotator.documentDidChange(doc) { cancelRotate() }
         refreshNetHighlight(after: doc)
         render(settled: true)
     }
@@ -73,9 +74,10 @@ extension CanvasView {
     }
 
     func updateSelectionOverlay() {
-        selectionOverlay.update(viewRect: selectionViewRect)
+        selectionOverlay.update(viewRect: rotator.isActive ? nil : selectionViewRect) // box hidden while rotating
         updateLegHandles()
         updateWireHandles()
+        updateRotateHandle()
     }
 
     // MARK: Tap and lasso

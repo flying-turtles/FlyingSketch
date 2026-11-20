@@ -92,3 +92,17 @@ private let existing = TextObject(text: "Hello", position: Vec2(x: 0, y: 0), fon
     guard case .text? = v.route(isPencil: true, at: p) else { Issue.record("text route"); return }
     #expect(CanvasView.textTapSlop == 4)
 }
+
+@Test @MainActor func rotatedTextEditorKeepsTopLeftAndAngle() {
+    let rotated = TextObject(text: "Hi", position: Vec2(x: 10, y: 20), fontSize: 5, rotation: .pi / 2)
+    let m = DocumentModel(document: SketchDocument(objects: [.text(rotated)]))
+    let v = CanvasView(model: m)
+    v.frame = CGRect(x: 0, y: 0, width: 1024, height: 1366)
+    v.layoutIfNeeded()
+    let at = v.currentViewport.worldToView(Vec2(x: 10, y: 20), viewSize: v.viewSize)
+    v.beginTextEditing(at: CGPoint(x: at.x - 1, y: at.y + 1))
+    guard let tv = v.textSession?.view else { Issue.record("no editor"); return }
+    #expect(abs(atan2(tv.transform.b, tv.transform.a) - .pi / 2) < 1e-9)
+    let topLeft = tv.convert(CGPoint.zero, to: v)
+    #expect(abs(topLeft.x - at.x) < 1e-6 && abs(topLeft.y - at.y) < 1e-6)
+}

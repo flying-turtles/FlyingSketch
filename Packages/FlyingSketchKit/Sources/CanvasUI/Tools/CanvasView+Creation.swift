@@ -120,7 +120,11 @@ extension CanvasView {
         let longest = lines.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
         let width = max(ceil(longest) + font.pointSize * 2, font.pointSize * 4)
         let height = font.lineHeight * CGFloat(max(lines.count, 1))
-        s.view.frame = CGRect(x: origin.x, y: origin.y, width: width, height: height)
+        // Rotated about the top-left, which stays at the text's position (setting `frame` on a transformed view is undefined).
+        s.view.layer.anchorPoint = .zero
+        s.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
+        s.view.layer.position = CGPoint(x: origin.x, y: origin.y)
+        s.view.transform = CGAffineTransform(rotationAngle: s.existing?.rotation ?? 0)
     }
 
     /// Commits (insert / replace / delete) and tears the editor down. No-op when not editing.
