@@ -48,6 +48,7 @@ extension CanvasView {
         if wires.documentDidChange(doc) { clearWirePreview() }
         if bends.documentDidChange(doc) { cancelWireBendDrag() }
         if rotator.documentDidChange(doc) { cancelRotate() }
+        cancelPinnedDragsIfChanged(doc)
         refreshNetHighlight(after: doc)
         render(settled: true)
     }
@@ -74,7 +75,7 @@ extension CanvasView {
     }
 
     func updateSelectionOverlay() {
-        selectionOverlay.update(viewRect: rotator.isActive ? nil : selectionViewRect) // box hidden while rotating
+        selectionOverlay.update(viewRect: selectionChromeHidden ? nil : selectionViewRect) // hidden while rotating etc.
         updateLegHandles()
         updateWireHandles()
         updateRotateHandle()
@@ -134,13 +135,13 @@ extension CanvasView {
         if !moveEngaged {
             guard delta.length * scale > Self.hitSlop / 2 else { return }
             moveEngaged = true
-            moveSet = movingSet()
-            moveRigid = selection.ids
+            moveRigid = freeMoveIDs() // pinned bodies of a partly pinned selection stay
+            moveSet = movingSet(moveRigid)
         }
         moveDelta = delta
         // Parts and wires re-render from moved geometry (carried parts, attached wire ends); the rest translate.
         let replaced = movedObjects(moveSet, rigid: moveRigid, by: delta).filter(Self.isConnectable)
-        let rigid = Set(selectedObjects.filter { !Self.isConnectable($0) }.map(\.id))
+        let rigid = Set(model.document.objects.filter { moveRigid.contains($0.id) && !Self.isConnectable($0) }.map(\.id))
         renderer.setMovePreview(ids: rigid, offset: CGPoint(x: delta.x * scale, y: delta.y * scale),
                                 replacing: replaced)
         updateSelectionOverlay()
@@ -283,7 +284,7 @@ extension CanvasView: UIEditMenuInteractionDelegate {
                 self?.toggleLockSelection()
             })
         }
-        if selectionContainsParts {
+        if selectionContainsParts, !selectionIsPinned {
             items.append(UIAction(title: "Rotate ↻", image: UIImage(systemName: "rotate.right")) { [weak self] _ in
                 self?.rotateSelectedParts(clockwise: true)
             })

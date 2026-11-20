@@ -41,7 +41,7 @@ extension CanvasView {
     func updateLegHandles() {
         let scale = Viewport.pointsPerMillimetre * currentViewport.zoom
         let path = CGMutablePath()
-        for (_, pos) in rotator.isActive ? [] : selectedLegEnds() {
+        for (_, pos) in selectionChromeHidden ? [] : selectedLegEnds() {
             let v = currentViewport.worldToView(pos, viewSize: viewSize)
             path.addEllipse(in: CGRect(x: v.x - scale, y: v.y - scale, width: 2 * scale, height: 2 * scale))
         }

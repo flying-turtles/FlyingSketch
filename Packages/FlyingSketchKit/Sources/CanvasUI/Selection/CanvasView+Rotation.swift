@@ -8,9 +8,11 @@ extension CanvasView {
     static let rotateKnobRadius: CGFloat = 7
     static let rotateHitRadius: CGFloat = 16
 
-    /// Knob centre in view space; nil with no selection or while a move, leg, bend or rotate drag is in flight.
+    /// Knob centre in view space; nil with no selection, while a move, leg, bend, rotate, mechanism or pin drag is
+    /// in flight, or when the selection is pinned to anything outside it.
     var rotateHandleCenter: CGPoint? {
-        guard !rotator.isActive, !moveEngaged, legPreview.isEmpty, bendPreview == nil, let r = selectionViewRect else { return nil }
+        guard !selectionChromeHidden, !moveEngaged, legPreview.isEmpty, bendPreview == nil,
+              let r = selectionViewRect, !selectionIsPinned else { return nil }
         switch interaction {
         case .leg, .wireBend: return nil
         default: return CGPoint(x: r.midX, y: r.minY - Self.rotateHandleOffset)

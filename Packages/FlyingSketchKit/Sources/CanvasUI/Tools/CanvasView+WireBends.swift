@@ -43,7 +43,7 @@ extension CanvasView {
         let bendPath = CGMutablePath()
         let insertPath = CGMutablePath()
         let r = 0.6 * legHandleRadius * scale // insert handle radius (pt)
-        for (handle, pos) in rotator.isActive ? [] : selectedWireHandles() {
+        for (handle, pos) in selectionChromeHidden ? [] : selectedWireHandles() {
             let v = currentViewport.worldToView(pos, viewSize: viewSize)
             switch handle {
             case .bend:

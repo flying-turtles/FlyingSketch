@@ -91,7 +91,9 @@ extension CanvasView {
     var selectionContainsParts: Bool { selectedObjects.contains(where: Self.isPart) }
 
     /// Quarter-turns every selected part around its own centre; attached wire ends follow. One edit "Rotate".
+    /// Nothing when the selection is pinned to anything outside it.
     public func rotateSelectedParts(clockwise: Bool) {
+        guard !selectionIsPinned else { return }
         var working = model.document
         var changed: [ObjectID: SceneObject] = [:]
         for case .part(let p) in selectedObjects {
@@ -114,11 +116,23 @@ extension CanvasView {
 
     // MARK: Move geometry
 
-    /// Selection plus every part carried by it (plugged into a moving part, transitively).
-    func movingSet() -> Set<ObjectID> {
-        let ids = selection.ids
-        guard selectedObjects.contains(where: Self.isConnectable) else { return ids }
-        return ids.union(carriedParts(by: ids, in: model.document))
+    /// `ids` plus every part carried by them (plugged into a moving part, transitively). A pinned part outside
+    /// `ids` is never carried (its pin holds), nor is what is plugged into it.
+    func movingSet(_ ids: Set<ObjectID>) -> Set<ObjectID> {
+        let doc = model.document
+        guard doc.objects.contains(where: { ids.contains($0.id) && Self.isConnectable($0) }) else { return ids }
+        var anchored = Set<ObjectID>()
+        for case .joint(let j) in doc.objects { anchored.formUnion(j.anchors.map(\.object)) }
+        var carriedBy: [ObjectID: [ObjectID]] = [:]
+        for c in contacts(in: doc) where !anchored.contains(c.male.part) {
+            carriedBy[c.female.part, default: []].append(c.male.part)
+        }
+        var result = ids
+        var frontier = Array(ids)
+        while let id = frontier.popLast() {
+            for child in carriedBy[id] ?? [] where result.insert(child).inserted { frontier.append(child) }
+        }
+        return result
     }
 
     private static func isPart(_ o: SceneObject) -> Bool {
@@ -133,11 +147,11 @@ extension CanvasView {
     }
 
     /// Replacement objects for moving `moving` by `delta`: parts and wires via `moveParts` (carried parts follow,
-    /// attached wire ends re-path), every other selected object translated.
+    /// attached wire ends re-path), every other object in `rigid` (joints included) translated.
     /// Parts in `rigid` (directly dragged) move whole, legs included; only carried parts keep legs pinned.
     func movedObjects(_ moving: Set<ObjectID>, rigid: Set<ObjectID>, by delta: Vec2) -> [SceneObject] {
         let doc = model.document
-        var result = selectedObjects.filter { !Self.isConnectable($0) }.map { $0.translated(by: delta) }
+        var result = doc.objects.filter { rigid.contains($0.id) && !Self.isConnectable($0) }.map { $0.translated(by: delta) }
         if doc.objects.contains(where: { moving.contains($0.id) && Self.isConnectable($0) }) {
             result += moveParts(moving, by: delta, in: doc, rigid: rigid)
         }

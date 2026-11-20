@@ -101,6 +101,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     var moveRigid: Set<ObjectID> = []
     var moveDelta: Vec2 = .zero
     var moveEngaged = false
+    /// In-flight mechanism drag (selection mode, touch on a pinned body).
+    var mechanismSession: MechanismSession?
+    /// In-flight drag of a selected pin.
+    var pinMoveSession: PinMoveSession?
     var editMenu: UIEditMenuInteraction!
     let longPress = UILongPressGestureRecognizer()
     var menuAnchor: CGPoint?
@@ -188,7 +192,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     static func allowsUndoTap(during interaction: Interaction?) -> Bool {
         switch interaction {
         case nil, .pending, .text, .pin, .ignored: true
-        case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd, .wireBend, .rotate: false
+        case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd, .wireBend, .rotate, .mechanism, .pinMove: false
         }
     }
 
@@ -245,6 +249,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case wireBend(WireHandle)
         /// Selection's rotate handle dragged (lasso tool or finger selection mode).
         case rotate
+        /// Drag on a selected pinned body (selection mode): its mechanism moves live, grabbing that object.
+        case mechanism(ObjectID)
+        /// Selected pin dragged (selection mode): relocates the pin, bodies stay.
+        case pinMove(ObjectID)
         /// Text tool tap; the editor opens on release.
         case text(start: CGPoint)
         /// Pin tool tap; the pin is placed on release, at the start point.
@@ -259,7 +267,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         route(isPencil: touch.type == .pencil, at: location(of: touch))
     }
 
-    /// Routing seam. A drag starting inside the selection moves it for the finger (pencilOnly) and the lasso tool.
+    /// Routing seam. A drag starting inside the selection moves it for the finger (pencilOnly) and the lasso tool;
+    /// on a selected pin it moves the pin, on a selected pinned body it drags the mechanism (`selectionDrag`).
     func route(isPencil: Bool, at p: CGPoint) -> Interaction? {
         let insideSelection = selectionViewRect?
             .insetBy(dx: -Self.hitSlop, dy: -Self.hitSlop).contains(p) == true
@@ -267,11 +276,12 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         if selecting, let end = legEnd(at: p) { return .leg(end) }
         if selecting, let handle = wireHandle(at: p) { return .wireBend(handle) }
         if selecting, rotateHandleHit(at: p) { return .rotate }
+        if selecting, let joint = selectedJoint(at: p) { return .pinMove(joint) }
         if isPencil || !toolState.pencilOnly {
             switch toolState.kind {
             case .ink: return .ink
             case .eraser: return .erase
-            case .lasso: return insideSelection ? .move : .lasso
+            case .lasso: return insideSelection ? selectionDrag(at: p) : .lasso
             case .shape: return .shape
             case .text: return .text(start: p)
             case .pin: return .pin(start: p)
@@ -282,7 +292,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             case .image: return nil
             }
         }
-        return insideSelection ? .move : .pending(start: p)
+        return insideSelection ? selectionDrag(at: p) : .pending(start: p)
     }
 
     /// Two or more fingers down means pan/pinch/tap gestures own the touches.
@@ -371,6 +381,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             beginWireBendDrag(handle, at: sample(touch).position)
         case .rotate:
             beginRotate(at: sample(touch).position)
+        case .mechanism(let id):
+            beginMechanismDrag(object: id, at: sample(touch).position)
+        case .pinMove(let id):
+            beginPinMove(id, at: sample(touch).position)
         case .pending, .text, .pin, .ignored:
             break
         }
@@ -400,6 +414,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             moveWireBend(to: sample(touch).position)
         case .rotate:
             moveRotate(to: sample(touch).position)
+        case .mechanism:
+            moveMechanism(to: sample(touch).position)
+        case .pinMove:
+            movePin(to: sample(touch).position)
         case .text(let start):
             let p = location(of: touch)
             if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
@@ -459,6 +477,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             endWireBendDrag(at: sample(touch).position)
         case .rotate:
             endRotate(at: sample(touch).position)
+        case .mechanism:
+            endMechanismDrag()
+        case .pinMove:
+            endPinMove(at: sample(touch).position)
         case .text(let start):
             beginTextEditing(at: start)
         case .pin(let start):
@@ -495,6 +517,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .leg: cancelLegDrag()
         case .wireBend: cancelWireBendDrag()
         case .rotate: cancelRotate()
+        case .mechanism: cancelMechanismDrag()
+        case .pinMove: cancelPinMove()
         case .pending, .text, .pin, .ignored: break
         }
     }
