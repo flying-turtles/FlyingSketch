@@ -66,6 +66,7 @@ public enum SVGWriter {
             case .image(let i): out += image(i, content.document)
             case .wire(let w): out += wire(w)
             case .part(let p): out += part(p, content.document)
+            case .joint: break // Joint drawing: Task 3
             }
         }
         out += "</svg>\n"

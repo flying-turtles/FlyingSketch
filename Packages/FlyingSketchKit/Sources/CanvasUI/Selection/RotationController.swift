@@ -98,7 +98,7 @@ final class RotationController {
         case .shape(let s): return (s.kind == .rectangle || s.kind == .ellipse) ? s.rotation : nil
         case .text(let t): return t.rotation
         case .image(let i): return i.rotation
-        case .ink, .wire: return nil
+        case .ink, .wire, .joint: return nil
         }
     }
 }

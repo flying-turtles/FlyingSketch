@@ -147,10 +147,14 @@ public func reconcileWires(in doc: SketchDocument) -> [SceneObject] {
 }
 
 /// Edits that delete `ids` as one action: wires attached to removed parts (and not removed themselves) are
-/// detached (attachment cleared, position kept), then everything in `ids` is removed. Empty when nothing to do.
+/// detached (attachment cleared, position kept), then everything in `ids` is removed, then joints and groups are
+/// repaired for what is left (`jointIntegrityEdits`). Empty when nothing to do.
 public func deletionEdits(_ ids: Set<ObjectID>, in doc: SketchDocument) -> [SceneEdit] {
     let existing = ids.intersection(doc.objects.map(\.id))
     guard !existing.isEmpty else { return [] }
     let detached = removeParts(existing, in: doc).detachedWires.filter { !existing.contains($0.id) }
-    return (detached.isEmpty ? [] : [.replace(detached)]) + [.remove(existing)]
+    let edits: [SceneEdit] = (detached.isEmpty ? [] : [.replace(detached)]) + [.remove(existing)]
+    var after = doc
+    for edit in edits { _ = edit.apply(to: &after) }
+    return edits + jointIntegrityEdits(in: after)
 }

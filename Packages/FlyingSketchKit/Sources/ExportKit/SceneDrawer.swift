@@ -25,6 +25,7 @@ public enum SceneDrawer {
                 if let img = images[i.assetName] ?? nil { drawImage(i, img, ctx) }
             case .wire(let w): drawWire(w, ctx)
             case .part(let p): drawPart(p, content.document, ctx)
+            case .joint: break // Joint drawing: Task 3
             }
             ctx.restoreGState()
         }

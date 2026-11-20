@@ -90,6 +90,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         case .image: layer = CALayer()
         case .part: layer = PartLayer()
         case .wire: layer = CAShapeLayer()
+        case .joint: layer = CALayer() // Joint drawing: Task 3
         }
         layer.contentsScale = screenScale
         update(layer, for: object, viewport: viewport, viewSize: viewSize)
@@ -104,6 +105,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         case .image(let i): updateImage(layer, i, viewport, viewSize)
         case .part(let p): updatePart(layer, p, viewport, viewSize)
         case .wire(let w): updateWire(layer, w, viewport, viewSize)
+        case .joint: break // Joint drawing: Task 3
         }
     }
 

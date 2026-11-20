@@ -126,25 +126,19 @@ private func docWithPartRotation(_ r: Double) -> SketchDocument {
     return doc
 }
 
-@Test func version2DocumentOpensAndSavesAs3() throws {
+@Test func version2DocumentOpensAndSavesAs4() throws {
     let json = try packageJSON(docWithPartRotation(0), version: 2) {
         $0.removeValue(forKey: "rotation")
         $0["quarterTurns"] = 1
     }
     let read = try DocumentPackage.read(wrapper(json))
-    #expect(read.formatVersion == 3)
+    #expect(read.formatVersion == 4)
     let rotations = read.objects.compactMap { o -> Double? in
         if case .part(let p) = o { return p.rotation } else { return nil }
     }
     #expect(rotations.count == 2 && rotations.allSatisfy { $0 == .pi / 2 })
     let again = try DocumentPackage.read(DocumentPackage.fileWrapper(for: read))
     #expect(again == read)
-}
-
-@Test func version4Rejected() {
-    #expect(throws: DocumentError.unsupportedVersion(4)) {
-        try DocumentPackage.read(wrapper(#"{"formatVersion":4,"objects":[]}"#))
-    }
 }
 
 @Test func nonFiniteRotationRejected() throws {

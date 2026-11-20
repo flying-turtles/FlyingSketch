@@ -77,13 +77,13 @@ import Testing
     #expect(throws: Never.self) { try DocumentPackage.read(wrapper("")) }
 }
 
-@Test func writesV3EvenFromV1Value() throws {
+@Test func writesV4EvenFromV1Value() throws {
     var doc = SketchDocument.fixtureWithEveryKind()
     doc.formatVersion = 1
     let w = try DocumentPackage.fileWrapper(for: doc)
     let json = try #require(w.fileWrappers?["document.json"]?.regularFileContents)
     let obj = try #require(try JSONSerialization.jsonObject(with: json) as? [String: Any])
-    #expect(obj["formatVersion"] as? Int == 3)
+    #expect(obj["formatVersion"] as? Int == 4)
 }
 
 @Test func rejectsVersionZero() {

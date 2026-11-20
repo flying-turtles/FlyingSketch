@@ -5,6 +5,7 @@ public enum SceneObject: Hashable, Codable, Sendable {
     case image(ImageObject)
     case part(PartInstance)
     case wire(Wire)
+    case joint(Joint)
 
     public var id: ObjectID {
         switch self {
@@ -14,6 +15,7 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case .image(let o): o.id
         case .part(let o): o.id
         case .wire(let o): o.id
+        case .joint(let o): o.id
         }
     }
 
@@ -25,6 +27,7 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case .image(var o): o.id = newID; return .image(o)
         case .part(var o): o.id = newID; return .part(o)
         case .wire(var o): o.id = newID; return .wire(o)
+        case .joint(var o): o.id = newID; return .joint(o)
         }
     }
 
@@ -52,6 +55,10 @@ public enum SceneObject: Hashable, Codable, Sendable {
             o.end.position = o.end.position + d
             o.bends = o.bends.map { $0 + d }
             return .wire(o)
+        case .joint(var o):
+            o.position = o.position + d
+            for i in o.anchors.indices { o.anchors[i].point = o.anchors[i].point + d }
+            return .joint(o)
         }
     }
 
@@ -93,6 +100,10 @@ public enum SceneObject: Hashable, Codable, Sendable {
             o.end.position = spin(o.end.position)
             o.bends = o.bends.map(spin)
             return .wire(o)
+        case .joint(var o):
+            o.position = spin(o.position)
+            for i in o.anchors.indices { o.anchors[i].point = spin(o.anchors[i].point) }
+            return .joint(o)
         }
     }
 
@@ -108,6 +119,7 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case "image": self = .image(try ImageObject(from: decoder))
         case "part": self = .part(try PartInstance(from: decoder))
         case "wire": self = .wire(try Wire(from: decoder))
+        case "joint": self = .joint(try Joint(from: decoder))
         default: throw DocumentError.corrupt("unknown object type '\(type)'")
         }
     }
@@ -121,6 +133,7 @@ public enum SceneObject: Hashable, Codable, Sendable {
         case .image(let o): try c.encode("image", forKey: .type); try o.encode(to: encoder)
         case .part(let o): try c.encode("part", forKey: .type); try o.encode(to: encoder)
         case .wire(let o): try c.encode("wire", forKey: .type); try o.encode(to: encoder)
+        case .joint(let o): try c.encode("joint", forKey: .type); try o.encode(to: encoder)
         }
     }
 }

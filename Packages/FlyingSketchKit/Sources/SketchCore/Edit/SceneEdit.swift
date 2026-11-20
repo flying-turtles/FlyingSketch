@@ -10,6 +10,8 @@ public enum SceneEdit: Sendable {
     case reinsert([IndexedObject])
     /// Adds/replaces definitions by key; `nil` removes. Inverse restores previous values (including absence).
     case setDefinitions([String: PartDefinition?])
+    /// Replaces the whole groups table. Inverse restores the previous table.
+    case setGroups([ObjectGroup])
 
     public struct IndexedObject: Sendable {
         public var index: Int
@@ -63,6 +65,11 @@ public enum SceneEdit: Sendable {
                 doc.parts[key] = new
             }
             return .setDefinitions(previous)
+
+        case .setGroups(let groups):
+            let previous = doc.groups
+            doc.groups = groups
+            return .setGroups(previous)
         }
     }
 }

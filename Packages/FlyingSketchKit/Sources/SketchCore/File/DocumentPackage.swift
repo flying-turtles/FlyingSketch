@@ -13,6 +13,8 @@ public enum DocumentPackage {
         var viewport: Viewport
         /// Absent in v1 documents.
         var parts: [String: PartDefinition]?
+        /// Absent before v4.
+        var groups: [ObjectGroup]?
     }
 
     /// Throws `corrupt("unsafe asset name")` for any asset name that is not `isSafeAssetName` (a FileWrapper key
@@ -21,7 +23,8 @@ public enum DocumentPackage {
         if doc.assets.keys.contains(where: { !isSafeAssetName($0) }) { throw DocumentError.corrupt("unsafe asset name") }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        let body = Body(formatVersion: 3, objects: doc.objects, viewport: doc.viewport, parts: doc.parts)
+        let body = Body(formatVersion: 4, objects: doc.objects, viewport: doc.viewport, parts: doc.parts,
+                    groups: doc.groups)
         let json = try encoder.encode(body)
 
         var assets: [String: FileWrapper] = [:]
@@ -46,7 +49,7 @@ public enum DocumentPackage {
         do {
             // Version first: newer documents may have a different object schema.
             let version = try decoder.decode(VersionProbe.self, from: json).formatVersion
-            if version > 3 { throw DocumentError.unsupportedVersion(version) }
+            if version > 4 { throw DocumentError.unsupportedVersion(version) }
             if version < 1 { throw DocumentError.corrupt("invalid formatVersion \(version)") }
             body = try decoder.decode(Body.self, from: json)
         } catch let e as DocumentError {
@@ -65,12 +68,14 @@ public enum DocumentPackage {
         for (name, w) in wrapper.fileWrappers?[assetsName]?.fileWrappers ?? [:] where isSafeAssetName(name) {
             if let data = w.regularFileContents { assets[name] = data }
         }
-        // Reading upgrades to v3; the next write is always v3.
-        var doc = SketchDocument(formatVersion: 3, objects: body.objects,
-                                 viewport: body.viewport, assets: assets, parts: parts)
+        // Reading upgrades to v4; the next write is always v4.
+        var doc = SketchDocument(formatVersion: 4, objects: body.objects,
+                                 viewport: body.viewport, assets: assets, parts: parts, groups: body.groups ?? [])
         // Dangling or stale attachments (older builds, external edits): ends follow their connector or go free.
         let fixed = reconcileWires(in: doc)
         if !fixed.isEmpty { _ = SceneEdit.replace(fixed).apply(to: &doc) }
+        // Dangling joint anchors and group members: repaired, not rejected.
+        for edit in jointIntegrityEdits(in: doc) { _ = edit.apply(to: &doc) }
         return doc
     }
 
@@ -94,6 +99,12 @@ public enum DocumentPackage {
                 ok = vec(p.center) && p.rotation.isFinite && p.legEnds.values.allSatisfy(vec)
             case .wire(let w):
                 ok = vec(w.start.position) && vec(w.end.position) && w.bends.allSatisfy(vec) && size(w.width)
+            case .joint(let j):
+                let shape: Bool = switch j.kind {
+                case .hinge: !j.anchors.isEmpty
+                case .fixed: j.anchors.count == 1 && j.grounded
+                }
+                ok = shape && vec(j.position) && j.anchors.allSatisfy { vec($0.point) }
             }
             if !ok { throw DocumentError.corrupt("object \(o.id) has an out-of-range coordinate or size") }
         }

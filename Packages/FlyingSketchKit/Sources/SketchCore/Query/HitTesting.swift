@@ -57,6 +57,9 @@ public func bounds(of object: SceneObject) -> Rect {
         return fallbackPartRect(p)
     case .wire(let w):
         return Rect.bounding(w.polyline)!.insetBy(-w.width / 2)
+    case .joint(let j):
+        let r = Joint.radius
+        return Rect(origin: j.position - Vec2(x: r, y: r), size: Vec2(x: 2 * r, y: 2 * r))
     }
 }
 
@@ -138,6 +141,9 @@ public func hitTest(_ object: SceneObject, point: Vec2, tolerance: Double) -> Bo
 
     case .wire(let w):
         return distance(from: point, toPolyline: w.polyline) <= tolerance + w.width / 2
+
+    case .joint(let j):
+        return point.distance(to: j.position) <= Joint.radius + tolerance
     }
 }
 
@@ -167,8 +173,9 @@ private func polygonContains(_ polygon: [Vec2], _ p: Vec2) -> Bool {
     return inside
 }
 
-/// Ink: selected when >= 50 % of its points are inside. Others: bounds centre inside.
+/// Ink: selected when >= 50 % of its points are inside. Joint: its position inside. Others: bounds centre inside.
 public func lassoContains(_ polygon: [Vec2], object: SceneObject) -> Bool {
+    if case .joint(let j) = object { return polygonContains(polygon, j.position) }
     if case .ink(let s) = object {
         guard !s.points.isEmpty else { return false }
         let inside = s.points.filter { polygonContains(polygon, $0.position) }.count

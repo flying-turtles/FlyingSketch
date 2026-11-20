@@ -47,13 +47,14 @@ public final class DocumentModel {
     }
 
     private func run(_ edits: [SceneEdit], actionName: String) {
-        let before = (objects: document.objects, parts: document.parts)
+        let before = (objects: document.objects, parts: document.parts, groups: document.groups)
         var inverses: [SceneEdit] = []
         inverses.reserveCapacity(edits.count)
         for edit in edits { inverses.append(edit.apply(to: &document)) }
         inverses.reverse()
         // No-op edit (e.g. remove of absent ids, replace with identical objects): no undo entry, no onChange.
-        guard document.objects != before.objects || document.parts != before.parts else { return }
+        guard document.objects != before.objects || document.parts != before.parts
+            || document.groups != before.groups else { return }
         undoManager.registerUndo(withTarget: self) { model in
             // While undoing this registers the redo; while redoing, the undo.
             model.run(inverses, actionName: actionName)
