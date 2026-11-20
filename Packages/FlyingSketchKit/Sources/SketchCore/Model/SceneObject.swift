@@ -55,6 +55,47 @@ public enum SceneObject: Hashable, Codable, Sendable {
         }
     }
 
+    /// Rotates about `pivot` by `angle` (clockwise radians). Boxes (rectangle/ellipse, image) move their centre and keep
+    /// their size; text moves `position`; all stored rotations are normalised. Lines/arrows rotate their end points only.
+    public func rotated(by angle: Double, around pivot: Vec2) -> SceneObject {
+        func spin(_ v: Vec2) -> Vec2 { pivot + (v - pivot).rotated(by: angle) }
+        switch self {
+        case .ink(var o):
+            for i in o.points.indices { o.points[i].position = spin(o.points[i].position) }
+            return .ink(o)
+        case .shape(var o):
+            if o.kind == .rectangle || o.kind == .ellipse {
+                let shift = spin(ShapeGeometry.center(of: o)) - ShapeGeometry.center(of: o)
+                o.start = o.start + shift
+                o.end = o.end + shift
+                o.rotation = normalizedAngle(o.rotation + angle)
+            } else {
+                o.start = spin(o.start)
+                o.end = spin(o.end)
+            }
+            return .shape(o)
+        case .text(var o):
+            o.position = spin(o.position)
+            o.rotation = normalizedAngle(o.rotation + angle)
+            return .text(o)
+        case .image(var o):
+            let half = o.frame.size / 2
+            o.frame.origin = spin(o.frame.origin + half) - half
+            o.rotation = normalizedAngle(o.rotation + angle)
+            return .image(o)
+        case .part(var o):
+            o.center = spin(o.center)
+            o.rotation = normalizedAngle(o.rotation + angle)
+            o.legEnds = o.legEnds.mapValues(spin)
+            return .part(o)
+        case .wire(var o):
+            o.start.position = spin(o.start.position)
+            o.end.position = spin(o.end.position)
+            o.bends = o.bends.map(spin)
+            return .wire(o)
+        }
+    }
+
     // Flat JSON: {"type": "...", ...payload fields}.
     private enum TypeKey: String, CodingKey { case type }
 

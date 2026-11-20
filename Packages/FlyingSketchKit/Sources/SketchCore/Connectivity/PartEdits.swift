@@ -72,6 +72,38 @@ public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocume
     return result
 }
 
+/// Rotates `ids` about `pivot`. Parts plugged into rotated parts rotate too; wires attached to a rotated part follow
+/// it (an attached end ends on its connector). Returns only changed objects; `angle == 0` -> `[]`.
+public func rotateObjects(_ ids: Set<ObjectID>, by angle: Double, around pivot: Vec2,
+                          in doc: SketchDocument) -> [SceneObject] {
+    guard angle != 0 else { return [] }
+    let old = partsByID(doc)
+    let partIDs = Set(old.keys)
+    let spinning = ids.intersection(partIDs).union(carriedParts(by: ids.intersection(partIDs), in: doc))
+    var result: [SceneObject] = []
+    var rotatedParts = old
+    var wires: [Wire] = []
+    for o in doc.objects {
+        let id = o.id
+        if case .wire(let w) = o { wires.append(w) }
+        guard ids.contains(id) || spinning.contains(id) else { continue }
+        if case .wire = o { continue } // handled with the re-sync below
+        let r = o.rotated(by: angle, around: pivot)
+        guard r != o else { continue }
+        result.append(r)
+        if case .part(let p) = r { rotatedParts[id] = p }
+    }
+    for original in wires {
+        let own = ids.contains(original.id)
+        guard own || attached(original.start, toAnyOf: spinning) || attached(original.end, toAnyOf: spinning) else { continue }
+        var w = original
+        if own, case .wire(let r) = SceneObject.wire(original).rotated(by: angle, around: pivot) { w = r }
+        let fixed = reconciled(w, parts: rotatedParts, doc: doc)
+        if fixed != original { result.append(.wire(fixed)) }
+    }
+    return result
+}
+
 /// Rotates one part a quarter turn: legs reset to default ends, attached wire ends follow.
 public func rotatePart(_ id: ObjectID, clockwise: Bool, in doc: SketchDocument) -> [SceneObject] {
     guard var p = partsByID(doc)[id] else { return [] }
