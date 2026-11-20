@@ -243,6 +243,48 @@ private struct Problem {
         }
     }
 
+    /// Bending stiffness per body that Gauss–Newton leaves out: `Σ e·∂²e/∂angle²` over the weighted constraint
+    /// and drag residuals `e` *predicted* by the linear model after `step` (for constraints that is the
+    /// constraint force). It matters only when those residuals stay large at the solution, i.e. a drag beyond
+    /// reach: there the drag point swings on an arc around its pivots and Gauss–Newton, blind to that
+    /// curvature, overshoots by a factor of about distance/arm and stalls. Clamped at zero per body so the
+    /// system stays positive definite (the softening side only occurs far from a minimum, where damping rules).
+    func bending(_ poses: [BodyPose], after step: [Double]) -> [Double] {
+        var bend = [Double](repeating: 0, count: bodies.count)
+        // Linearized move of point `p` of `body`, and the curvature ∂²w/∂angle² = -r.
+        func lever(_ body: Int, _ p: Vec2) -> Vec2 { (p - bodies[body].origin).rotated(by: poses[body].angle) }
+        func move(_ body: Int, _ r: Vec2) -> Vec2 {
+            let col = column[body]
+            guard col >= 0 else { return .zero }
+            return Vec2(x: step[col] - r.y * step[col + 2], y: step[col + 1] + r.x * step[col + 2])
+        }
+        func dot(_ u: Vec2, _ v: Vec2) -> Double { u.x * v.x + u.y * v.y }
+        let wc2 = MechanismSolver.constraintWeight * MechanismSolver.constraintWeight
+        for c in constraints {
+            let ra = lever(c.a, c.pointA)
+            var predicted = constraintError(poses, c) + move(c.a, ra)
+            if let b = c.b {
+                let rb = lever(b, c.pointB)
+                predicted = predicted - move(b, rb)
+                bend[b] += wc2 * dot(predicted, rb)
+            }
+            bend[c.a] -= wc2 * dot(predicted, ra)
+        }
+        if let drag {
+            let wd2 = MechanismSolver.dragWeight * MechanismSolver.dragWeight
+            let r = lever(drag.body, drag.point)
+            let predicted = world(poses, drag.body, drag.point) - drag.target + move(drag.body, r)
+            bend[drag.body] -= wd2 * dot(predicted, r)
+        }
+        return bend.map { max(0, $0) }
+    }
+
+    private func addBending(_ eq: inout NormalEquations, _ bend: [Double]) {
+        for i in bodies.indices where column[i] >= 0 && bend[i] > 0 {
+            eq.addLower(column[i] + 2, column[i] + 2, bend[i])
+        }
+    }
+
     /// Adds `scale · M` to the diagonal, M = diag(1, 1, reach²) per body (the stay metric).
     private func addMetric(_ eq: inout NormalEquations, scale: Double) {
         for i in bodies.indices where column[i] >= 0 {
@@ -289,6 +331,11 @@ private struct Problem {
         return cost
     }
 
+    private func dragDistance(_ poses: [BodyPose]) -> Double {
+        guard let drag else { return 0 }
+        return world(poses, drag.body, drag.point).distance(to: drag.target)
+    }
+
     private func addDragRows(_ eq: inout NormalEquations, _ poses: [BodyPose]) {
         guard let drag else { return }
         let w = MechanismSolver.dragWeight
@@ -306,6 +353,7 @@ private struct Problem {
         let tolerance = MechanismSolver.constraintWeight * MechanismSolver.retractionTolerance
         let settledCost = tolerance * tolerance
         var settled = false
+        var bend: [Double]?
         while iterations < MechanismSolver.maxSoftIterations {
             iterations += 1
             var eq = NormalEquations(size: unknowns)
@@ -320,14 +368,34 @@ private struct Problem {
                 eq.addRHS(col + 2, -ws * ws * reach[i] * reach[i] * a)
             }
             addMetric(&eq, scale: ws * ws + damping)
-            guard let step = eq.solve() else {
+            var bent = eq
+            if let bend { addBending(&bent, bend) }
+            guard var step = bent.solve() else {
                 damping *= 10
                 continue
             }
-            if metricNorm(step) < MechanismSolver.projectionTolerance { break }
-            let candidate = project(from: applied(step, to: poses), holdingDrag: true, iterations: &iterations,
+            if bend == nil {
+                // First step: Gauss–Newton predicts the residuals left at the solution; if they bend the
+                // mechanism (drag beyond reach), solve once more with that stiffness.
+                let predicted = bending(poses, after: step)
+                bend = predicted
+                if predicted.contains(where: { $0 > 0 }), iterations < MechanismSolver.maxSoftIterations {
+                    iterations += 1
+                    bent = eq
+                    addBending(&bent, predicted)
+                    guard let refined = bent.solve() else { continue }
+                    step = refined
+                }
+            }
+            let stepNorm = metricNorm(step)
+            if stepNorm < MechanismSolver.projectionTolerance { break }
+            // Trust region: no point needs to move further than the drag point is from its target.
+            let maxStep = max(1, dragDistance(poses))
+            let candidate = project(from: applied(step, scale: min(1, maxStep / stepNorm), to: poses),
+                                    holdingDrag: true, iterations: &iterations,
                                     limit: iterations + MechanismSolver.maxRetractionSteps,
                                     tolerance: MechanismSolver.retractionTolerance)
+            bend = bending(poses, after: step)
             let newCost = softCost(candidate)
             if newCost.isFinite, newCost < cost {
                 let decrease = cost - newCost
@@ -340,6 +408,8 @@ private struct Problem {
                 // Once constraints and drag hold, further steps only redistribute motion; not worth fighting
                 // the model for.
                 if settled { break }
+                // At the minimum up to rounding (e.g. drag beyond reach): no step can improve.
+                if newCost.isFinite, newCost - cost <= 1e-12 * cost { break }
                 damping *= 10
                 if damping > 1e8 { break }
             }

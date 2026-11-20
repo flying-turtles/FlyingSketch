@@ -80,7 +80,7 @@ private func identity(_ n: Int) -> [BodyPose] { Array(repeating: .identity, coun
     ]
     var poses = identity(3)
     var previousC = c0
-    for degrees in stride(from: -85.0, through: 0, by: 5) {
+    for degrees in stride(from: -90.0, through: 0, by: 5) {
         let angle = degrees * .pi / 180
         let target = v(10 * cos(angle), 10 * sin(angle))
         let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
@@ -109,6 +109,56 @@ private func identity(_ n: Int) -> [BodyPose] { Array(repeating: .identity, coun
     #expect(r.residual < 1e-6)
     #expect(constraintError(bodies, constraints, r.poses) < 1e-6)
     #expect(near(world(r, bodies, 0, v(10, 0)), v(10, 0), 1e-3))
+}
+
+@Test func unreachableTargetFromPerpendicularStart() {
+    let bodies = [SolverBody(origin: v(5, 0))]
+    let constraints = [PointConstraint(a: 0, pointA: v(0, 0), b: nil, pointB: v(0, 0))]
+    let drag = DragTarget(body: 0, point: v(10, 0), target: v(0, 100))
+    var poses = identity(1)
+    var ends: [Vec2] = []
+    for frame in 0...10 {
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints, drag: drag, initial: poses)
+        #expect(r.converged, "frame \(frame)")
+        #expect(r.residual < 1e-6, "frame \(frame)")
+        #expect(constraintError(bodies, constraints, r.poses) < 1e-6, "frame \(frame)")
+        let end = world(r, bodies, 0, drag.point)
+        #expect(near(end, v(0, 10), 1e-2), "frame \(frame): \(end)")
+        ends.append(end)
+        poses = r.poses
+    }
+    #expect(ends[ends.count - 1].distance(to: ends[ends.count - 2]) < 1e-3)
+}
+
+@Test func fourBarPastToggleKeepsBranch() {
+    let a = v(0, 0), d = v(40, 0), b0 = v(0, -10)
+    let c0 = circleIntersections(b0, 35, d, 25).min { $0.y < $1.y }!
+    let bodies = [SolverBody(origin: mid(a, b0)), SolverBody(origin: mid(b0, c0)), SolverBody(origin: mid(d, c0))]
+    let constraints = [
+        PointConstraint(a: 0, pointA: a, b: nil, pointB: a),
+        PointConstraint(a: 2, pointA: d, b: nil, pointB: d),
+        PointConstraint(a: 0, pointA: b0, b: 1, pointB: b0),
+        PointConstraint(a: 1, pointA: c0, b: 2, pointB: c0),
+    ]
+    func cross(_ u: Vec2, _ w: Vec2) -> Double { u.x * w.y - u.y * w.x }
+    let startSign = cross(c0 - b0, d - b0).sign
+    var poses = identity(3)
+    var previousC = c0
+    for frame in 1...40 {
+        let target = c0 + v(60, 0) * (Double(min(frame, 30)) / 30)
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                      drag: DragTarget(body: 1, point: c0, target: target), initial: poses)
+        #expect(r.converged, "frame \(frame)")
+        #expect(r.residual < 1e-6, "frame \(frame)")
+        #expect(constraintError(bodies, constraints, r.poses) < 1e-6, "frame \(frame)")
+        let b = world(r, bodies, 0, b0), c = world(r, bodies, 1, c0)
+        #expect(cross(c - b, d - b).sign == startSign, "frame \(frame): mirror flip")
+        #expect(abs(world(r, bodies, 1, b0).distance(to: c) - 35) < 1e-9)
+        #expect(abs(world(r, bodies, 2, d).distance(to: world(r, bodies, 2, c0)) - 25) < 1e-9)
+        if frame > 31 { #expect(c.distance(to: previousC) < 1e-3, "frame \(frame): C moved \(c.distance(to: previousC))") }
+        previousC = c
+        poses = r.poses
+    }
 }
 
 @Test func rigidTriangleDoesNotDeform() {
@@ -268,5 +318,37 @@ private func plateWithBars(plateFixed: Bool) -> (bodies: [SolverBody], constrain
     let averageMs = Double(total.components.attoseconds) / 1e15 / Double(frames)
         + Double(total.components.seconds) * 1000 / Double(frames)
     print("fiftyBodyChainFrameTime: average solve \(String(format: "%.3f", averageMs)) ms over \(frames) frames")
+    #expect(averageMs < 10)
+}
+
+@Test func fiftyBodyChainUnreachableFrameTime() {
+    let n = 50, length = 10.0
+    let bodies = (0..<n).map { SolverBody(origin: v(Double($0) * length + length / 2, 0)) }
+    var constraints = [PointConstraint(a: 0, pointA: v(0, 0), b: nil, pointB: v(0, 0))]
+    for i in 1..<n {
+        let p = v(Double(i) * length, 0)
+        constraints.append(PointConstraint(a: i - 1, pointA: p, b: i, pointB: p))
+    }
+    let tip = v(Double(n) * length, 0)
+    let radius = Double(n) * length + 200  // 200 mm beyond full reach
+    let frames = 30
+    var poses = identity(n)
+    let clock = ContinuousClock()
+    var total = Duration.zero
+    for k in 1...frames {
+        let phi = 0.5 * Double(k) / Double(frames)
+        let target = v(radius * cos(phi), -radius * sin(phi))
+        var r: SolveResult!
+        total += clock.measure {
+            r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                      drag: DragTarget(body: n - 1, point: tip, target: target), initial: poses)
+        }
+        #expect(r.converged, "frame \(k)")
+        #expect(r.residual < 1e-6, "frame \(k)")
+        #expect(constraintError(bodies, constraints, r.poses) < 1e-6, "frame \(k)")
+        poses = r.poses
+    }
+    let averageMs = (Double(total.components.seconds) * 1000 + Double(total.components.attoseconds) / 1e15) / Double(frames)
+    print("fiftyBodyChainUnreachableFrameTime: average solve \(String(format: "%.3f", averageMs)) ms over \(frames) frames")
     #expect(averageMs < 10)
 }
