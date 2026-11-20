@@ -218,3 +218,77 @@ private let stroke = InkStroke(points: [
 @Test @MainActor func undoTapBlockedDuringRotate() {
     #expect(!CanvasView.allowsUndoTap(during: .rotate))
 }
+
+// MARK: Review fixes
+
+private func rect(rotation: Double) -> ShapeObject {
+    ShapeObject(kind: .rectangle, start: v(5, 5), end: v(15, 10), rotation: rotation)
+}
+
+@MainActor private func docShape(_ m: DocumentModel, _ id: ObjectID) -> ShapeObject {
+    for case .shape(let s) in m.document.objects where s.id == id { return s }
+    fatalError()
+}
+
+@MainActor private func dragged(_ objects: [SceneObject], degrees: Double) -> (DocumentModel, RotationController) {
+    let m = DocumentModel(document: SketchDocument(objects: objects))
+    let c = RotationController(model: m)
+    c.minDistance = 0.5
+    c.snapsAngle = true
+    c.begin(ids: Set(objects.map(\.id)), pivot: .zero, grabAt: v(10, 0))
+    let a = degrees * Double.pi / 180
+    let to = v(10 * cos(a), 10 * sin(a))
+    _ = c.move(to: to)
+    c.end(at: to)
+    return (m, c)
+}
+
+@Test @MainActor func singleRotatedShapeSnapsResultingRotation() {
+    let r = rect(rotation: 0.24)
+    let (m, _) = dragged([.shape(r)], degrees: 20)
+    let rot = docShape(m, r.id).rotation
+    let step = Double.pi / 12
+    #expect(abs(rot / step - (rot / step).rounded()) < 1e-9)
+    #expect(abs(rot - .pi / 6) < 1e-9)
+}
+
+@Test @MainActor func singleRotatedShapeSnapsBackToStraight() {
+    let r = rect(rotation: 0.24)
+    let (m, _) = dragged([.shape(r)], degrees: -13)
+    #expect(abs(normalizedAngle(docShape(m, r.id).rotation)) < 1e-9)
+}
+
+@Test @MainActor func singleObjectAngleReportsEffectiveDelta() {
+    let r = rect(rotation: 0.24)
+    let (_, c) = dragged([.shape(r)], degrees: 20)
+    _ = c // controller reset by end; check mid-drag instead
+    let m = DocumentModel(document: SketchDocument(objects: [.shape(r)]))
+    let k = RotationController(model: m)
+    k.snapsAngle = true
+    k.begin(ids: [r.id], pivot: .zero, grabAt: v(10, 0))
+    let a = 20 * Double.pi / 180
+    _ = k.move(to: v(10 * cos(a), 10 * sin(a)))
+    #expect(abs(k.angle - (.pi / 6 - 0.24)) < 1e-9)
+}
+
+@Test @MainActor func twoObjectSelectionStillSnapsDelta() {
+    let r = rect(rotation: 0.24)
+    let r2 = ShapeObject(kind: .rectangle, start: v(20, 5), end: v(30, 10))
+    let m = DocumentModel(document: SketchDocument(objects: [.shape(r), .shape(r2)]))
+    let k = RotationController(model: m)
+    k.snapsAngle = true
+    k.begin(ids: [r.id, r2.id], pivot: .zero, grabAt: v(10, 0))
+    let a = 20 * Double.pi / 180
+    _ = k.move(to: v(10 * cos(a), 10 * sin(a)))
+    #expect(abs(k.angle - .pi / 12) < 1e-12)
+}
+
+@Test @MainActor func editMenuTargetRectClearsRotateKnob() throws {
+    let (view, _) = canvas()
+    let r = try #require(view.selectionViewRect)
+    let target = view.editMenuInteraction(UIEditMenuInteraction(delegate: nil),
+                                          targetRectFor: UIEditMenuConfiguration(identifier: nil, sourcePoint: .zero))
+    #expect(abs(target.minY - (r.minY - 44)) < 1e-6)
+    #expect(abs(target.maxY - r.maxY) < 1e-6)
+    #expect(abs(target.minX - r.minX) < 1e-6 && abs(target.maxX - r.maxX) < 1e-6)
+}

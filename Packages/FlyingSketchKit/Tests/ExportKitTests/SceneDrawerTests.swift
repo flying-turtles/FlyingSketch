@@ -115,3 +115,17 @@ private func rotatedRed() -> SceneObject {
     #expect(at(10, -7).r > 0.9 && at(10, -7).g < 0.2)
     #expect(at(2, 2).g > 0.9)
 }
+
+@Test func rotatedRectangleTurnsClockwiseNotCounterClockwise() {
+    let red = RGBAColor(r: 1, g: 0, b: 0)
+    let obj = SceneObject.shape(ShapeObject(kind: .rectangle, start: .zero, end: Vec2(x: 20, y: 4), strokeColor: red,
+                                            fillColor: red, lineWidth: 0.5, rotation: .pi / 6))
+    let b = Rect(origin: Vec2(x: -5, y: -10), size: Vec2(x: 40, y: 30))
+    let img = render(ExportContent(document: SketchDocument(), objects: [obj], bounds: b), pxPerMM: ppm)
+    func at(_ p: Vec2) -> (r: Double, g: Double, b: Double, a: Double) { pixel(img, mmX: p.x, mmY: p.y, bounds: b, pxPerMM: ppm) }
+    let pivot = Vec2(x: 10, y: 2)
+    let cw = pivot + Vec2(x: 8, y: 0).rotated(by: .pi / 6)
+    let ccw = pivot + Vec2(x: 8, y: 0).rotated(by: -.pi / 6)
+    #expect(at(cw).r > 0.9 && at(cw).g < 0.2)
+    #expect(at(ccw).g > 0.9)
+}

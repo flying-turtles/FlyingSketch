@@ -283,3 +283,9 @@ private func jpegBytes() -> Data {
     #expect(try #require(q.attrsByName["ellipse"])[0]["transform"] == "rotate(90 10 2)")
     #expect(try #require(q.attrsByName["line"])[0]["transform"] == nil)
 }
+
+@Test func rotatedShapeTransformIsClockwiseThirtyDegrees() throws {
+    let r = SceneObject.shape(ShapeObject(kind: .rectangle, start: .zero, end: Vec2(x: 20, y: 4), rotation: .pi / 6))
+    let q = try probe(SVGWriter.svg(make([r])))
+    #expect(try #require(q.attrsByName["rect"])[0]["transform"] == "rotate(30 10 2)")
+}

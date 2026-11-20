@@ -276,7 +276,12 @@ extension CanvasView: UIEditMenuInteractionDelegate {
     }
 
     public func editMenuInteraction(_ interaction: UIEditMenuInteraction, targetRectFor configuration: UIEditMenuConfiguration) -> CGRect {
-        if menuAnchor == nil, let rect = selectionViewRect { return rect }
+        if menuAnchor == nil, var rect = selectionViewRect {
+            let lift = Self.rotateHandleOffset + Self.rotateHitRadius // keep the menu above the rotate knob
+            rect.origin.y -= lift
+            rect.size.height += lift
+            return rect
+        }
         return CGRect(origin: menuAnchor ?? configuration.sourcePoint, size: CGSize(width: 1, height: 1))
     }
 }

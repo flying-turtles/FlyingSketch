@@ -149,3 +149,50 @@ private func applied(_ edits: [SceneObject], to doc: SketchDocument) -> SketchDo
     let s = scene()
     #expect(rotateObjects([s.board.id, s.wireB.id], by: 0, around: .zero, in: s.doc).isEmpty)
 }
+
+// Jumper between a module pin and a board hole, bend in between; both ends ride the rotating board.
+private func jumperScene() -> (Scene, Wire) {
+    var s = scene()
+    let pins = connectorPositions(s.module, moduleDef)
+    let holes = connectorPositions(s.board, boardDef)
+    let hole = holes["c3r3"] ?? holes.values.first!
+    let key = holes.first { $0.value == hole }!.key
+    let j = Wire(start: WireEnd(position: pins["GND"]!, attachment: .connector(part: s.module.id, connector: "GND")),
+                 end: WireEnd(position: hole, attachment: .connector(part: s.board.id, connector: key)),
+                 bends: [Vec2(x: 55, y: 25)])
+    s.doc.objects.append(.wire(j))
+    return (s, j)
+}
+
+@Test func rotateObjectsRotatesBendsOfWireBetweenRotatingParts() {
+    let (s, j) = jumperScene()
+    let angle = 0.6, pivot = s.board.center
+    let edits = rotateObjects([s.board.id], by: angle, around: pivot, in: s.doc) // wire not in ids
+    guard case .wire(let w)? = edits.first(where: { $0.id == j.id }),
+          case .part(let m)? = edits.first(where: { $0.id == s.module.id }),
+          case .part(let b)? = edits.first(where: { $0.id == s.board.id }) else { Issue.record("missing edits"); return }
+    #expect(near(w.bends[0], pivot + (j.bends[0] - pivot).rotated(by: angle)))
+    #expect(near(w.start.position, connectorPositions(m, moduleDef)["GND"]!))
+    guard case .connector(_, let key) = j.end.attachment! else { return }
+    #expect(near(w.end.position, connectorPositions(b, boardDef)[key]!))
+}
+
+@Test func rotateObjectsKeepsBendsOfOneEndAttachedWire() {
+    let s = scene()
+    let edits = rotateObjects([s.board.id], by: 0.6, around: s.board.center, in: s.doc)
+    guard case .wire(let a)? = edits.first(where: { $0.id == s.wireA.id }) else { Issue.record("no wire edit"); return }
+    #expect(a.bends == s.wireA.bends)
+}
+
+@Test func rotateObjectsWireInIdsWithBothEndsAttached() {
+    let (s, j) = jumperScene()
+    let angle = 0.6, pivot = s.board.center
+    let edits = rotateObjects([s.board.id, j.id], by: angle, around: pivot, in: s.doc)
+    guard case .wire(let w)? = edits.first(where: { $0.id == j.id }),
+          case .part(let m)? = edits.first(where: { $0.id == s.module.id }),
+          case .part(let b)? = edits.first(where: { $0.id == s.board.id }) else { Issue.record("missing edits"); return }
+    #expect(near(w.bends[0], pivot + (j.bends[0] - pivot).rotated(by: angle)))
+    #expect(near(w.start.position, connectorPositions(m, moduleDef)["GND"]!))
+    guard case .connector(_, let key) = j.end.attachment! else { return }
+    #expect(near(w.end.position, connectorPositions(b, boardDef)[key]!))
+}

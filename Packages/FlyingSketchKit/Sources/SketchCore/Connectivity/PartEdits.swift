@@ -73,7 +73,7 @@ public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocume
 }
 
 /// Rotates `ids` about `pivot`. Parts plugged into rotated parts rotate too; wires attached to a rotated part follow
-/// it (an attached end ends on its connector). Returns only changed objects; `angle == 0` -> `[]`.
+/// it (an attached end ends on its connector); a wire with both ends on rotating parts also rotates its bends. Returns only changed objects; `angle == 0` -> `[]`.
 public func rotateObjects(_ ids: Set<ObjectID>, by angle: Double, around pivot: Vec2,
                           in doc: SketchDocument) -> [SceneObject] {
     guard angle != 0 else { return [] }
@@ -95,9 +95,14 @@ public func rotateObjects(_ ids: Set<ObjectID>, by angle: Double, around pivot: 
     }
     for original in wires {
         let own = ids.contains(original.id)
-        guard own || attached(original.start, toAnyOf: spinning) || attached(original.end, toAnyOf: spinning) else { continue }
+        let startRides = attached(original.start, toAnyOf: spinning), endRides = attached(original.end, toAnyOf: spinning)
+        guard own || startRides || endRides else { continue }
         var w = original
-        if own, case .wire(let r) = SceneObject.wire(original).rotated(by: angle, around: pivot) { w = r }
+        if own, case .wire(let r) = SceneObject.wire(original).rotated(by: angle, around: pivot) {
+            w = r
+        } else if startRides && endRides {
+            w.bends = w.bends.map { pivot + ($0 - pivot).rotated(by: angle) } // jumper rides rigidly with its parts
+        }
         let fixed = reconciled(w, parts: rotatedParts, doc: doc)
         if fixed != original { result.append(.wire(fixed)) }
     }

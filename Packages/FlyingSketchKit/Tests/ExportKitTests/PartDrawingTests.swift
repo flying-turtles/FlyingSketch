@@ -28,7 +28,7 @@ private func isLegGray(_ c: (r: Double, g: Double, b: Double, a: Double)) -> Boo
 private func isWhite(_ c: (r: Double, g: Double, b: Double, a: Double)) -> Bool { c.r > 0.95 && c.g > 0.95 && c.b > 0.95 }
 
 /// Resistor definition resized to the 10x4 test graphic, with the given asset bytes.
-private func scene(kind: GraphicKind = .svg, asset: Data = redBlueSVG, quarterTurns: Int = 0,
+private func scene(kind: GraphicKind = .svg, asset: Data = redBlueSVG, quarterTurns: Int = 0, angle: Double? = nil,
                    legEnds: [String: Vec2] = [:], legs: Bool = false) -> ExportContent {
     var f = Fix()
     var def = f.res
@@ -37,7 +37,7 @@ private func scene(kind: GraphicKind = .svg, asset: Data = redBlueSVG, quarterTu
     if !legs { def.connectors = [] }
     f.doc.parts[def.key] = def
     f.doc.assets[def.graphicAsset] = asset
-    f.add(def, at: center, rotation: Double(quarterTurns) * .pi / 2, legEnds: legEnds)
+    f.add(def, at: center, rotation: angle ?? Double(quarterTurns) * .pi / 2, legEnds: legEnds)
     return ExportContent(document: f.doc, objects: f.doc.objects, bounds: bounds)
 }
 
@@ -119,4 +119,12 @@ private func expectLeftRed(_ img: CGImage) {
 @Test func brokenGraphicStillDrawsLegs() {
     let img = render(scene(asset: Data("not svg".utf8), legEnds: ["a": Vec2(x: 20, y: 35)], legs: true), pxPerMM: ppm)
     #expect(isLegGray(px(img, 18.41, 30)))
+}
+
+@Test func partRotatesClockwiseNotCounterClockwise() {
+    let img = render(scene(kind: .png, asset: redBluePNG(), angle: .pi / 6), pxPerMM: ppm)
+    let red = center + Vec2(x: -4, y: 0).rotated(by: .pi / 6)   // left (red) half, turned clockwise
+    let mirror = center + Vec2(x: -4, y: 0).rotated(by: -.pi / 6)
+    #expect(isRed(px(img, red.x, red.y)))
+    #expect(isWhite(px(img, mirror.x, mirror.y)))
 }

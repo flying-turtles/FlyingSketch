@@ -35,7 +35,7 @@ final class RotationController {
         active = true
     }
 
-    /// Replacement objects for the angle at `world`; `[]` when inactive or the angle is 0.
+    /// Replacement objects for the angle at `world`; `[]` when inactive (an angle of 0 yields no changed objects).
     func move(to world: Vec2) -> [SceneObject] {
         guard active else { return [] }
         travel = max(travel, world.distance(to: grab))
@@ -83,7 +83,22 @@ final class RotationController {
         let a = grab - pivot, b = world - pivot
         guard a.length > 0, b.length > 0 else { return 0 }
         let raw = atan2(a.x * b.y - a.y * b.x, a.x * b.x + a.y * b.y)
+        guard snapsAngle else { return raw }
         let step = Double.pi / 12
-        return snapsAngle ? (raw / step).rounded() * step : raw
+        if ids.count == 1, let o = originals[ids.first!], let stored = Self.storedRotation(of: o) {
+            // A lone object that stores a rotation snaps its resulting rotation, so a freely rotated one can be made straight.
+            return ((stored + raw) / step).rounded() * step - stored
+        }
+        return (raw / step).rounded() * step
+    }
+
+    private static func storedRotation(of o: SceneObject) -> Double? {
+        switch o {
+        case .part(let p): return p.rotation
+        case .shape(let s): return (s.kind == .rectangle || s.kind == .ellipse) ? s.rotation : nil
+        case .text(let t): return t.rotation
+        case .image(let i): return i.rotation
+        case .ink, .wire: return nil
+        }
     }
 }

@@ -185,3 +185,21 @@ private func pngData(width: Int, height: Int) -> Data {
     #expect(abs(a.x - 8) < 0.01 && abs(a.y + 8) < 0.01)
     #expect(abs(b.x - 12) < 0.01 && abs(b.y - 12) < 0.01)
 }
+
+@Test @MainActor func rotatedRectangleLayerPathTurnsClockwise() throws {
+    let s = ShapeObject(kind: .rectangle, start: .zero, end: Vec2(x: 20, y: 4), lineWidth: 0, rotation: .pi / 6)
+    let root = CALayer()
+    let r = SceneRenderer(rootLayer: root)
+    let vp = Viewport(center: .zero, zoom: 1)
+    let size = Vec2(x: 1024, y: 1366)
+    r.update(document: SketchDocument(objects: [.shape(s)]), viewport: vp, viewSize: size, settled: true)
+    let layer = try #require(root.sublayers?[0].sublayers?[1].sublayers?.compactMap { $0 as? CAShapeLayer }.first)
+    let path = try #require(layer.path)
+    func contains(_ w: Vec2) -> Bool {
+        let p = vp.worldToView(w, viewSize: size)
+        return path.contains(CGPoint(x: p.x - layer.frame.minX, y: p.y - layer.frame.minY))
+    }
+    let pivot = Vec2(x: 10, y: 2)
+    #expect(contains(pivot + Vec2(x: 8, y: 0).rotated(by: .pi / 6)))
+    #expect(!contains(pivot + Vec2(x: 8, y: 0).rotated(by: -.pi / 6)))
+}
