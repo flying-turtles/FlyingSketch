@@ -12,6 +12,7 @@ let package = Package(
         .library(name: "PhotoPartKit", targets: ["PhotoPartKit"]),
         .library(name: "CanvasUI", targets: ["CanvasUI"]),
         .library(name: "ExportKit", targets: ["ExportKit"]),
+        .library(name: "MechKit", targets: ["MechKit"]),
     ],
     dependencies: [
         .package(url: "https://github.com/swhitty/SwiftDraw", exact: "0.30.0"),
@@ -31,6 +32,7 @@ let package = Package(
             name: "ExportKit",
             dependencies: ["SketchCore", "InkEngine", "NetKit", "PartsKit", .product(name: "SwiftDraw", package: "SwiftDraw")]
         ),
+        .target(name: "MechKit", dependencies: ["SketchCore"]),
         .testTarget(name: "SketchCoreTests", dependencies: ["SketchCore"]),
         .testTarget(name: "NetKitTests", dependencies: ["NetKit", "SketchCore"]),
         .testTarget(
@@ -41,6 +43,7 @@ let package = Package(
         .testTarget(name: "InkEngineTests", dependencies: ["InkEngine"]),
         .testTarget(name: "PhotoPartKitTests", dependencies: ["PhotoPartKit", "SketchCore", "PartsKit"]),
         .testTarget(name: "ExportKitTests", dependencies: ["ExportKit", "SketchCore", "NetKit"]),
+        .testTarget(name: "MechKitTests", dependencies: ["MechKit", "SketchCore"]),
         .testTarget(name: "CanvasUITests", dependencies: ["CanvasUI", "PartsKit", "PhotoPartKit"]),
     ],
     swiftLanguageModes: [.v6]
