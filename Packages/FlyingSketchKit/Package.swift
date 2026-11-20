@@ -25,7 +25,7 @@ let package = Package(
         .target(name: "PhotoPartKit", dependencies: ["SketchCore", "PartsKit"]),
         .target(
             name: "CanvasUI",
-            dependencies: ["InkEngine", "SketchCore", "NetKit", "PartsKit", "PhotoPartKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
+            dependencies: ["InkEngine", "SketchCore", "NetKit", "PartsKit", "PhotoPartKit", "MechKit", .product(name: "SwiftDraw", package: "SwiftDraw")],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .target(

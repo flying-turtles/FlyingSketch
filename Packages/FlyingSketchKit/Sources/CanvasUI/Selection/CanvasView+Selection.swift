@@ -82,12 +82,16 @@ extension CanvasView {
 
     // MARK: Tap and lasso
 
-    func topObject(at viewPoint: CGPoint) -> SceneObject? {
-        let w = worldPoint(viewPoint)
+    /// Objects hit at a world point (tolerance `hitSlop`), bottom to top.
+    func hitObjects(atWorld w: Vec2) -> [SceneObject] {
         let tol = Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
         let box = Rect(origin: w - Vec2(x: tol, y: tol), size: Vec2(x: 2 * tol, y: 2 * tol))
         let doc = model.document
-        let hits = renderer.objects(in: box).filter { objectHit($0, w, tol, doc) }
+        return renderer.objects(in: box).filter { objectHit($0, w, tol, doc) }
+    }
+
+    func topObject(at viewPoint: CGPoint) -> SceneObject? {
+        let hits = hitObjects(atWorld: worldPoint(viewPoint))
         // Pins win every tap, whatever the z-order.
         return hits.last { if case .joint = $0 { true } else { false } } ?? hits.last
     }
@@ -100,14 +104,14 @@ extension CanvasView {
 
     func tap(at viewPoint: CGPoint) {
         let hit = topObject(at: viewPoint)
-        selection.ids = hit.map { [$0.id] } ?? []
+        selection.ids = hit.map { expandedToGroups([$0.id]) } ?? []
         updateSelectionOverlay()
         if hit != nil { presentEditMenu() }
     }
 
     func finishLasso() {
         lassoPath.clear()
-        selection.ids = lasso.end()
+        selection.ids = expandedToGroups(lasso.end())
         updateSelectionOverlay()
         if !selection.ids.isEmpty { presentEditMenu() }
     }
@@ -259,6 +263,23 @@ extension CanvasView: UIEditMenuInteractionDelegate {
             })
             items.append(UIAction(title: "Copy", image: UIImage(systemName: "doc.on.doc")) { [weak self] _ in
                 self?.copySelection()
+            })
+        }
+        if selectionCanGroup {
+            items.append(UIAction(title: "Group", image: UIImage(systemName: "square.on.square.squareshape.controlhandles")) { [weak self] _ in
+                self?.groupSelection()
+            })
+        }
+        if selectionCanUngroup {
+            items.append(UIAction(title: "Ungroup", image: UIImage(systemName: "square.on.square.dashed")) { [weak self] _ in
+                self?.ungroupSelection()
+            })
+        }
+        if selectionCanLock {
+            let locked = selectionIsLocked
+            items.append(UIAction(title: locked ? "Unlock" : "Lock in Place",
+                                  image: UIImage(systemName: locked ? "lock.open" : "lock")) { [weak self] _ in
+                self?.toggleLockSelection()
             })
         }
         if selectionContainsParts {

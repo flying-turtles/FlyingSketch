@@ -187,7 +187,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     /// cancel) is editing: undoing under a live move/leg drag/lasso/erase/shape/ink/wire would desync it.
     static func allowsUndoTap(during interaction: Interaction?) -> Bool {
         switch interaction {
-        case nil, .pending, .text, .ignored: true
+        case nil, .pending, .text, .pin, .ignored: true
         case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd, .wireBend, .rotate: false
         }
     }
@@ -247,7 +247,9 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case rotate
         /// Text tool tap; the editor opens on release.
         case text(start: CGPoint)
-        /// Text-tool touch that travelled too far to be a tap; does nothing.
+        /// Pin tool tap; the pin is placed on release, at the start point.
+        case pin(start: CGPoint)
+        /// Text- or pin-tool touch that travelled too far to be a tap; does nothing.
         case ignored
         /// Finger down outside the selection; becomes a lasso once it travels, else a tap on release.
         case pending(start: CGPoint)
@@ -272,6 +274,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             case .lasso: return insideSelection ? .move : .lasso
             case .shape: return .shape
             case .text: return .text(start: p)
+            case .pin: return .pin(start: p)
             case .wire:
                 let w = worldPoint(p)
                 let hitsEnd = !wires.isOpen && wires.end(near: w, radius: wireRadius) != nil
@@ -300,7 +303,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     }
 
     static let hitSlop: CGFloat = 8
-    /// Max travel (pt) for a text-tool touch to count as a tap.
+    /// Max travel (pt) for a text- or pin-tool touch to count as a tap.
     static let textTapSlop: CGFloat = 4
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -368,7 +371,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             beginWireBendDrag(handle, at: sample(touch).position)
         case .rotate:
             beginRotate(at: sample(touch).position)
-        case .pending, .text, .ignored:
+        case .pending, .text, .pin, .ignored:
             break
         }
     }
@@ -398,6 +401,9 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .rotate:
             moveRotate(to: sample(touch).position)
         case .text(let start):
+            let p = location(of: touch)
+            if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
+        case .pin(let start):
             let p = location(of: touch)
             if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
         case .ignored:
@@ -455,6 +461,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             endRotate(at: sample(touch).position)
         case .text(let start):
             beginTextEditing(at: start)
+        case .pin(let start):
+            pinTap(at: start)
         case .ignored:
             break
         case .pending(let start):
@@ -487,7 +495,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .leg: cancelLegDrag()
         case .wireBend: cancelWireBendDrag()
         case .rotate: cancelRotate()
-        case .pending, .text, .ignored: break
+        case .pending, .text, .pin, .ignored: break
         }
     }
 
