@@ -21,7 +21,7 @@ public enum DocumentPackage {
         if doc.assets.keys.contains(where: { !isSafeAssetName($0) }) { throw DocumentError.corrupt("unsafe asset name") }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        let body = Body(formatVersion: 2, objects: doc.objects, viewport: doc.viewport, parts: doc.parts)
+        let body = Body(formatVersion: 3, objects: doc.objects, viewport: doc.viewport, parts: doc.parts)
         let json = try encoder.encode(body)
 
         var assets: [String: FileWrapper] = [:]
@@ -46,7 +46,7 @@ public enum DocumentPackage {
         do {
             // Version first: newer documents may have a different object schema.
             let version = try decoder.decode(VersionProbe.self, from: json).formatVersion
-            if version > 2 { throw DocumentError.unsupportedVersion(version) }
+            if version > 3 { throw DocumentError.unsupportedVersion(version) }
             if version < 1 { throw DocumentError.corrupt("invalid formatVersion \(version)") }
             body = try decoder.decode(Body.self, from: json)
         } catch let e as DocumentError {
@@ -65,8 +65,8 @@ public enum DocumentPackage {
         for (name, w) in wrapper.fileWrappers?[assetsName]?.fileWrappers ?? [:] where isSafeAssetName(name) {
             if let data = w.regularFileContents { assets[name] = data }
         }
-        // Reading upgrades to v2; the next write is always v2.
-        var doc = SketchDocument(formatVersion: 2, objects: body.objects,
+        // Reading upgrades to v3; the next write is always v3.
+        var doc = SketchDocument(formatVersion: 3, objects: body.objects,
                                  viewport: body.viewport, assets: assets, parts: parts)
         // Dangling or stale attachments (older builds, external edits): ends follow their connector or go free.
         let fixed = reconcileWires(in: doc)
@@ -91,7 +91,7 @@ public enum DocumentPackage {
             case .image(let i):
                 ok = vec(i.frame.origin) && size(i.frame.size.x) && size(i.frame.size.y) && i.rotation.isFinite
             case .part(let p):
-                ok = vec(p.center) && (0...3).contains(p.quarterTurns) && p.legEnds.values.allSatisfy(vec)
+                ok = vec(p.center) && p.rotation.isFinite && p.legEnds.values.allSatisfy(vec)
             case .wire(let w):
                 ok = vec(w.start.position) && vec(w.end.position) && w.bends.allSatisfy(vec) && size(w.width)
             }

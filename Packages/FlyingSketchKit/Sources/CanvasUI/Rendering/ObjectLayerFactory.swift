@@ -266,8 +266,7 @@ final class CALayerObjectFactory: ObjectLayerFactory {
         let s = mm(vp)
         layer.body.bounds = CGRect(x: 0, y: 0, width: def.size.x * s, height: def.size.y * s)
         layer.body.position = pt(p.center, vp, size)
-        let turns = ((p.quarterTurns % 4) + 4) % 4
-        layer.body.transform = CATransform3DMakeRotation(CGFloat(turns) * .pi / 2, 0, 0, 1)
+        layer.body.transform = CATransform3DMakeRotation(CGFloat(p.rotation), 0, 0, 1)
         updateLegs(layer, p, def, vp, size)
         updateConnectorMarkers(layer, p, def, vp, size)
         if requestRaster(for: layer, def: def, vp: vp) {

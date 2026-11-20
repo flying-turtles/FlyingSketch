@@ -10,8 +10,8 @@ struct Fix {
 
     @discardableResult
     mutating func add(_ d: PartDefinition, at c: Vec2 = .zero, label: String = "", properties: [String: String] = [:],
-                      quarterTurns: Int = 0, legEnds: [String: Vec2] = [:]) -> ObjectID {
-        let p = PartInstance(definitionKey: d.key, center: c, quarterTurns: quarterTurns, label: label,
+                      rotation: Double = 0, legEnds: [String: Vec2] = [:]) -> ObjectID {
+        let p = PartInstance(definitionKey: d.key, center: c, rotation: rotation, label: label,
                              properties: properties, legEnds: legEnds)
         doc.objects.append(.part(p))
         return p.id

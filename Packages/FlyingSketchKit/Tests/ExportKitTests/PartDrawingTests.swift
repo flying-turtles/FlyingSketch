@@ -37,7 +37,7 @@ private func scene(kind: GraphicKind = .svg, asset: Data = redBlueSVG, quarterTu
     if !legs { def.connectors = [] }
     f.doc.parts[def.key] = def
     f.doc.assets[def.graphicAsset] = asset
-    f.add(def, at: center, quarterTurns: quarterTurns, legEnds: legEnds)
+    f.add(def, at: center, rotation: Double(quarterTurns) * .pi / 2, legEnds: legEnds)
     return ExportContent(document: f.doc, objects: f.doc.objects, bounds: bounds)
 }
 

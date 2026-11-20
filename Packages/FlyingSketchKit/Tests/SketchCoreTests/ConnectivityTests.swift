@@ -22,7 +22,7 @@ private func wire(_ o: SceneObject) -> Wire { if case .wire(let w) = o { w } els
     let p0 = connectorPositions(r, resistorDef)
     // a leg default end local (-3, 1.25) -> rel (-8.08, 0)
     #expect(near(p0["a"]!, Vec2(x: 10 - 8.08, y: 20)))
-    r.quarterTurns = 1
+    r.rotation = .pi / 2
     let p1 = connectorPositions(r, resistorDef)
     #expect(near(p1["a"]!, Vec2(x: 10, y: 20 - 8.08)))
     #expect(near(p1["b"]!, Vec2(x: 10, y: 20 + 8.08)))
@@ -147,9 +147,9 @@ private func carryFixture() -> (doc: SketchDocument, board: PartInstance, module
     let out = rotatePart(r.id, clockwise: true, in: doc)
     #expect(out.count == 2)
     let rotated = part(out[0])
-    #expect(rotated.quarterTurns == 1 && rotated.legEnds.isEmpty)
+    #expect(rotated.rotation == .pi / 2 && rotated.legEnds.isEmpty)
     #expect(near(wire(out[1]).start.position, connectorPositions(rotated, resistorDef)["a"]!))
-    #expect(part(rotatePart(r.id, clockwise: false, in: doc)[0]).quarterTurns == 3)
+    #expect(part(rotatePart(r.id, clockwise: false, in: doc)[0]).rotation == 3 * .pi / 2)
 }
 
 @MainActor @Test func deletingPartDetachesWiresInOneEdit() {

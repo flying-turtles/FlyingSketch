@@ -9,7 +9,7 @@ public struct SketchDocument: Equatable, Sendable {
     /// Embedded part definitions, keyed by `PartDefinition.key`.
     public var parts: [String: PartDefinition]
 
-    public init(formatVersion: Int = 2, objects: [SceneObject] = [],
+    public init(formatVersion: Int = 3, objects: [SceneObject] = [],
                 viewport: Viewport = Viewport(center: .zero, zoom: 1), assets: [String: Data] = [:],
                 parts: [String: PartDefinition] = [:]) {
         self.formatVersion = formatVersion

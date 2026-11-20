@@ -9,7 +9,7 @@ import Testing
     #expect(back.parts.count == 2)
 }
 
-@Test func readsV1WritesV2() throws {
+@Test func readsV1WritesV3() throws {
     func wrapper(_ json: String) -> FileWrapper {
         FileWrapper(directoryWithFileWrappers: ["document.json": FileWrapper(regularFileWithContents: Data(json.utf8))])
     }
@@ -18,8 +18,8 @@ import Testing
     #expect(doc.parts.isEmpty)
     let written = try DocumentPackage.fileWrapper(for: doc)
     let json = String(decoding: written.fileWrappers!["document.json"]!.regularFileContents!, as: UTF8.self)
-    #expect(json.contains(#""formatVersion":2"#))
-    #expect(throws: DocumentError.unsupportedVersion(3)) { try DocumentPackage.read(wrapper(#"{"formatVersion":3,"objects":[]}"#)) }
+    #expect(json.contains(#""formatVersion":3"#))
+    #expect(throws: DocumentError.unsupportedVersion(4)) { try DocumentPackage.read(wrapper(#"{"formatVersion":4,"objects":[]}"#)) }
 }
 
 @MainActor @Test func setDefinitionsUndo() {
@@ -97,9 +97,4 @@ import Testing
     doc.objects[0] = .part(p)
     let w = try DocumentPackage.fileWrapper(for: doc)
     #expect(throws: DocumentError.self) { try DocumentPackage.read(w) }
-    p.center = .zero
-    p.quarterTurns = 4
-    doc.objects[0] = .part(p)
-    let w2 = try DocumentPackage.fileWrapper(for: doc)
-    #expect(throws: DocumentError.self) { try DocumentPackage.read(w2) }
 }

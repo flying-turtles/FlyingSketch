@@ -158,7 +158,7 @@ private func part(_ id: String) throws -> PartDefinition {
         // (pins then run towards column 1).
         var best = 0
         for row in ["C", "J"] {
-            var u = PartInstance(definitionKey: mcu.key, center: .zero, quarterTurns: 1, label: "U1")
+            var u = PartInstance(definitionKey: mcu.key, center: .zero, rotation: .pi / 2, label: "U1")
             let pin1 = try #require(connectorPositions(u, mcu)["connector0"])
             u.center = try #require(holes["pin30\(row)"]) - pin1
             var d = doc

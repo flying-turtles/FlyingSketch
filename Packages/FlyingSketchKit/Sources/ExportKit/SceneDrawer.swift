@@ -131,7 +131,7 @@ public enum SceneDrawer {
         if let graphic = partGraphic(def, doc) {
             ctx.saveGState()
             ctx.translateBy(x: p.center.x, y: p.center.y)
-            ctx.rotate(by: Double(((p.quarterTurns % 4) + 4) % 4) * .pi / 2)
+            ctx.rotate(by: p.rotation)
             ctx.translateBy(x: -w / 2, y: -h / 2)
             let rect = CGRect(x: 0, y: 0, width: w, height: h)
             switch graphic {

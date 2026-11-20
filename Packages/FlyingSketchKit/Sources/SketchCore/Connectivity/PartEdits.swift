@@ -75,7 +75,7 @@ public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocume
 /// Rotates one part a quarter turn: legs reset to default ends, attached wire ends follow.
 public func rotatePart(_ id: ObjectID, clockwise: Bool, in doc: SketchDocument) -> [SceneObject] {
     guard var p = partsByID(doc)[id] else { return [] }
-    p.quarterTurns = ((p.quarterTurns + (clockwise ? 1 : -1)) % 4 + 4) % 4
+    p.rotation = normalizedAngle(p.rotation + (clockwise ? .pi / 2 : -.pi / 2))
     p.legEnds = [:]
     var result: [SceneObject] = [.part(p)]
     let parts = partsByID(doc).merging([id: p]) { _, new in new }

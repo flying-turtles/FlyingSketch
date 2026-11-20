@@ -46,7 +46,7 @@ private func wire(_ o: SceneObject) -> Wire? { if case .wire(let w) = o { w } el
     init() {
         r1 = PartInstance(definitionKey: oldDef.key, center: Vec2(x: 0, y: 0), label: "R1",
                           properties: ["resistance": "1k", "custom": "x"], legEnds: ["a": Vec2(x: -5, y: 4), "b": Vec2(x: 20, y: 4)])
-        r2 = PartInstance(definitionKey: oldDef.key, center: Vec2(x: 0, y: 30), quarterTurns: 1, label: "R7")
+        r2 = PartInstance(definitionKey: oldDef.key, center: Vec2(x: 0, y: 30), rotation: .pi / 2, label: "R7")
         let pa = connectorPositions(r1, oldDef)["a"]!, pb = connectorPositions(r1, oldDef)["b"]!
         wireA = Wire(start: WireEnd(position: pa, attachment: .connector(part: r1.id, connector: "a")),
                      end: WireEnd(position: Vec2(x: 50, y: 50)))
@@ -88,7 +88,7 @@ private func wire(_ o: SceneObject) -> Wire? { if case .wire(let w) = o { w } el
     let r1 = try #require(parts.first { $0.id == s.r1.id })
     #expect(r1.label == "R1" && r1.properties == ["resistance": "1k", "custom": "x"])
     #expect(r1.legEnds == ["a": Vec2(x: -5, y: 4)])
-    #expect(parts.first { $0.id == s.r2.id }?.quarterTurns == 1)
+    #expect(parts.first { $0.id == s.r2.id }?.rotation == .pi / 2)
     #expect(v.outdatedParts(comparedTo: [newer]).isEmpty)
 
     m.undoManager.undo()

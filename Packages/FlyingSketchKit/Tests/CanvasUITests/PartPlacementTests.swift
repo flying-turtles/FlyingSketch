@@ -276,7 +276,7 @@ private func pluggedScene() -> (objects: [SceneObject], board: PartInstance, res
     v.selection.ids = [s.resistor.id]
     v.rotateSelectedParts(clockwise: true)
     let r = part(object(m, s.resistor.id))!
-    #expect(r.quarterTurns == 1)
+    #expect(r.rotation == .pi / 2)
     let w = wire(object(m, s.wire.id))!
     #expect(near(w.start.position, connectorPositions(r, resistorDef)["b"]!))
     #expect(m.undoManager.undoActionName == "Rotate")

@@ -175,8 +175,8 @@ public enum SVGWriter {
         var out = "<g>\n"
         if let (mime, bytes) = partPayload(def, doc) {
             let w = def.size.x, h = def.size.y
-            let turns = ((p.quarterTurns % 4) + 4) % 4
-            out += "<g transform=\"translate(\(pt(p.center))) rotate(\(turns * 90)) translate(\(n(-w / 2)) \(n(-h / 2)))\">"
+            let spin = p.rotation == 0 ? "" : " rotate(\(deg(p.rotation)))"
+            out += "<g transform=\"translate(\(pt(p.center)))\(spin) translate(\(n(-w / 2)) \(n(-h / 2)))\">"
             out += "<image width=\"\(n(w))\" height=\"\(n(h))\" preserveAspectRatio=\"none\" href=\"\(dataURI(mime, bytes))\"/></g>\n"
         } else {
             out += placeholder(p)

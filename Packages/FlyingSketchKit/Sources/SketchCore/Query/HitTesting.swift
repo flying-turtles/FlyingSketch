@@ -57,10 +57,10 @@ public func bounds(of object: SceneObject) -> Rect {
     }
 }
 
-/// Like `bounds(of:)`, but a part uses its definition: rotated body rect plus leg segments (with half leg width).
+/// Like `bounds(of:)`, but a part uses its definition: rotated body corners' box plus leg segments (with half leg width).
 public func bounds(of object: SceneObject, in doc: SketchDocument) -> Rect {
     guard case .part(let p) = object, let def = doc.parts[p.definitionKey] else { return bounds(of: object) }
-    var r = p.bodyRect(in: def)
+    var r = Rect.bounding(p.bodyCorners(in: def))!
     for c in def.connectors {
         guard let seg = p.legSegment(for: c, in: def), let leg = c.leg else { continue }
         r = r.union(Rect.bounding([seg.origin, seg.end])!.insetBy(-leg.width / 2))
@@ -140,7 +140,8 @@ public func hitTest(_ object: SceneObject, point: Vec2, tolerance: Double, in do
     guard case .part(let p) = object, let def = doc.parts[p.definitionKey] else {
         return hitTest(object, point: point, tolerance: tolerance)
     }
-    if p.bodyRect(in: def).insetBy(-tolerance).contains(point) { return true }
+    let body = Rect(origin: .zero, size: def.size)
+    if body.insetBy(-tolerance).contains(p.localPoint(point, in: def)) { return true }
     for c in def.connectors {
         guard let seg = p.legSegment(for: c, in: def), let leg = c.leg else { continue }
         if distance(from: point, toSegment: seg.origin, seg.end) <= tolerance + leg.width / 2 { return true }

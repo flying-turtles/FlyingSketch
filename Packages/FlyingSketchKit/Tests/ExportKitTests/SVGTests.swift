@@ -102,7 +102,7 @@ private func probe(_ data: Data) throws -> Probe {
     let svg = Data("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10mm\" height=\"4mm\" viewBox=\"0 0 10 4\"><rect width=\"10\" height=\"4\"/></svg>".utf8)
     f.doc.parts[def.key] = def
     f.doc.assets[def.graphicAsset] = svg
-    let part = PartInstance(definitionKey: def.key, center: Vec2(x: 20, y: 20), quarterTurns: 1)
+    let part = PartInstance(definitionKey: def.key, center: Vec2(x: 20, y: 20), rotation: .pi / 2)
     let p = try probe(SVGWriter.svg(make([.part(part)], doc: f.doc)))
     let href = try #require(p.attrsByName["image"]?.first?["href"])
     let prefix = "data:image/svg+xml;base64,"

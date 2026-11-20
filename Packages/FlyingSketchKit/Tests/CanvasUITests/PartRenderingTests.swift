@@ -27,7 +27,7 @@ private func definition(_ w: Double, _ h: Double, asset: String = "p.svg", legs:
 }
 
 private func doc(_ def: PartDefinition, turns: Int = 0) -> (SketchDocument, PartInstance) {
-    let inst = PartInstance(definitionKey: def.key, center: .zero, quarterTurns: turns, label: "U1")
+    let inst = PartInstance(definitionKey: def.key, center: .zero, rotation: Double(turns) * .pi / 2, label: "U1")
     return (SketchDocument(objects: [.part(inst)], assets: [def.graphicAsset: svgData(def.size.x, def.size.y)],
                            parts: [def.key: def]), inst)
 }
@@ -326,7 +326,7 @@ private func doc(_ def: PartDefinition, turns: Int = 0) -> (SketchDocument, Part
     }
     let photo = PartDefinition(libraryID: "photo", versionHash: "1", title: "P", size: Vec2(x: 20, y: 10),
                                graphicAsset: "p.png", graphicKind: .png, connectors: connectors)
-    let inst = PartInstance(definitionKey: photo.key, center: .zero, quarterTurns: 1, label: "B1")
+    let inst = PartInstance(definitionKey: photo.key, center: .zero, rotation: .pi / 2, label: "B1")
     let d = SketchDocument(objects: [.part(inst)], assets: ["p.png": png], parts: [photo.key: photo])
     let (_, root, _) = render(d, zoom: 1)
     let part = objectsLayer(root).sublayers!.first as! PartLayer

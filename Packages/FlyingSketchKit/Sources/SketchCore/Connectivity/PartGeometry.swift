@@ -1,5 +1,5 @@
 /// Part-local mm (top-left origin) -> world mm. Single source of truth for part rotation
-/// (`PartInstance.worldPoint` and hit-testing share it): rotate `p - size/2` by `quarterTurns` x 90 degrees
+/// (`PartInstance.worldPoint` and hit-testing share it): rotate `p - size/2` by `rotation` radians
 /// clockwise, then add `center`.
 public func localToWorld(_ p: Vec2, instance: PartInstance, definition: PartDefinition) -> Vec2 {
     instance.worldPoint(p, in: definition)
