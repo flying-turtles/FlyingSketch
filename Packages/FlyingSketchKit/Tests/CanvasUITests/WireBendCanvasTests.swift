@@ -134,3 +134,19 @@ private let bentWire = Wire(start: WireEnd(position: Vec2(x: 0, y: 0)), end: Wir
 @Test @MainActor func undoTapBlockedDuringBendDrag() {
     #expect(!CanvasView.allowsUndoTap(during: .wireBend(.bend(wire: ObjectID.new(), index: 0))))
 }
+
+@Test @MainActor func outsideUndoCancelsBendDrag() {
+    let (view, m) = canvas([.wire(bentWire)])
+    view.selection.ids = [bentWire.id]
+    var other = bentWire
+    other.color = RGBAColor(r: 1, g: 0, b: 0, a: 1)
+    m.perform(.replace([.wire(other)]), actionName: "Recolor")
+    view.interaction = .wireBend(.bend(wire: bentWire.id, index: 0))
+    view.beginWireBendDrag(.bend(wire: bentWire.id, index: 0), at: v(20, 0))
+    view.moveWireBend(to: v(25, 5))
+    m.undoManager.undo() // e.g. toolbar Undo while the Pencil drags
+    #expect(view.bendPreview == nil)
+    #expect(!view.bends.isActive)
+    view.endWireBendDrag(at: v(25, 5))
+    #expect(docWire(m) == bentWire)
+}

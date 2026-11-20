@@ -21,6 +21,8 @@ final class WireBendController {
     private var handle: WireHandle?
     private var start = Vec2.zero
     private var grab = Vec2.zero
+    /// Farthest the touch got from the grab point; a drag that comes back is still a drag, not a tap.
+    private var travel = 0.0
 
     /// Releases closer than this (mm) to the grab point are taps.
     var minDistance = 0.0
@@ -46,12 +48,14 @@ final class WireBendController {
         original = w
         self.handle = handle
         grab = world
+        travel = 0
         return true
     }
 
     /// Wire with the handle's point following `world`; nil when inactive.
     func move(to world: Vec2) -> Wire? {
         guard let original, let handle else { return nil }
+        travel = max(travel, world.distance(to: grab))
         return Self.edited(original, handle, to: target(world))
     }
 
@@ -59,7 +63,7 @@ final class WireBendController {
     @discardableResult
     func end(at world: Vec2) -> Bool {
         guard let original, let handle else { return false }
-        let isTap = world.distance(to: grab) < minDistance
+        let isTap = max(travel, world.distance(to: grab)) < minDistance
         let point = target(world)
         cancel()
         guard Self.wire(original.id, in: model.document) == original else { return false } // changed underneath
@@ -75,6 +79,15 @@ final class WireBendController {
         case .insert: name = "Add Wire Bend"
         }
         model.perform(.replace([.wire(Self.edited(original, handle, to: point))]), actionName: name)
+        return true
+    }
+
+    /// A document change from outside (e.g. toolbar undo) that alters or removes the dragged wire cancels the
+    /// drag. Returns whether it was cancelled.
+    @discardableResult
+    func documentDidChange(_ doc: SketchDocument) -> Bool {
+        guard let original, Self.wire(original.id, in: doc) != original else { return false }
+        cancel()
         return true
     }
 

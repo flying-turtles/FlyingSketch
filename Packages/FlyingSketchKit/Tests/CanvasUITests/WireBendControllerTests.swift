@@ -123,3 +123,24 @@ private func v(_ x: Double, _ y: Double) -> Vec2 { Vec2(x: x, y: y) }
     #expect(!c.begin(.bend(wire: ObjectID.new(), index: 0), grabAt: .zero))
     #expect(!c.isActive)
 }
+
+@Test @MainActor func dragAwayAndBackIsNotATap() {
+    let (m, w, c) = scene()
+    c.begin(.bend(wire: w.id, index: 0), grabAt: v(10, 0))
+    c.move(to: v(20, 5))
+    c.end(at: v(10.1, 0))
+    #expect(wire(m).bends.count == 1)
+    #expect(m.undoManager.undoActionName != "Remove Wire Bend")
+}
+
+@Test @MainActor func documentChangeCancelsDrag() {
+    let (m, w, c) = scene()
+    c.begin(.bend(wire: w.id, index: 0), grabAt: v(10, 0))
+    #expect(!c.documentDidChange(m.document)) // unchanged wire: drag continues
+    #expect(c.isActive)
+    var other = w
+    other.bends = [v(3, 3)]
+    m.perform(.replace([.wire(other)]), actionName: "Other")
+    #expect(c.documentDidChange(m.document))
+    #expect(!c.isActive)
+}

@@ -46,6 +46,7 @@ extension CanvasView {
             endTextEditing() // edited text vanished (undo etc.): drop the editor, commit is a no-op
         }
         if wires.documentDidChange(doc) { clearWirePreview() }
+        if bends.documentDidChange(doc) { cancelWireBendDrag() }
         refreshNetHighlight(after: doc)
         render(settled: true)
     }
