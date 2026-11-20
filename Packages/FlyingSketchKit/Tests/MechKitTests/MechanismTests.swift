@@ -246,3 +246,22 @@ private func expectBarLengths(_ doc: SketchDocument, _ fb: FourBar, _ label: Str
     #expect(abs(moved.rotation - plate.rotation) < 1e-4)
     #expect(near(shape(bar.id, in: after).end, Vec2(x: 30 * cos(Double.pi / 4), y: 30 * sin(Double.pi / 4)), 1e-3))
 }
+
+/// Ungrounded chain of `n` 10 mm `.line` bars along +x, hinged end to end.
+private func barChain(_ n: Int) -> (doc: SketchDocument, first: ObjectID) {
+    let bars = (0..<n).map { i in
+        ShapeObject(kind: .line, start: Vec2(x: Double(i) * 10, y: 0), end: Vec2(x: Double(i + 1) * 10, y: 0))
+    }
+    let hinges = (1..<n).map { i in
+        let p = Vec2(x: Double(i) * 10, y: 0)
+        return Joint(position: p, anchors: [JointAnchor(object: bars[i - 1].id, point: p), JointAnchor(object: bars[i].id, point: p)])
+    }
+    return (SketchDocument(objects: bars.map { .shape($0) } + hinges.map { .joint($0) }), bars[0].id)
+}
+
+@Test func hugeMechanismHasNoDrag() {
+    let big = barChain(501)
+    #expect(MechanismDrag(grabbing: big.first, at: Vec2(x: 0, y: 0), in: big.doc) == nil)
+    let small = barChain(50)
+    #expect(MechanismDrag(grabbing: small.first, at: Vec2(x: 0, y: 0), in: small.doc) != nil)
+}

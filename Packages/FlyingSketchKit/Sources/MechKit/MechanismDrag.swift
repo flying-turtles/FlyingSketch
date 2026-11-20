@@ -7,6 +7,9 @@ public final class MechanismDrag {
     /// Rigid poses whose points all move less than this (mm) are treated as identity, so bodies held still by
     /// their pins report no change instead of solver round-off.
     static let stillTolerance = 1e-9
+    /// Largest mechanism (bodies) a drag solves; beyond it (e.g. a hostile file) there is no mechanism drag, as the
+    /// solver's dense normal equations grow with the square of the body count.
+    static let maxBodies = 500
 
     private struct Body {
         var members: [SceneObject]
@@ -30,9 +33,10 @@ public final class MechanismDrag {
     /// Last result of `move` (empty before the first successful frame).
     public private(set) var replacements: [SceneObject] = []
 
-    /// nil when `object`'s body has no joint.
+    /// nil when `object`'s body has no joint, or the mechanism has more than `maxBodies` bodies.
     public init?(grabbing object: ObjectID, at world: Vec2, in doc: SketchDocument) {
-        guard let mechanism = Mechanism(containing: object, in: doc) else { return nil }
+        guard let mechanism = Mechanism(containing: object, in: doc), mechanism.bodies.count <= Self.maxBodies
+        else { return nil }
         start = doc
         let jointIDs = Set(mechanism.joints)
         var joints: [Joint] = []
