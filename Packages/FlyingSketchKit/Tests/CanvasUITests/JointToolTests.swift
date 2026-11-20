@@ -214,3 +214,38 @@ private func stroke(_ x: Double, _ y: Double) -> SceneObject {
     if case .pin(let s)? = view.interaction { view.pinTap(at: s) }
     #expect(joints(m).count == 1)
 }
+
+@Test @MainActor func tapOnPivotAddsThirdBar() {
+    let (a, b, c) = (rect(0, 0, 40, 40), rect(20, 20, 60, 60), rect(25, 25, 35, 35))
+    let pivot = v(30, 30)
+    let hinge = Joint(position: pivot, anchors: [JointAnchor(object: a.id, point: pivot), JointAnchor(object: b.id, point: pivot)])
+    let (view, m) = canvas([a, b, .joint(hinge), c])
+    tapPin(view, at: pivot)
+    #expect(joints(m).count == 1)
+    #expect(joints(m).first?.id == hinge.id)
+    #expect(joints(m).first.map { Set($0.anchors.map(\.object)) } == [a.id, b.id, c.id])
+    #expect(joints(m).first?.grounded == false)
+    #expect(m.undoManager.undoActionName == "Add Pin")
+    m.undoManager.undo()
+    #expect(joints(m) == [hinge])
+    #expect(!m.undoManager.canUndo)
+    m.undoManager.redo()
+    #expect(joints(m).first?.anchors.count == 3)
+    tapPin(view, at: pivot) // every body under the pivot is held now: toggles ground
+    #expect(joints(m).count == 1 && joints(m)[0].grounded && joints(m)[0].anchors.count == 3)
+}
+
+@Test @MainActor func tapOnLockMarkPinsUnderneath() {
+    let (plate, other) = (rect(0, 0, 40, 40), rect(10, 10, 30, 30))
+    let centre = v(20, 20)
+    let lock = Joint(kind: .fixed, position: centre, anchors: [JointAnchor(object: plate.id, point: centre)], grounded: true)
+    let (view, m) = canvas([plate, .joint(lock), other])
+    tapPin(view, at: centre)
+    let js = joints(m)
+    #expect(js.count == 2)
+    #expect(js.contains(lock))
+    let hinge = js.first { $0.kind == .hinge }
+    #expect(hinge?.position == centre)
+    #expect(hinge.map { Set($0.anchors.map(\.object)) } == [plate.id, other.id])
+    #expect(hinge?.grounded == false)
+}

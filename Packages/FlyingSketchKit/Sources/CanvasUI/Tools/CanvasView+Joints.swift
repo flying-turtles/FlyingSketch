@@ -3,23 +3,35 @@ import SketchCore
 
 /// Pin tool, lock in place, group / ungroup.
 extension CanvasView {
-    /// Pin-tool release: a tap on a pin toggles its ground, otherwise every body under the (grid-snapped) spot is
-    /// joined on one pivot. Empty canvas does nothing.
+    /// Pin-tool release. A tap on a hinge adds the bodies under its pivot that it does not hold yet, or, when it
+    /// holds them all, toggles its ground. Otherwise (locks never intercept) every body under the (grid-snapped)
+    /// spot is joined on one pivot. Empty canvas does nothing.
     func pinTap(at viewPoint: CGPoint) {
         let raw = worldPoint(viewPoint)
         let doc = model.document
         let spot = snapsToGrid ? snap(raw, grid: ShapeController.gridSize) : raw
-        // An existing pin at the tap, or at the snapped spot, is toggled; never stack a second one.
+        // An existing hinge at the tap, or at the snapped spot, is completed or toggled; never stack a second one.
         for probe in (spot == raw ? [raw] : [raw, spot]) {
-            if case .joint(let j)? = hitObjects(atWorld: probe).last(where: { if case .joint = $0 { true } else { false } }) {
-                model.perform(toggleGroundEdits(joint: j.id, in: doc), actionName: j.grounded ? "Release Pin" : "Pin to Background")
+            let hinge = hitObjects(atWorld: probe).last { if case .joint(let j) = $0 { j.kind == .hinge } else { false } }
+            if case .joint(let j)? = hinge {
+                let added = pinEdits(at: j.position, under: bodyObjects(at: j.position), in: doc)
+                if added.isEmpty {
+                    model.perform(toggleGroundEdits(joint: j.id, in: doc), actionName: j.grounded ? "Release Pin" : "Pin to Background")
+                } else {
+                    model.perform(added, actionName: "Add Pin")
+                }
                 return
             }
         }
-        let under = hitObjects(atWorld: spot).filter { if case .wire = $0 { false } else if case .joint = $0 { false } else { true } }
-            .map(\.id)
+        let under = bodyObjects(at: spot)
         let bodies = Set(under.map { bodyID(of: $0, in: doc) })
         model.perform(pinEdits(at: spot, under: under, in: doc), actionName: bodies.count == 1 ? "Pin to Background" : "Add Pin")
+    }
+
+    /// Objects hit at `point` that can be pinned (no wires, no joints), bottom to top.
+    private func bodyObjects(at point: Vec2) -> [ObjectID] {
+        hitObjects(atWorld: point).filter { if case .wire = $0 { false } else if case .joint = $0 { false } else { true } }
+            .map(\.id)
     }
 
     /// `ids` plus every member of any group they belong to.
