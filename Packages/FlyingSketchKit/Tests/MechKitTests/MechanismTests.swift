@@ -220,3 +220,24 @@ private func expectBarLengths(_ doc: SketchDocument, _ fb: FourBar, _ label: Str
     #expect(!selectionCoversWholeMechanisms([fb.coupler], in: fb.doc))
     #expect(selectionIsPinnedToOutside([fb.coupler], in: fb.doc))
 }
+
+@Test func ungroundedPlateStaysInDocumentDrag() {
+    // Filled plate with a bar hinged at its right edge; no ground, no lock.
+    let pin = Vec2(x: 0, y: 0), tip = Vec2(x: 30, y: 0)
+    let plate = ShapeObject(kind: .rectangle, start: Vec2(x: -20, y: -10), end: Vec2(x: 0, y: 10), fillColor: .black)
+    let bar = ShapeObject(kind: .line, start: pin, end: tip)
+    let hinge = Joint(position: pin, anchors: [JointAnchor(object: plate.id, point: pin), JointAnchor(object: bar.id, point: pin)])
+    let doc = SketchDocument(objects: [.shape(plate), .shape(bar), .joint(hinge)])
+    guard let drag = MechanismDrag(grabbing: bar.id, at: tip, in: doc) else { Issue.record("no drag"); return }
+    var result: [SceneObject] = []
+    for step in 1...9 {
+        let a = Double(step) * 5 * .pi / 180
+        result = drag.move(to: Vec2(x: 30 * cos(a), y: 30 * sin(a)))
+    }
+    let after = applied(result, to: doc)
+    let moved = shape(plate.id, in: after)
+    print("ungroundedPlateStaysInDocumentDrag: plate moved \(moved.start.distance(to: plate.start)) mm")
+    #expect(near(moved.start, plate.start, 1e-3) && near(moved.end, plate.end, 1e-3), "\(moved)")
+    #expect(abs(moved.rotation - plate.rotation) < 1e-4)
+    #expect(near(shape(bar.id, in: after).end, Vec2(x: 30 * cos(Double.pi / 4), y: 30 * sin(Double.pi / 4)), 1e-3))
+}

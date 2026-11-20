@@ -93,6 +93,13 @@ public enum MechanismSolver {
     /// Tikhonov damping of the projections (relative to the stay metric); keeps redundant / rank-deficient
     /// constraint sets solvable.
     static let projectionDamping = 1e-8
+    /// Share of the stay metric the dragged body keeps, in the phase-1 stay rows and in the projections. The
+    /// finger moves that body, so its own motion must not compete with the stay of the bodies it is pinned to
+    /// (charged in full, rotating a free bar costs as much as translating the whole assembly and the minimum
+    /// splits the motion). Nonzero so a grab on a pin keeps the systems definite; the projections keep more,
+    /// because their damping is already tiny (`projectionDamping`) and must stay well above round-off.
+    static let grabbedStayScale = 1e-6
+    static let grabbedProjectionScale = 1e-3
 
     /// `initial`: poses to start from (previous frame); points in constraints / drag are given at the identity pose.
     public static func solve(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?,
@@ -137,6 +144,10 @@ private struct Problem {
     let column: [Int]
     /// Lever that makes a body's angle comparable to its translation (mm per radian, at least 1).
     let reach: [Double]
+    /// Weight of each body in the stay metric: 1, `grabbedStayScale` for the dragged body.
+    let stay: [Double]
+    /// The same for the projections' metric: 1, `grabbedProjectionScale` for the dragged body.
+    let projectionStay: [Double]
     let unknowns: Int
 
     init?(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?, initial: [BodyPose]) {
@@ -157,6 +168,14 @@ private struct Problem {
         }
         if let drag { reachOut(drag.body, drag.point) }
         self.reach = reach
+        var stay = [Double](repeating: 1, count: bodies.count)
+        var projectionStay = stay
+        if let drag {
+            stay[drag.body] = MechanismSolver.grabbedStayScale
+            projectionStay[drag.body] = MechanismSolver.grabbedProjectionScale
+        }
+        self.stay = stay
+        self.projectionStay = projectionStay
         var column = [Int](repeating: -1, count: bodies.count)
         var next = 0
         for i in range where !bodies[i].isFixed {
@@ -191,7 +210,7 @@ private struct Problem {
         for i in bodies.indices where column[i] >= 0 {
             let t = poses[i].translation - initial[i].translation
             let a = reach[i] * (poses[i].angle - initial[i].angle)
-            cost += ws * ws * (t.x * t.x + t.y * t.y + a * a)
+            cost += ws * ws * stay[i] * (t.x * t.x + t.y * t.y + a * a)
         }
         return cost
     }
@@ -285,13 +304,16 @@ private struct Problem {
         }
     }
 
-    /// Adds `scale · M` to the diagonal, M = diag(1, 1, reach²) per body (the stay metric).
-    private func addMetric(_ eq: inout NormalEquations, scale: Double) {
+    /// Adds `scale · M + damping · diag(1, 1, reach²)` to the diagonal, M = stay · diag(1, 1, reach²) per body
+    /// (the stay metric; `projection`: with `projectionStay`).
+    private func addMetric(_ eq: inout NormalEquations, scale: Double, damping: Double = 0, projection: Bool = false) {
+        let stay = projection ? projectionStay : self.stay
         for i in bodies.indices where column[i] >= 0 {
             let col = column[i]
-            eq.addLower(col, col, scale)
-            eq.addLower(col + 1, col + 1, scale)
-            eq.addLower(col + 2, col + 2, scale * reach[i] * reach[i])
+            let d = scale * stay[i] + damping
+            eq.addLower(col, col, d)
+            eq.addLower(col + 1, col + 1, d)
+            eq.addLower(col + 2, col + 2, d * reach[i] * reach[i])
         }
     }
 
@@ -363,11 +385,12 @@ private struct Problem {
                 let col = column[i]
                 let t = poses[i].translation - initial[i].translation
                 let a = poses[i].angle - initial[i].angle
-                eq.addRHS(col, -ws * ws * t.x)
-                eq.addRHS(col + 1, -ws * ws * t.y)
-                eq.addRHS(col + 2, -ws * ws * reach[i] * reach[i] * a)
+                let w = ws * ws * stay[i]
+                eq.addRHS(col, -w * t.x)
+                eq.addRHS(col + 1, -w * t.y)
+                eq.addRHS(col + 2, -w * reach[i] * reach[i] * a)
             }
-            addMetric(&eq, scale: ws * ws + damping)
+            addMetric(&eq, scale: ws * ws, damping: damping)
             var bent = eq
             if let bend { addBending(&bent, bend) }
             guard var step = bent.solve() else {
@@ -435,7 +458,7 @@ private struct Problem {
             var eq = NormalEquations(size: unknowns)
             addConstraintRows(&eq, poses, weight: wc)
             if holdingDrag { addDragRows(&eq, poses) }
-            addMetric(&eq, scale: MechanismSolver.projectionDamping)
+            addMetric(&eq, scale: MechanismSolver.projectionDamping, projection: true)
             guard let step = eq.solve() else { break }
             // Halve the step while it makes things worse (far from the constraint manifold).
             var scale = 1.0, accepted = false

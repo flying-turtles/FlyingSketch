@@ -185,9 +185,61 @@ private func plateWithBars(plateFixed: Bool) -> (bodies: [SolverBody], constrain
     #expect(r.converged)
     #expect(r.residual < 1e-6)
     #expect(constraintError(bodies, constraints, r.poses) < 1e-6)
-    #expect(r.poses[0].translation.length < 0.5, "\(r.poses[0])")
-    #expect(abs(r.poses[0].angle) < 0.02, "\(r.poses[0])")
+    print("ungroundedChainMovesLeast: plate \(r.poses[0])")
+    #expect(r.poses[0].translation.length < 1e-5, "\(r.poses[0])")
+    #expect(abs(r.poses[0].angle) < 1e-6, "\(r.poses[0])")
     #expect(near(world(r, bodies, 1, drag.point), drag.target, 1e-3))
+}
+
+/// Point at `degrees` (clockwise positive) on the circle of `radius` about `center`, starting at +x.
+private func onCircle(_ center: Vec2, _ radius: Double, _ degrees: Double) -> Vec2 {
+    let a = degrees * .pi / 180
+    return center + v(radius * cos(a), radius * sin(a))
+}
+
+@Test func freePlateStaysWhenBarSwings() {
+    // Plate P (0) and bar B (1) hinged at (0,0), tip at (30,0); nothing fixed.
+    let pin = v(0, 0), tip = v(30, 0)
+    let bodies = [SolverBody(origin: pin), SolverBody(origin: mid(pin, tip))]
+    let constraints = [PointConstraint(a: 0, pointA: pin, b: 1, pointB: pin)]
+    var poses = identity(2)
+    var worst = 0.0
+    for step in 1...9 {
+        let target = onCircle(pin, 30, Double(step) * 5)
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                      drag: DragTarget(body: 1, point: tip, target: target), initial: poses)
+        #expect(r.converged, "step \(step)")
+        #expect(r.residual < 1e-6, "step \(step)")
+        worst = max(worst, r.poses[0].translation.length)
+        #expect(r.poses[0].translation.length < 1e-3, "step \(step): plate \(r.poses[0])")
+        #expect(abs(r.poses[0].angle) < 1e-4, "step \(step): plate \(r.poses[0])")
+        #expect(near(world(r, bodies, 1, tip), target, 1e-3), "step \(step)")
+        poses = r.poses
+    }
+    print("freePlateStaysWhenBarSwings: plate translation \(poses[0].translation.length) mm (worst \(worst)), angle \(poses[0].angle)")
+}
+
+@Test func freePlateReturnsAfterRoundTrip() {
+    // Plate P (0), bar 1 hinged at (0,0) with its tip at (-30,0), bar 2 hinged at (20,0); nothing fixed.
+    let h1 = v(0, 0), h2 = v(20, 0), e1 = v(-30, 0), e2 = v(20, 30)
+    let bodies = [SolverBody(origin: mid(h1, h2)), SolverBody(origin: mid(h1, e1)), SolverBody(origin: mid(h2, e2))]
+    let constraints = [PointConstraint(a: 0, pointA: h1, b: 1, pointB: h1),
+                       PointConstraint(a: 0, pointA: h2, b: 2, pointB: h2)]
+    var poses = identity(3)
+    let path = Array(stride(from: 185.0, through: 240, by: 5)) + Array(stride(from: 235.0, through: 180, by: -5))
+    for degrees in path {
+        let target = onCircle(h1, 30, degrees)
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                      drag: DragTarget(body: 1, point: e1, target: target), initial: poses)
+        #expect(r.converged, "\(degrees)°")
+        #expect(r.residual < 1e-6, "\(degrees)°")
+        poses = r.poses
+    }
+    print("freePlateReturnsAfterRoundTrip: plate \(poses[0]), bar 2 \(poses[2])")
+    for i in [0, 2] {
+        #expect(poses[i].translation.length < 1e-3, "body \(i): \(poses[i])")
+        #expect(abs(poses[i].angle) < 1e-4, "body \(i): \(poses[i])")
+    }
 }
 
 @Test func fixedBodyNeverMoves() {
