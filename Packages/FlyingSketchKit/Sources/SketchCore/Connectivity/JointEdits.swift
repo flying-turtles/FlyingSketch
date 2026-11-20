@@ -1,18 +1,26 @@
-/// Edits that make joints and groups consistent with the objects present: anchors on missing objects or wires
-/// dropped; duplicate bodies within one joint collapsed to the first anchor; invalid joints removed; groups
-/// lose missing members and wires, groups with < 2 members removed. Empty when already consistent.
+/// Edits that make joints and groups consistent with the objects present: anchors on missing objects, wires or
+/// joints dropped; duplicate bodies within one joint collapsed to the first anchor; invalid joints removed; groups
+/// lose missing, duplicate, wire and joint members, an object stays in the first group listing it, groups with
+/// < 2 members removed. Joints are never bodies, so one call reaches a fixed point (a second returns `[]`).
 public func jointIntegrityEdits(in doc: SketchDocument) -> [SceneEdit] {
-    var wires = Set<ObjectID>()
-    var present = Set<ObjectID>()
+    var bodies = Set<ObjectID>()
     for o in doc.objects {
-        present.insert(o.id)
-        if case .wire = o { wires.insert(o.id) }
+        switch o {
+        case .wire, .joint: break
+        default: bodies.insert(o.id)
+        }
     }
-    func usable(_ id: ObjectID) -> Bool { present.contains(id) && !wires.contains(id) }
+    func usable(_ id: ObjectID) -> Bool { bodies.contains(id) }
 
-    let groups = doc.groups
-        .map { ObjectGroup(id: $0.id, members: $0.members.filter(usable)) }
-        .filter { $0.members.count >= 2 }
+    var claimed = Set<ObjectID>()
+    var groups: [ObjectGroup] = []
+    for g in doc.groups {
+        var seen = Set<ObjectID>()
+        let members = g.members.filter { usable($0) && !claimed.contains($0) && seen.insert($0).inserted }
+        guard members.count >= 2 else { continue }
+        claimed.formUnion(members)
+        groups.append(ObjectGroup(id: g.id, members: members))
+    }
     var cleaned = doc
     cleaned.groups = groups
 

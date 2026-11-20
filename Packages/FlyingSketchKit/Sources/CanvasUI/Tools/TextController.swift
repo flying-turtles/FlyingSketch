@@ -17,7 +17,7 @@ final class TextController {
                 if case .text(let t) = o, t.id == existing.id { return t } else { return nil }
             }).first else { return false }
             if blank {
-                model.perform(.remove([current.id]), actionName: "Delete Text")
+                model.perform(deletionEdits([current.id], in: model.document), actionName: "Delete Text")
                 return true
             }
             guard text != current.text else { return false }

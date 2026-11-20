@@ -106,3 +106,18 @@ private let existing = TextObject(text: "Hello", position: Vec2(x: 0, y: 0), fon
     let topLeft = tv.convert(CGPoint.zero, to: v)
     #expect(abs(topLeft.x - at.x) < 1e-6 && abs(topLeft.y - at.y) < 1e-6)
 }
+
+@Test @MainActor func emptyingAnchoredTextRemovesPinsInOneUndo() {
+    let shape = SceneObject.shape(ShapeObject(kind: .line, start: Vec2(x: 0, y: 10), end: Vec2(x: 10, y: 10)))
+    let p = Vec2(x: 1, y: 1)
+    let grounded = Joint(position: p, anchors: [JointAnchor(object: existing.id, point: p)], grounded: true)
+    let pair = Joint(position: p, anchors: [JointAnchor(object: existing.id, point: p),
+                                            JointAnchor(object: shape.id, point: p)])
+    let doc = SketchDocument(objects: [.text(existing), shape, .joint(grounded), .joint(pair)])
+    let m = DocumentModel(document: doc)
+    TextController(model: m).commit("  ", existing: existing, position: .zero, fontSize: 5, color: .black)
+    #expect(m.document.objects.map(\.id) == [shape.id])
+    #expect(m.undoManager.undoActionName == "Delete Text")
+    m.undoManager.undo()
+    #expect(m.document == doc)
+}

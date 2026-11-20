@@ -171,16 +171,16 @@ private func repaired(_ doc: SketchDocument) -> SketchDocument {
 }
 
 @Test func integrityCleansGroups() {
-    let (a, b) = (bar(0), bar(20))
+    let (a, b, c, d) = (bar(0), bar(20), bar(40), bar(60))
     let w = Wire(start: WireEnd(position: v(0, 5)), end: WireEnd(position: v(5, 5)))
     let missing = ObjectID.new()
     let g1 = ObjectGroup(members: [a.id, b.id, missing])
-    let g2 = ObjectGroup(members: [a.id, missing])
-    let g3 = ObjectGroup(members: [a.id, b.id, w.id])
-    let fixed = repaired(SketchDocument(objects: [a, b, .wire(w)], groups: [g1, g2, g3]))
+    let g2 = ObjectGroup(members: [c.id, missing])
+    let g3 = ObjectGroup(members: [c.id, d.id, w.id])
+    let fixed = repaired(SketchDocument(objects: [a, b, c, d, .wire(w)], groups: [g1, g2, g3]))
     #expect(fixed.groups.map(\.id) == [g1.id, g3.id])
     #expect(fixed.groups[0].members == [a.id, b.id])
-    #expect(fixed.groups[1].members == [a.id, b.id])
+    #expect(fixed.groups[1].members == [c.id, d.id])
 }
 
 @MainActor
@@ -226,4 +226,46 @@ private func repaired(_ doc: SketchDocument) -> SketchDocument {
     #expect(back.objects.map(\.id) == [a.id, kept.id])
     guard case .joint(let j) = back.objects[1] else { Issue.record("joint lost"); return }
     #expect(j.anchors.map(\.object) == [a.id])
+}
+
+@Test func integrityDropsJointAnchors() {
+    let a = bar(0)
+    let j1 = hinge(v(1, 0), on: [a.id])
+    let j2 = hinge(v(2, 0), on: [a.id, j1.id])
+    let selfPinned = Joint(position: v(3, 0))
+    var s = selfPinned
+    s.anchors = [JointAnchor(object: a.id, point: v(3, 0)), JointAnchor(object: s.id, point: v(3, 0))]
+    let doc = SketchDocument(objects: [a, .joint(j1), .joint(j2), .joint(s)])
+    let fixed = repaired(doc)
+    #expect(jointCount(fixed) == 0)
+    #expect(jointIntegrityEdits(in: fixed).isEmpty)
+}
+
+@Test func integrityDropsJointsFromGroups() {
+    let (a, b) = (bar(0), bar(20))
+    let j = hinge(v(1, 0), on: [a.id], grounded: true)
+    let g1 = ObjectGroup(members: [a.id, j.id])
+    let g2 = ObjectGroup(members: [a.id, b.id, j.id])
+    let fixed = repaired(SketchDocument(objects: [a, b, .joint(j)], groups: [g1, g2]))
+    #expect(fixed.groups == [ObjectGroup(id: g2.id, members: [a.id, b.id])])
+    #expect(jointIntegrityEdits(in: fixed).isEmpty)
+}
+
+@Test func integrityDedupesGroupMembers() {
+    let (a, b) = (bar(0), bar(20))
+    let g1 = ObjectGroup(members: [a.id, a.id])
+    let g2 = ObjectGroup(members: [a.id, a.id, b.id])
+    let fixed = repaired(SketchDocument(objects: [a, b], groups: [g1, g2]))
+    #expect(fixed.groups == [ObjectGroup(id: g2.id, members: [a.id, b.id])])
+    #expect(jointIntegrityEdits(in: fixed).isEmpty)
+}
+
+@Test func integrityKeepsObjectInFirstGroupOnly() {
+    let (a, b, c) = (bar(0), bar(20), bar(40))
+    let g1 = ObjectGroup(members: [a.id, b.id])
+    let g2 = ObjectGroup(members: [b.id, c.id])
+    let g3 = ObjectGroup(members: [b.id, c.id, a.id, bar(60).id])
+    let fixed = repaired(SketchDocument(objects: [a, b, c], groups: [g1, g2, g3]))
+    #expect(fixed.groups == [g1])
+    #expect(jointIntegrityEdits(in: fixed).isEmpty)
 }
