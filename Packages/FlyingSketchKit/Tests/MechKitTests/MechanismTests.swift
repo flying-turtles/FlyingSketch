@@ -219,6 +219,11 @@ private func expectBarLengths(_ doc: SketchDocument, _ fb: FourBar, _ label: Str
     // One bar: its hinges also hold bars outside the selection.
     #expect(!selectionCoversWholeMechanisms([fb.coupler], in: fb.doc))
     #expect(selectionIsPinnedToOutside([fb.coupler], in: fb.doc))
+    // Pins without their bars: rotating would move the pins off them.
+    #expect(selectionIsPinnedToOutside(Set(fb.joints), in: fb.doc))
+    #expect(selectionIsPinnedToOutside([fb.jointB, fb.jointC], in: fb.doc))
+    #expect(selectionIsPinnedToOutside([fb.jointA], in: fb.doc))
+    #expect(!selectionIsPinnedToOutside(whole.union([loose.id]), in: fb.doc))
 }
 
 @Test func ungroundedPlateStaysInDocumentDrag() {

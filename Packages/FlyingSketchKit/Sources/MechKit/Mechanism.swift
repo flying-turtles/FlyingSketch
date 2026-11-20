@@ -114,13 +114,16 @@ public func selectionCoversWholeMechanisms(_ ids: Set<ObjectID>, in doc: SketchD
     }
 }
 
-/// True when rotating / free-moving `ids` would break a pin: a joint has an anchor inside and an anchor outside
-/// `ids`, or a grounded / fixed joint has an anchor inside `ids` while the joint itself is not in `ids`.
+/// True when rotating / free-moving `ids` would break a pin: a joint in `ids` has an anchor outside `ids` (the pin
+/// would leave its body), a joint has an anchor inside and an anchor outside `ids`, or a grounded / fixed joint has
+/// an anchor inside `ids` while the joint itself is not in `ids`.
 public func selectionIsPinnedToOutside(_ ids: Set<ObjectID>, in doc: SketchDocument) -> Bool {
     for case .joint(let j) in doc.objects {
+        let outside = j.anchors.contains { !ids.contains($0.object) }
+        if outside, ids.contains(j.id) { return true }
         let inside = j.anchors.contains { ids.contains($0.object) }
         guard inside else { continue }
-        if j.anchors.contains(where: { !ids.contains($0.object) }) { return true }
+        if outside { return true }
         if (j.grounded || j.kind == .fixed) && !ids.contains(j.id) { return true }
     }
     return false

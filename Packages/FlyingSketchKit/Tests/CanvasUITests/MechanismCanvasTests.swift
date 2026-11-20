@@ -498,6 +498,15 @@ private func crossedBars() -> (doc: SketchDocument, bar1: ShapeObject, bar2: Sha
     #expect(!m2.undoManager.canUndo)
 }
 
+@Test @MainActor func rotateHandleHiddenForPinOnlySelection() {
+    let fb = fourBarDocument()
+    let (view, _) = canvas(fb.doc, select: [fb.jointB, fb.jointC])
+    #expect(view.rotateHandleCenter == nil)
+    view.selection.ids = [fb.jointA]
+    view.updateSelectionOverlay()
+    #expect(view.rotateHandleCenter == nil)
+}
+
 @Test @MainActor func rotateHandleHiddenWhenCarriedPartPinnedOutside() {
     let boardDef = PartDefinition.fixtureBreadboardMini(), moduleDef = PartDefinition.fixtureModule()
     let board = PartInstance(definitionKey: boardDef.key, center: v(40, 0))
