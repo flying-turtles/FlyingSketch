@@ -268,7 +268,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     }
 
     /// Routing seam. A drag starting inside the selection moves it for the finger (pencilOnly) and the lasso tool;
-    /// on a selected pin it moves the pin, on a selected pinned body it drags the mechanism (`selectionDrag`).
+    /// on a pin of a pins-only selection it moves the pin, on a selected pinned body it drags the mechanism
+    /// (`selectionDrag`).
     func route(isPencil: Bool, at p: CGPoint) -> Interaction? {
         let insideSelection = selectionViewRect?
             .insetBy(dx: -Self.hitSlop, dy: -Self.hitSlop).contains(p) == true

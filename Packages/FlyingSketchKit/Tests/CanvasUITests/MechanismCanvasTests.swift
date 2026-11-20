@@ -62,6 +62,10 @@ private func isMove(_ i: CanvasView.Interaction?) -> Bool {
     if case .move? = i { true } else { false }
 }
 
+private func isPending(_ i: CanvasView.Interaction?) -> Bool {
+    if case .pending? = i { true } else { false }
+}
+
 // MARK: Routing
 
 @Test @MainActor func routeMechanismDragOnPinnedBar() {
@@ -79,10 +83,10 @@ private func isMove(_ i: CanvasView.Interaction?) -> Bool {
     view.updateSelectionOverlay()
     #expect(isMove(view.route(isPencil: true, at: point(view, v(70, 30)))))
 
-    // Everything selected is pinned and the touch hits no object: no interaction.
+    // Everything selected is pinned and the touch hits no object: as outside the box (tap or lasso).
     view.selection.ids = Set(fb.bars)
     view.updateSelectionOverlay()
-    #expect(view.route(isPencil: true, at: point(view, v(20, 0))) == nil)
+    #expect(isPending(view.route(isPencil: false, at: point(view, v(20, 0)))))
 }
 
 @Test @MainActor func routeWholeMechanismMovesFreely() {
@@ -387,4 +391,168 @@ private func isMove(_ i: CanvasView.Interaction?) -> Bool {
     #expect(near(b1.center, board.center + v(20, 0), 1e-12))
     #expect(object(module.id, in: m.document) == .part(module))
     #expect(joint(pin.id, in: m.document) == pin)
+}
+
+// MARK: Fix round 1
+
+/// Bar 1 (0,0)-(40,20) grounded at (0,0); bar 2 (0,20)-(40,0) grounded at (40,0), crossing bar 1's box.
+private func crossedBars() -> (doc: SketchDocument, bar1: ShapeObject, bar2: ShapeObject) {
+    let bar1 = ShapeObject(kind: .line, start: v(0, 0), end: v(40, 20))
+    let bar2 = ShapeObject(kind: .line, start: v(0, 20), end: v(40, 0))
+    let g1 = Joint(position: v(0, 0), anchors: [JointAnchor(object: bar1.id, point: v(0, 0))], grounded: true)
+    let g2 = Joint(position: v(40, 0), anchors: [JointAnchor(object: bar2.id, point: v(40, 0))], grounded: true)
+    return (SketchDocument(objects: [.shape(bar1), .shape(bar2), .joint(g1), .joint(g2)]), bar1, bar2)
+}
+
+@Test @MainActor func tapInsidePinnedSelectionBoxRetargets() {
+    let (doc, bar1, bar2) = crossedBars()
+    let (view, _) = canvas(doc, select: [bar1.id])
+    let p = point(view, v(5, 17.5)) // on bar 2 only, inside bar 1's box
+    guard case .pending(let start)? = view.route(isPencil: false, at: p) else { Issue.record("expected .pending"); return }
+    view.handleTap(at: start) // release of the pending tap
+    #expect(view.selection.ids == [bar2.id])
+}
+
+@Test @MainActor func tapOnEmptySpaceInsidePinnedBoxClears() {
+    let (doc, bar1, _) = crossedBars()
+    let (view, _) = canvas(doc, select: [bar1.id])
+    let p = point(view, v(35, 12))
+    guard case .pending(let start)? = view.route(isPencil: true, at: p) else { Issue.record("expected .pending"); return }
+    view.handleTap(at: start)
+    #expect(view.selection.ids.isEmpty)
+}
+
+@Test @MainActor func tapOnPinnedBoardHoleHighlightsNet() {
+    let boardDef = PartDefinition.fixtureBreadboardMini()
+    let board = PartInstance(definitionKey: boardDef.key, center: v(40, 0))
+    let pivot = board.center + v(-6, -7)
+    let ground = Joint(position: pivot, anchors: [JointAnchor(object: board.id, point: pivot)], grounded: true)
+    let doc = SketchDocument(objects: [.part(board), .joint(ground)], parts: [boardDef.key: boardDef])
+    let (view, m) = canvas(doc, select: [board.id])
+    let hole = connectorPositions(board, boardDef)["c1r1"]!
+    #expect(isMechanism(view.route(isPencil: true, at: point(view, hole)), board.id))
+    view.beginMechanismDrag(object: board.id, at: hole)
+    view.endMechanismDrag()
+    #expect(view.netHighlight.anchor == ConnectorRef(part: board.id, connector: "c1r1"))
+    #expect(!m.undoManager.canUndo)
+}
+
+@Test @MainActor func pinTapRetargetsLikeAMoveTap() {
+    let fb = fourBarDocument()
+    let (view, m) = canvas(fb.doc, select: [fb.jointB, fb.jointC])
+    view.beginPinMove(fb.jointB, at: fb.b)
+    view.endPinMove(at: fb.b)
+    #expect(view.selection.ids == [fb.jointB, fb.jointC]) // tap on a selected pin keeps the selection
+    #expect(!m.undoManager.canUndo)
+}
+
+@Test @MainActor func pinMoveOnlyForPinOnlySelection() {
+    let fb = fourBarDocument()
+    let (view, _) = canvas(fb.doc, select: [fb.jointB])
+    let b = point(view, fb.b)
+    guard case .pinMove(let id)? = view.route(isPencil: true, at: b), id == fb.jointB else {
+        Issue.record("expected .pinMove"); return
+    }
+    view.selection.ids = [fb.jointB, fb.crank]
+    view.updateSelectionOverlay()
+    #expect(isMechanism(view.route(isPencil: true, at: b), fb.crank))
+    view.selection.ids = Set(fb.bars + fb.joints)
+    view.updateSelectionOverlay()
+    #expect(isMove(view.route(isPencil: true, at: b)))
+    // Several pins selected (pins only): the one under the touch moves.
+    view.selection.ids = [fb.jointB, fb.jointC]
+    view.updateSelectionOverlay()
+    guard case .pinMove(let c)? = view.route(isPencil: true, at: point(view, fb.c)), c == fb.jointC else {
+        Issue.record("expected .pinMove of C"); return
+    }
+}
+
+@Test @MainActor func quarterTurnDisabledForAnchoredPartEvenWhenWholeMechanismSelected() {
+    let moduleDef = PartDefinition.fixtureModule()
+    let module = PartInstance(definitionKey: moduleDef.key, center: v(10, 10))
+    let plate = ShapeObject(kind: .rectangle, start: v(0, 0), end: v(30, 30))
+    let pin = Joint(position: v(10, 10), anchors: [JointAnchor(object: module.id, point: v(10, 10)),
+                                                   JointAnchor(object: plate.id, point: v(10, 10))])
+    let doc = SketchDocument(objects: [.shape(plate), .part(module), .joint(pin)], parts: [moduleDef.key: moduleDef])
+    let (view, m) = canvas(doc, select: [module.id, plate.id, pin.id])
+    func rotateTitles() -> [String] {
+        let menu = view.editMenuInteraction(UIEditMenuInteraction(delegate: nil),
+                                            menuFor: UIEditMenuConfiguration(identifier: nil, sourcePoint: .zero),
+                                            suggestedActions: [])
+        return (menu?.children ?? []).compactMap { ($0 as? UIAction)?.title }.filter { $0.hasPrefix("Rotate") }
+    }
+    view.rotateSelectedParts(clockwise: true)
+    #expect(!m.undoManager.canUndo)
+    #expect(rotateTitles().isEmpty)
+    #expect(view.rotateHandleCenter != nil) // the handle turns the pin too
+
+    // Anchored through its group: the module is grouped with a grounded plate.
+    let lone = PartInstance(definitionKey: moduleDef.key, center: v(60, 10))
+    let base = ShapeObject(kind: .rectangle, start: v(50, 0), end: v(80, 30))
+    let ground = Joint(position: v(70, 20), anchors: [JointAnchor(object: base.id, point: v(70, 20))], grounded: true)
+    let group = ObjectGroup(members: [lone.id, base.id])
+    let doc2 = SketchDocument(objects: [.shape(base), .part(lone), .joint(ground)], parts: [moduleDef.key: moduleDef],
+                              groups: [group])
+    let (view2, m2) = canvas(doc2, select: [lone.id, base.id, ground.id])
+    view2.rotateSelectedParts(clockwise: false)
+    #expect(!m2.undoManager.canUndo)
+}
+
+@Test @MainActor func rotateHandleHiddenWhenCarriedPartPinnedOutside() {
+    let boardDef = PartDefinition.fixtureBreadboardMini(), moduleDef = PartDefinition.fixtureModule()
+    let board = PartInstance(definitionKey: boardDef.key, center: v(40, 0))
+    var module = PartInstance(definitionKey: moduleDef.key, center: v(40, 0))
+    module.center = module.center + (connectorPositions(board, boardDef)["c0r1"]! - connectorPositions(module, moduleDef)["VCC"]!)
+    let holder = ShapeObject(kind: .rectangle, start: module.center - v(2, 2), end: module.center + v(2, 2))
+    let pin = Joint(position: module.center, anchors: [JointAnchor(object: module.id, point: module.center),
+                                                       JointAnchor(object: holder.id, point: module.center)])
+    let parts = [boardDef.key: boardDef, moduleDef.key: moduleDef]
+    let free = SketchDocument(objects: [.part(board), .part(module), .shape(holder)], parts: parts)
+    let (control, _) = canvas(free, select: [board.id])
+    #expect(control.rotateHandleCenter != nil)
+    var pinned = free
+    pinned.objects.append(.joint(pin))
+    let (view, _) = canvas(pinned, select: [board.id])
+    #expect(view.rotateHandleCenter == nil)
+    if case .rotate? = view.route(isPencil: true, at: CGPoint(x: 0, y: 0)) { Issue.record("rotate routed") }
+}
+
+@Test @MainActor func mechanismDragKeepsContactsAndWireAttachments() {
+    let boardDef = PartDefinition.fixtureBreadboardMini(), moduleDef = PartDefinition.fixtureModule()
+    let board = PartInstance(definitionKey: boardDef.key, center: v(40, 0))
+    var module = PartInstance(definitionKey: moduleDef.key, center: v(40, 0))
+    let holes = connectorPositions(board, boardDef)
+    module.center = module.center + (holes["c0r1"]! - connectorPositions(module, moduleDef)["VCC"]!)
+    let pins = connectorPositions(module, moduleDef)
+    let wire = Wire(start: WireEnd(position: pins["SCL"]!, attachment: .connector(part: module.id, connector: "SCL")),
+                    end: WireEnd(position: v(80, 30)))
+    let jumper = Wire(start: WireEnd(position: pins["GND"]!, attachment: .connector(part: module.id, connector: "GND")),
+                      end: WireEnd(position: holes["c3r4"]!, attachment: .connector(part: board.id, connector: "c3r4")))
+    let pivot = board.center + v(-6, -7)
+    let ground = Joint(position: pivot, anchors: [JointAnchor(object: board.id, point: pivot)], grounded: true)
+    let defs = [boardDef.key: boardDef, moduleDef.key: moduleDef]
+    let doc = SketchDocument(objects: [.part(board), .part(module), .wire(wire), .wire(jumper), .joint(ground)],
+                             parts: defs)
+    let before = contacts(in: doc)
+    #expect(!before.isEmpty)
+    let (view, m) = canvas(doc, select: [board.id])
+    let grab = board.center + v(6, 7)
+    view.beginMechanismDrag(object: board.id, at: grab)
+    view.moveMechanism(to: pivot + (grab - pivot).rotated(by: 0.6))
+    view.endMechanismDrag()
+    #expect(m.undoManager.undoActionName == "Move Mechanism")
+    let after = m.document
+    #expect(object(board.id, in: after) != .part(board))
+    #expect(contacts(in: after) == before)
+    var parts: [ObjectID: PartInstance] = [:]
+    for case .part(let p) in after.objects { parts[p.id] = p }
+    for case .wire(let w) in after.objects {
+        guard case .wire(let w0)? = object(w.id, in: doc) else { Issue.record("wire gone"); continue }
+        #expect(w.start.attachment == w0.start.attachment && w.end.attachment == w0.end.attachment)
+        for end in [w.start, w.end] {
+            guard case .connector(let part, let connector)? = end.attachment, let p = parts[part],
+                  let def = defs[p.definitionKey] else { continue }
+            #expect(near(end.position, connectorPositions(p, def)[connector]!, 1e-9))
+        }
+    }
 }

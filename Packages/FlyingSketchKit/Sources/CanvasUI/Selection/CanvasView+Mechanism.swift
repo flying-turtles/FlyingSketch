@@ -30,29 +30,51 @@ extension CanvasView {
     /// Selection box and handles are hidden while rotating, dragging a mechanism or moving a pin.
     var selectionChromeHidden: Bool { rotator.isActive || mechanismSession != nil || pinMoveSession != nil }
 
-    /// Whether rotating the selection would break a pin (rotate handle and quarter turns are then unavailable).
+    /// Whether rotating the selection would break a pin (quarter turns are then unavailable).
     var selectionIsPinned: Bool { selectionIsPinnedToOutside(selection.ids, in: model.document) }
+
+    /// Whether the rotate handle would break a pin: the selection plus the parts it carries (`rotateObjects` turns
+    /// them too) is pinned to anything outside.
+    var rotationIsPinned: Bool {
+        let doc = model.document
+        let parts = Set(selectedObjects.filter { if case .part = $0 { true } else { false } }.map(\.id))
+        return selectionIsPinnedToOutside(selection.ids.union(carriedParts(by: parts, in: doc)), in: doc)
+    }
+
+    /// Quarter turns spin a part about its own centre without moving pins, so they are unavailable when any
+    /// selected part is anchored (directly or through its group) or the selection is pinned to outside.
+    var selectionCanQuarterTurn: Bool {
+        guard selectionContainsParts, !selectionIsPinned else { return false }
+        let doc = model.document
+        let pinned = pinnedBodies(in: doc)
+        return !selectedObjects.contains { o in
+            if case .part = o { pinned.contains(bodyID(of: o.id, in: doc)) } else { false }
+        }
+    }
 
     // MARK: Routing
 
-    /// Selected pin under `p`, topmost.
+    /// Selected pin under `p`, topmost; only when the selection holds nothing but pins (a selected bar or
+    /// mechanism grabbed near a hinge drags the body, not the pin).
     func selectedJoint(at p: CGPoint) -> ObjectID? {
-        hitObjects(atWorld: worldPoint(p)).last { o in
+        guard !selection.ids.isEmpty,
+              selectedObjects.allSatisfy({ if case .joint = $0 { true } else { false } }) else { return nil }
+        return hitObjects(atWorld: worldPoint(p)).last { o in
             if case .joint = o { selection.ids.contains(o.id) } else { false }
         }?.id
     }
 
     /// A touch at `p` inside the selection: a free move when the selection covers whole mechanisms (or holds no
-    /// pinned object); a mechanism drag when it lands on a selected pinned body; else a move of the loose objects,
-    /// or nothing when everything selected is pinned.
+    /// pinned object); a mechanism drag on a selected pinned body; a move of the loose objects on a loose one;
+    /// else `.pending`, as outside the box (a tap re-targets or clears, a drag lassoes).
     func selectionDrag(at p: CGPoint) -> Interaction? {
         let doc = model.document
         if selectionCoversWholeMechanisms(selection.ids, in: doc) { return .move }
         let hit = hitObjects(atWorld: worldPoint(p)).last { o in
             if case .joint = o { false } else { selection.ids.contains(o.id) }
         }
-        if let hit, pinnedBodies(in: doc).contains(bodyID(of: hit.id, in: doc)) { return .mechanism(hit.id) }
-        return freeMoveIDs().isEmpty ? nil : .move
+        guard let hit else { return .pending(start: p) }
+        return pinnedBodies(in: doc).contains(bodyID(of: hit.id, in: doc)) ? .mechanism(hit.id) : .move
     }
 
     /// Ids a free move drags: the whole selection when it covers whole mechanisms, else only its loose objects
@@ -100,7 +122,7 @@ extension CanvasView {
         let edits = session.drag.replacements
         clearMechanismDrag() // same transaction as the commit (see touchesEnded)
         if session.travel < minTravel {
-            presentEditMenu() // a tap on a selected object, as for a move
+            selectionTap(atWorld: session.grab)
             return
         }
         guard !edits.isEmpty else { return }
@@ -144,7 +166,7 @@ extension CanvasView {
         let target = pinTarget(session, world)
         clearPinMove() // same transaction as the commit (see touchesEnded)
         if isTap {
-            presentEditMenu()
+            selectionTap(atWorld: session.grab)
             return
         }
         let moved = Self.joint(session.original, movedTo: target)

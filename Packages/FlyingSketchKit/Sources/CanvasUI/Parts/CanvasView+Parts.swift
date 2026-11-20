@@ -91,9 +91,9 @@ extension CanvasView {
     var selectionContainsParts: Bool { selectedObjects.contains(where: Self.isPart) }
 
     /// Quarter-turns every selected part around its own centre; attached wire ends follow. One edit "Rotate".
-    /// Nothing when the selection is pinned to anything outside it.
+    /// Nothing when a selected part is anchored by a pin or the selection is pinned to outside (`selectionCanQuarterTurn`).
     public func rotateSelectedParts(clockwise: Bool) {
-        guard !selectionIsPinned else { return }
+        guard selectionCanQuarterTurn else { return }
         var working = model.document
         var changed: [ObjectID: SceneObject] = [:]
         for case .part(let p) in selectedObjects {

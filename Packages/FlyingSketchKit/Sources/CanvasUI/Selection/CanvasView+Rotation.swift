@@ -9,10 +9,10 @@ extension CanvasView {
     static let rotateHitRadius: CGFloat = 16
 
     /// Knob centre in view space; nil with no selection, while a move, leg, bend, rotate, mechanism or pin drag is
-    /// in flight, or when the selection is pinned to anything outside it.
+    /// in flight, or when the rotation would break a pin (`rotationIsPinned`).
     var rotateHandleCenter: CGPoint? {
         guard !selectionChromeHidden, !moveEngaged, legPreview.isEmpty, bendPreview == nil,
-              let r = selectionViewRect, !selectionIsPinned else { return nil }
+              let r = selectionViewRect, !rotationIsPinned else { return nil }
         switch interaction {
         case .leg, .wireBend: return nil
         default: return CGPoint(x: r.midX, y: r.minY - Self.rotateHandleOffset)

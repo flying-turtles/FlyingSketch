@@ -155,22 +155,26 @@ extension CanvasView {
         let rigid = moveRigid
         resetMove()
         guard engaged, delta.length > 0 else {
-            // Unengaged = a tap: re-target the selection unless it landed on an already selected object.
-            guard let start else { return }
-            let v = currentViewport.worldToView(start, viewSize: viewSize)
-            let point = CGPoint(x: v.x, y: v.y)
-            if highlightNet(at: point) { return } // a connector under the tap wins over selecting
-            if let hit = topObject(at: point), selection.ids.contains(hit.id) {
-                presentEditMenu()
-            } else {
-                tap(at: point)
-            }
+            if let start { selectionTap(atWorld: start) } // unengaged = a tap
             return
         }
         // Drop: snap the moved parts' males into nearby females of parts left in place, in the same edit.
         let snapped = delta + plugSnap(moving, rigid: rigid, movedBy: delta)
         model.perform(.replace(movedObjects(moving, rigid: rigid, by: snapped)), actionName: "Move")
         updateSelectionOverlay()
+    }
+
+    /// A tap that began inside the selection (move, mechanism or pin drag that never travelled): a connector
+    /// highlights its net, a selected object shows the edit menu, anything else re-targets the selection.
+    func selectionTap(atWorld world: Vec2) {
+        let v = currentViewport.worldToView(world, viewSize: viewSize)
+        let point = CGPoint(x: v.x, y: v.y)
+        if highlightNet(at: point) { return } // a connector under the tap wins over selecting
+        if let hit = topObject(at: point), selection.ids.contains(hit.id) {
+            presentEditMenu()
+        } else {
+            tap(at: point)
+        }
     }
 
     func cancelMove() { resetMove() }
@@ -284,7 +288,7 @@ extension CanvasView: UIEditMenuInteractionDelegate {
                 self?.toggleLockSelection()
             })
         }
-        if selectionContainsParts, !selectionIsPinned {
+        if selectionCanQuarterTurn {
             items.append(UIAction(title: "Rotate ↻", image: UIImage(systemName: "rotate.right")) { [weak self] _ in
                 self?.rotateSelectedParts(clockwise: true)
             })
