@@ -56,6 +56,27 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         l.isHidden = true
         return l
     }()
+    private(set) var bends: WireBendController!
+    /// Replacement wire shown while a bend handle is dragged.
+    var bendPreview: Wire?
+    /// Bend handles of selected wires (same look as leg handles).
+    let wireBendHandles: CAShapeLayer = {
+        let l = CAShapeLayer()
+        l.fillColor = UIColor.systemBlue.withAlphaComponent(0.25).cgColor
+        l.strokeColor = UIColor.systemBlue.cgColor
+        l.lineWidth = 1
+        l.isHidden = true
+        return l
+    }()
+    /// "+" insert handles at segment midpoints of selected wires.
+    let wireInsertHandles: CAShapeLayer = {
+        let l = CAShapeLayer()
+        l.fillColor = UIColor.white.withAlphaComponent(0.8).cgColor
+        l.strokeColor = UIColor.systemBlue.cgColor
+        l.lineWidth = 1
+        l.isHidden = true
+        return l
+    }()
     /// Selected objects; the app may observe or set it.
     public let selection: SelectionState
     /// Highlighted net and pin info; the app may supply it (like `selection`) so SwiftUI observes it from the first render.
@@ -104,6 +125,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         layer.addSublayer(liveStroke.layer)
         layer.addSublayer(selectionOverlay.layer)
         layer.addSublayer(legHandles)
+        layer.addSublayer(wireInsertHandles)
+        layer.addSublayer(wireBendHandles)
         layer.addSublayer(lassoPath.layer)
 
         let lookup: (Rect) -> [SceneObject] = { [weak self] rect in self?.renderer.objects(in: rect) ?? [] }
@@ -113,6 +136,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         shapes = ShapeController(model: model)
         wires = WireController(model: model, candidates: lookup)
         legs = LegController(model: model)
+        bends = WireBendController(model: model)
         textController = TextController(model: model)
 
         let previous = model.onChange
@@ -150,7 +174,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     static func allowsUndoTap(during interaction: Interaction?) -> Bool {
         switch interaction {
         case nil, .pending, .text, .ignored: true
-        case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd: false
+        case .ink, .erase, .lasso, .move, .shape, .wire, .leg, .wireEnd, .wireBend: false
         }
     }
 
@@ -203,6 +227,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case leg(ConnectorRef)
         /// Wire tool: touch-down on an existing wire end drags it.
         case wireEnd
+        /// Selected wire's bend or insert handle dragged (lasso tool or finger selection mode).
+        case wireBend(WireHandle)
         /// Text tool tap; the editor opens on release.
         case text(start: CGPoint)
         /// Text-tool touch that travelled too far to be a tap; does nothing.
@@ -221,6 +247,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             .insetBy(dx: -Self.hitSlop, dy: -Self.hitSlop).contains(p) == true
         let selecting = (isPencil || !toolState.pencilOnly) ? toolState.kind == .lasso : true
         if selecting, let end = legEnd(at: p) { return .leg(end) }
+        if selecting, let handle = wireHandle(at: p) { return .wireBend(handle) }
         if isPencil || !toolState.pencilOnly {
             switch toolState.kind {
             case .ink: return .ink
@@ -320,6 +347,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             beginWireEndDrag(at: sample(touch).position)
         case .leg(let ref):
             beginLegDrag(ref, at: sample(touch).position)
+        case .wireBend(let handle):
+            beginWireBendDrag(handle, at: sample(touch).position)
         case .pending, .text, .ignored:
             break
         }
@@ -345,6 +374,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             moveWireEnd(to: sample(touch).position)
         case .leg:
             moveLeg(to: sample(touch).position)
+        case .wireBend:
+            moveWireBend(to: sample(touch).position)
         case .text(let start):
             let p = location(of: touch)
             if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
@@ -397,6 +428,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             endWireEndDrag(at: sample(touch).position)
         case .leg:
             endLegDrag(at: sample(touch).position)
+        case .wireBend:
+            endWireBendDrag(at: sample(touch).position)
         case .text(let start):
             beginTextEditing(at: start)
         case .ignored:
@@ -429,6 +462,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
         case .wire: cancelWireTouch()
         case .wireEnd: cancelWireEndDrag()
         case .leg: cancelLegDrag()
+        case .wireBend: cancelWireBendDrag()
         case .pending, .text, .ignored: break
         }
     }
