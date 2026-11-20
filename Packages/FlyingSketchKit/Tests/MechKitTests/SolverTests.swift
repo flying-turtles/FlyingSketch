@@ -11,18 +11,6 @@ private func near(_ a: Vec2, _ b: Vec2, _ tol: Double) -> Bool { a.distance(to: 
 
 private func mid(_ a: Vec2, _ b: Vec2) -> Vec2 { (a + b) / 2 }
 
-/// Intersection points of two circles (0, 1 or 2 points).
-private func circleIntersections(_ c1: Vec2, _ r1: Double, _ c2: Vec2, _ r2: Double) -> [Vec2] {
-    let d = c1.distance(to: c2)
-    guard d > 0, d <= r1 + r2, d >= abs(r1 - r2) else { return [] }
-    let a = (r1 * r1 - r2 * r2 + d * d) / (2 * d)
-    let h = max(0, r1 * r1 - a * a).squareRoot()
-    let u = (c2 - c1) / d
-    let p = c1 + u * a
-    let n = v(-u.y, u.x)
-    return h == 0 ? [p] : [p + n * h, p - n * h]
-}
-
 /// Largest constraint distance, computed independently of the solver.
 private func constraintError(_ bodies: [SolverBody], _ constraints: [PointConstraint], _ poses: [BodyPose]) -> Double {
     constraints.map { c in
