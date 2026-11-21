@@ -80,18 +80,40 @@ enum Clipboard {
             default: true
             }
         }
-        let bodies = Set(safeObjects.compactMap { o -> ObjectID? in
+        var seenIDs = Set<ObjectID>()
+        let unique = safeObjects.filter { seenIDs.insert($0.id).inserted } // clones are keyed by id
+        let bodies = Set(unique.compactMap { o -> ObjectID? in
             switch o {
             case .wire, .joint: nil
             default: o.id
             }
         })
-        let consistent = safeObjects.filter { o in
+        let consistent = unique.filter { o in
             guard case .joint(let j) = o else { return true }
             return j.anchors.allSatisfy { bodies.contains($0.object) }
         }
         let safeGroups = groups.filter { $0.members.allSatisfy { bodies.contains($0) } }
-        return (consistent, safeAssets, safeDefinitions, safeGroups)
+        // The document's own repair rules (empty / single / overlapping / colliding groups, invalid joints).
+        var checked = SketchDocument(objects: consistent, groups: safeGroups)
+        for edit in jointIntegrityEdits(in: checked) { _ = edit.apply(to: &checked) }
+        return (checked.objects, safeAssets, safeDefinitions, checked.groups)
+    }
+
+    /// `selected` plus the joints of `doc` that the selection implies: every joint not selected whose anchor bodies
+    /// are all fully selected (a body is its whole group) rides along, so copied bars keep their pins and locks.
+    /// A joint with any anchor body outside the selection stays out. Result is in document z-order.
+    static func withBodyJoints(_ selected: [SceneObject], in doc: SketchDocument) -> [SceneObject] {
+        let ids = Set(selected.map(\.id))
+        func copied(_ object: ObjectID) -> Bool {
+            bodyMembers(bodyID(of: object, in: doc), in: doc).allSatisfy(ids.contains)
+        }
+        let extra = Set(doc.objects.compactMap { o -> ObjectID? in
+            guard case .joint(let j) = o, !ids.contains(j.id), !j.anchors.isEmpty,
+                  j.anchors.allSatisfy({ copied($0.object) }) else { return nil }
+            return j.id
+        })
+        guard !extra.isEmpty else { return selected }
+        return doc.objects.filter { ids.contains($0.id) || extra.contains($0.id) }
     }
 
     /// Objects to insert into `document`: fresh ids, centred on `center`, labels renumbered, wire attachments kept

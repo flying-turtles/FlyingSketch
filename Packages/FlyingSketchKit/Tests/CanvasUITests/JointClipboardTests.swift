@@ -59,13 +59,15 @@ private func shapes(_ doc: SketchDocument) -> [ShapeObject] { doc.objects.compac
         v.duplicateSelection()
         let doc = m.document
         let copyIDs = Set(doc.objects.map(\.id)).subtracting(fb.doc.objects.map(\.id))
-        #expect(copyIDs.count == 3)
+        // The pin at A (grounded, only on the crank) goes with the copied crank even though it was not selected.
         let copiedJoints = joints(doc).filter { copyIDs.contains($0.id) }
-        #expect(copiedJoints.count == 1)
+        #expect(copiedJoints.count == 2)
+        #expect(copyIDs.count == 4)
         let copiedShapes = Set(shapes(doc).map(\.id)).intersection(copyIDs)
-        #expect(copiedJoints[0].anchors.count == 2)
-        #expect(copiedJoints[0].anchors.allSatisfy { copiedShapes.contains($0.object) })
-        #expect(!copiedJoints[0].grounded)
+        let hingeB = copiedJoints.first { !$0.grounded }
+        #expect(hingeB?.anchors.count == 2)
+        #expect(copiedJoints.allSatisfy { $0.anchors.allSatisfy { copiedShapes.contains($0.object) } })
+        #expect(copiedJoints.filter(\.grounded).count == 1)
         #expect(jointIntegrityEdits(in: doc).isEmpty)
     }
 
@@ -198,7 +200,8 @@ private func shapes(_ doc: SketchDocument) -> [ShapeObject] { doc.objects.compac
         let objects = fb.doc.objects.filter { $0.id != fb.rocker } // jointC, jointD reference the rocker
         let groups = [ObjectGroup(members: [fb.crank, fb.coupler]), ObjectGroup(members: [fb.coupler, fb.rocker])]
         let safe = Clipboard.sanitized(objects, assets: [:], definitions: [:], groups: groups)
-        #expect(Set(safe.objects.map(\.id)) == [fb.crank, fb.coupler, fb.jointA, fb.jointB])
+        // Crank and coupler form one body in the kept group, so the integrity rules also drop the hinge between them.
+        #expect(Set(safe.objects.map(\.id)) == [fb.crank, fb.coupler, fb.jointA])
         #expect(safe.groups == [groups[0]])
     }
 

@@ -208,16 +208,16 @@ extension CanvasView {
 
     public func duplicateSelection() {
         let doc = model.document
-        let copies = cloned(selectedObjects, groups: doc.groups, by: Self.duplicateOffset, into: doc)
+        let copies = cloned(Clipboard.withBodyJoints(selectedObjects, in: doc), groups: doc.groups, by: Self.duplicateOffset, into: doc)
         guard !copies.objects.isEmpty else { return }
         model.perform(insertEdits(copies.objects, groups: copies.groups, into: doc), actionName: "Duplicate")
         selection.ids = Set(copies.objects.map(\.id))
     }
 
     public func copySelection() {
-        let objects = selectedObjects
-        guard !objects.isEmpty else { return }
         let doc = model.document
+        let objects = Clipboard.withBodyJoints(selectedObjects, in: doc)
+        guard !objects.isEmpty else { return }
         var assets: [String: Data] = [:]
         var definitions: [String: PartDefinition] = [:]
         for o in objects {
