@@ -386,3 +386,58 @@ private func barChain(_ n: Int) -> (doc: SketchDocument, first: ObjectID) {
     let small = barChain(50)
     #expect(MechanismDrag(grabbing: small.first, at: Vec2(x: 0, y: 0), in: small.doc) != nil)
 }
+
+/// The pivot board with a module, a wire and a jumper on it, plus `strokes` unrelated ink strokes far away.
+private func wiredBoard(strokes: Int) -> (doc: SketchDocument, board: PartInstance, pivot: Vec2) {
+    var setup = pivotBoard()
+    let boardDef = PartDefinition.fixtureBreadboardMini()
+    let pins = connectorPositions(setup.module, PartDefinition.fixtureModule())
+    let wire = Wire(start: WireEnd(position: pins["SCL"]!, attachment: .connector(part: setup.module.id, connector: "SCL")),
+                    end: WireEnd(position: Vec2(x: 70, y: 20)), bends: [Vec2(x: 60, y: 10)])
+    let hole = connectorPositions(setup.board, boardDef)["c3r4"]!
+    let jumper = Wire(start: WireEnd(position: pins["GND"]!, attachment: .connector(part: setup.module.id, connector: "GND")),
+                      end: WireEnd(position: hole, attachment: .connector(part: setup.board.id, connector: "c3r4")))
+    setup.doc.objects += [.wire(wire), .wire(jumper)]
+    setup.doc.objects += SketchDocument.fixtureGrid(strokes: strokes, spacing: 3).objects
+        .map { $0.translated(by: Vec2(x: 500, y: 500)) }
+    return (setup.doc, setup.board, setup.pivot)
+}
+
+/// Best of 3 mean frame time (seconds) over `frames` frames of turning the board; also the last frame's result.
+private func frameTime(_ s: (doc: SketchDocument, board: PartInstance, pivot: Vec2), frames: Int = 40)
+    -> (seconds: Double, results: [[SceneObject]]) {
+    let grab = s.board.center + Vec2(x: 6, y: 7)
+    var best = Double.infinity
+    var results: [[SceneObject]] = []
+    for _ in 0..<3 {
+        guard let drag = MechanismDrag(grabbing: s.board.id, at: grab, in: s.doc) else { return (.infinity, []) }
+        results = []
+        let clock = ContinuousClock()
+        let elapsed = clock.measure {
+            for k in 1...frames {
+                results.append(drag.move(to: s.pivot + (grab - s.pivot).rotated(by: 0.6 * Double(k) / Double(frames))))
+            }
+        }
+        best = min(best, Double(elapsed.components.attoseconds) / 1e18 + Double(elapsed.components.seconds))
+    }
+    return (best / Double(frames), results)
+}
+
+/// Per-frame cost does not grow with unrelated document content; results do not depend on it either.
+@Test func frameCostIndependentOfUnrelatedObjects() {
+    let s = wiredBoard(strokes: 3000)
+    var empty = s
+    empty.doc.objects.removeAll { if case .ink = $0 { true } else { false } }
+    let small = frameTime(empty)
+    let big = frameTime(s)
+    print("frame ms: empty \(small.seconds * 1e3), 3000 strokes \(big.seconds * 1e3)")
+    #expect(big.seconds <= 2 * small.seconds + 50e-6)
+    #expect(big.results == small.results)
+    // Each frame equals a whole-document re-sync (the previous implementation): nothing else needs reconciling.
+    for result in big.results {
+        #expect(!result.isEmpty)
+        #expect(reconcileWires(in: applied(result, to: s.doc)).isEmpty)
+        let order = s.doc.objects.map(\.id).filter(Set(result.map(\.id)).contains)
+        #expect(result.map(\.id) == order)
+    }
+}

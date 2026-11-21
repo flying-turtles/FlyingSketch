@@ -7,9 +7,16 @@ private func partsByID(_ doc: SketchDocument) -> [ObjectID: PartInstance] {
 /// Syncs both ends of `wire` to `parts`: attached end -> connector position; missing part/definition/connector
 /// -> attachment cleared, position kept.
 private func reconciled(_ wire: Wire, parts: [ObjectID: PartInstance], doc: SketchDocument) -> Wire {
+    reconciledWire(wire, parts: parts, definitions: doc.parts)
+}
+
+/// `wire` with both ends synced to `parts` (which must hold every part it attaches to): attached end -> connector
+/// position; missing part/definition/connector -> attachment cleared, position kept.
+public func reconciledWire(_ wire: Wire, parts: [ObjectID: PartInstance],
+                           definitions: [String: PartDefinition]) -> Wire {
     func fix(_ end: WireEnd) -> WireEnd {
         guard case .connector(let partID, let connector)? = end.attachment else { return end }
-        guard let p = parts[partID], let def = doc.parts[p.definitionKey],
+        guard let p = parts[partID], let def = definitions[p.definitionKey],
               let pos = connectorPositions(p, def)[connector] else {
             return WireEnd(position: end.position, attachment: nil)
         }

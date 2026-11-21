@@ -18,9 +18,13 @@ public final class MechanismDrag {
         var reach: Double
     }
 
-    private let start: SketchDocument
     private let joints: [Joint]
+    /// Wires attached to a moving part (the only ones a frame can change), with the drag-start parts they attach to.
     private let wires: [Wire]
+    private let wireParts: [ObjectID: PartInstance]
+    private let definitions: [String: PartDefinition]
+    /// Drag-start objects a frame can change, in document order (replacements are reported in this order).
+    private let candidates: [SceneObject]
     /// In solver order (breadth-first from grounded / locked bodies).
     private let bodies: [Body]
     private let bodyIndex: [ObjectID: Int]
@@ -39,7 +43,6 @@ public final class MechanismDrag {
     public init?(grabbing object: ObjectID, at world: Vec2, in doc: SketchDocument) {
         guard let mechanism = Mechanism(containing: object, in: doc), mechanism.bodies.count <= Self.maxBodies
         else { return nil }
-        start = doc
         let jointIDs = Set(mechanism.joints)
         var joints: [Joint] = []
         for case .joint(let j) in doc.objects where jointIDs.contains(j.id) { joints.append(j) }
@@ -94,9 +97,28 @@ public final class MechanismDrag {
         grabbed = g
         grabPoint = world
         poses = Array(repeating: .identity, count: order.count)
+        let moving = Set(memberBody.keys)
         var wires: [Wire] = []
-        for case .wire(let w) in doc.objects { wires.append(w) }
+        var attachedParts = Set<ObjectID>()
+        for case .wire(let w) in doc.objects {
+            let ends = [w.start, w.end].compactMap { end -> ObjectID? in
+                if case .connector(let part, _)? = end.attachment { part } else { nil }
+            }
+            guard ends.contains(where: moving.contains) else { continue }
+            wires.append(w)
+            attachedParts.formUnion(ends)
+        }
         self.wires = wires
+        var wireParts: [ObjectID: PartInstance] = [:]
+        var candidates: [SceneObject] = []
+        let wireIDs = Set(wires.map(\.id))
+        for o in doc.objects {
+            if case .part(let p) = o, attachedParts.contains(p.id) { wireParts[p.id] = p }
+            if moving.contains(o.id) || jointIDs.contains(o.id) || wireIDs.contains(o.id) { candidates.append(o) }
+        }
+        self.wireParts = wireParts
+        self.candidates = candidates
+        definitions = doc.parts
     }
 
     /// Replacement objects for the finger at `world`: moved body members, carried parts, joints with updated
@@ -135,12 +157,16 @@ public final class MechanismDrag {
             changed[w.id] = .wire(moved)
         }
 
-        var doc = start
-        for i in doc.objects.indices {
-            if let o = changed[doc.objects[i].id] { doc.objects[i] = o }
+        var parts = wireParts
+        for id in wireParts.keys {
+            if case .part(let p)? = changed[id] { parts[id] = p }
         }
-        for o in reconcileWires(in: doc) { changed[o.id] = o }
-        replacements = start.objects.compactMap { o in
+        for w in wires {
+            let current: Wire
+            if case .wire(let m)? = changed[w.id] { current = m } else { current = w }
+            changed[w.id] = .wire(reconciledWire(current, parts: parts, definitions: definitions))
+        }
+        replacements = candidates.compactMap { o in
             guard let new = changed[o.id], new != o else { return nil }
             return new
         }
