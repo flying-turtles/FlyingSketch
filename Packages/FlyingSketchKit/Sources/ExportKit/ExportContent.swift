@@ -24,6 +24,16 @@ public struct ExportContent: Sendable {
     /// Content bounds including the margin (mm).
     public let bounds: Rect
 
+    /// Back-to-front draw order shared by every exporter: document order, with joints last (pins sit above every
+    /// other object) and keeping their document order among themselves.
+    var drawOrder: [SceneObject] {
+        var others: [SceneObject] = [], joints: [SceneObject] = []
+        for o in objects {
+            if case .joint = o { joints.append(o) } else { others.append(o) }
+        }
+        return others + joints
+    }
+
     public static func make(_ doc: SketchDocument, scope: ExportScope, margin: Double = 5) throws(ExportError) -> ExportContent {
         let objects: [SceneObject]
         switch scope {

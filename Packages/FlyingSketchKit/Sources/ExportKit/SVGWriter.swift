@@ -58,8 +58,7 @@ public enum SVGWriter {
         var out = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         out += "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\(n(b.size.x))mm\" height=\"\(n(b.size.y))mm\" "
         out += "viewBox=\"\(n(b.minX)) \(n(b.minY)) \(n(b.size.x)) \(n(b.size.y))\">\n"
-        // Joints last: pins sit above every other object.
-        for object in content.objects.filter({ !$0.isJoint }) + content.objects.filter(\.isJoint) {
+        for object in content.drawOrder {
             switch object {
             case .ink(let s): out += ink(s)
             case .shape(let s): out += shape(s)

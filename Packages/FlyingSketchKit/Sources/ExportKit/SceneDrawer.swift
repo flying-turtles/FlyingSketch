@@ -12,9 +12,7 @@ public enum SceneDrawer {
 
     static func draw(_ content: ExportContent, in ctx: CGContext, pixelSize: Double) {
         var images: [String: CGImage?] = [:]
-        // Joints last: pins sit above every other object.
-        let ordered = content.objects.filter { !$0.isJoint } + content.objects.filter(\.isJoint)
-        for object in ordered {
+        for object in content.drawOrder {
             ctx.saveGState()
             switch object {
             case .ink(let s): drawInk(s, ctx, pixelSize)
@@ -214,8 +212,4 @@ public enum SceneDrawer {
         ctx.setStrokeColor(CGColor(gray: placeholderGray, alpha: 1))
         ctx.stroke(CGRect(x: p.center.x - side / 2, y: p.center.y - side / 2, width: side, height: side))
     }
-}
-
-extension SceneObject {
-    var isJoint: Bool { if case .joint = self { true } else { false } }
 }
