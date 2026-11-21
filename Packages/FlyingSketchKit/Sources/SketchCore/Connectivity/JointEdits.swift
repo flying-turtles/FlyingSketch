@@ -1,7 +1,8 @@
 /// Edits that make joints and groups consistent with the objects present: anchors on missing objects, wires or
 /// joints dropped; duplicate bodies within one joint collapsed to the first anchor; invalid joints removed; groups
 /// lose missing, duplicate, wire and joint members, an object stays in the first group listing it, groups with
-/// < 2 members removed. Joints are never bodies, so one call reaches a fixed point (a second returns `[]`).
+/// < 2 members removed. A group id that repeats an earlier surviving group's id, or equals any object id, drops
+/// that group (deterministic; its members become plain bodies) so `bodyID` / `bodyMembers` are unambiguous. Joints are never bodies, so one call reaches a fixed point (a second returns `[]`).
 public func jointIntegrityEdits(in doc: SketchDocument) -> [SceneEdit] {
     var bodies = Set<ObjectID>()
     for o in doc.objects {
@@ -13,11 +14,12 @@ public func jointIntegrityEdits(in doc: SketchDocument) -> [SceneEdit] {
     func usable(_ id: ObjectID) -> Bool { bodies.contains(id) }
 
     var claimed = Set<ObjectID>()
+    var takenIDs = Set(doc.objects.map(\.id))
     var groups: [ObjectGroup] = []
     for g in doc.groups {
         var seen = Set<ObjectID>()
         let members = g.members.filter { usable($0) && !claimed.contains($0) && seen.insert($0).inserted }
-        guard members.count >= 2 else { continue }
+        guard members.count >= 2, takenIDs.insert(g.id).inserted else { continue }
         claimed.formUnion(members)
         groups.append(ObjectGroup(id: g.id, members: members))
     }
