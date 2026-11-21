@@ -119,3 +119,43 @@ private func stroke(_ x: Double, _ y: Double, length: Double = 4) -> SceneObject
     m.undoManager.undo()
     #expect(m.document == doc)
 }
+
+/// The live preview hides exactly what the erase will remove: hit objects plus the joints that go with them.
+@Test @MainActor func livePreviewHidesJointsTheEraseRemoves() {
+    let fb = fourBarDocument()
+    let lone = stroke(100, 0, length: 10)
+    let ground = Joint(position: Vec2(x: 100, y: 0), anchors: [JointAnchor(object: lone.id, point: Vec2(x: 100, y: 0))],
+                       grounded: true)
+    var doc = fb.doc
+    doc.objects += [lone, .joint(ground)]
+    let m = DocumentModel(document: doc)
+    let e = EraserController(model: m)
+    var hidden: Set<ObjectID> = []
+    e.onHiddenChange = { hidden = $0 }
+    e.begin(at: (fb.b + fb.c) / 2, radius: 1) // the coupler: its hinges B and C keep one bar each and go
+    #expect(hidden == [fb.coupler, fb.jointB, fb.jointC])
+    e.move(to: Vec2(x: 105, y: 0)) // the long jump also crosses the lone stroke: its ground pin goes with it
+    var expected = hidden
+    for edit in deletionEdits(e.hit, in: m.document) { if case .remove(let ids) = edit { expected.formUnion(ids) } }
+    #expect(hidden.isSuperset(of: [fb.coupler, fb.jointB, fb.jointC, lone.id, ground.id]))
+    #expect(hidden == expected.union(e.hit))
+    let previewed = hidden
+    e.end()
+    #expect(Set(doc.objects.map(\.id)).subtracting(m.document.objects.map(\.id)) == previewed)
+    #expect(hidden.isEmpty)
+}
+
+/// A grouped object's pin moves to the rest of its group: the preview keeps it.
+@Test @MainActor func livePreviewKeepsRehomedJoint() {
+    let (s1, s2) = (stroke(0, 0, length: 10), stroke(0, 30, length: 10))
+    let bar = SceneObject.shape(ShapeObject(kind: .line, start: Vec2(x: 10, y: 0), end: Vec2(x: 40, y: 0)))
+    let hinge = Joint(position: Vec2(x: 10, y: 0), anchors: [JointAnchor(object: s1.id, point: Vec2(x: 10, y: 0)),
+                                                             JointAnchor(object: bar.id, point: Vec2(x: 10, y: 0))])
+    let m = DocumentModel(document: SketchDocument(objects: [s1, s2, bar, .joint(hinge)],
+                                                   groups: [ObjectGroup(members: [s1.id, s2.id])]))
+    let e = EraserController(model: m)
+    var hidden: Set<ObjectID> = []
+    e.onHiddenChange = { hidden = $0 }
+    e.begin(at: Vec2(x: 2, y: 0), radius: 1)
+    #expect(hidden == [s1.id])
+}

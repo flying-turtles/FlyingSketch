@@ -1,7 +1,7 @@
 import SketchCore
 
-/// Whole-stroke eraser. Objects touched during a gesture are reported via `onHiddenChange` (renderer feedback)
-/// and removed from the document in ONE edit "Erase" at `end()`. Parts are never erased (a stroke over a
+/// Whole-stroke eraser. Objects touched during a gesture, plus the joints their removal takes with them, are
+/// reported via `onHiddenChange` (renderer feedback) and removed from the document in ONE edit "Erase" at `end()`. Parts are never erased (a stroke over a
 /// breadboard must not delete it); wires may be.
 final class EraserController {
     private let model: DocumentModel
@@ -14,6 +14,8 @@ final class EraserController {
     private var last: Vec2?
     private(set) var hit: Set<ObjectID> = []
     private(set) var isActive = false
+    /// Whether the document had joints at `begin`; without any, the preview is just `hit`.
+    private var hasJoints = false
 
     init(model: DocumentModel, candidates: ((Rect) -> [SceneObject])? = nil) {
         self.model = model
@@ -31,6 +33,7 @@ final class EraserController {
         self.radius = radius
         hit = []
         isActive = true
+        hasJoints = model.document.objects.contains { if case .joint = $0 { true } else { false } }
         last = p
         sweep(from: p, to: p)
     }
@@ -93,6 +96,15 @@ final class EraserController {
         }
         guard !newHits.isEmpty else { return }
         hit.formUnion(newHits)
-        onHiddenChange?(hit)
+        onHiddenChange?(hidden)
+    }
+
+    /// What `end()` would remove now: the ids its `deletionEdits` remove (joints left invalid go too), plus `hit`.
+    /// Recomputed only when `hit` grows, and only when the document has joints.
+    private var hidden: Set<ObjectID> {
+        guard hasJoints else { return hit }
+        return deletionEdits(hit, in: model.document).reduce(into: hit) { ids, edit in
+            if case .remove(let removed) = edit { ids.formUnion(removed) }
+        }
     }
 }
