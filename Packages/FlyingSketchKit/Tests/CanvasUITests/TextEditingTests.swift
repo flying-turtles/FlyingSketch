@@ -90,7 +90,7 @@ private let existing = TextObject(text: "Hello", position: Vec2(x: 0, y: 0), fon
     let (v, _, p) = canvas()
     v.toolState.kind = .text
     guard case .text? = v.route(isPencil: true, at: p) else { Issue.record("text route"); return }
-    #expect(CanvasView.textTapSlop == 4)
+    #expect(CanvasView.tapSlop == 4)
 }
 
 @Test @MainActor func rotatedTextEditorKeepsTopLeftAndAngle() {

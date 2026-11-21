@@ -315,7 +315,7 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
 
     static let hitSlop: CGFloat = 8
     /// Max travel (pt) for a text- or pin-tool touch to count as a tap.
-    static let textTapSlop: CGFloat = 4
+    static let tapSlop: CGFloat = 4
 
     public override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if textSession != nil {
@@ -421,10 +421,10 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
             movePin(to: sample(touch).position)
         case .text(let start):
             let p = location(of: touch)
-            if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
+            if hypot(p.x - start.x, p.y - start.y) > Self.tapSlop { interaction = .ignored }
         case .pin(let start):
             let p = location(of: touch)
-            if hypot(p.x - start.x, p.y - start.y) > Self.textTapSlop { interaction = .ignored }
+            if hypot(p.x - start.x, p.y - start.y) > Self.tapSlop { interaction = .ignored }
         case .ignored:
             break
         case .pending(let start):
