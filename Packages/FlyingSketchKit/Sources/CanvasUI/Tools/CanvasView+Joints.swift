@@ -12,7 +12,11 @@ extension CanvasView {
         let spot = snapsToGrid ? snap(raw, grid: ShapeController.gridSize) : raw
         // An existing hinge at the tap, or at the snapped spot, is completed or toggled; never stack a second one.
         for probe in (spot == raw ? [raw] : [raw, spot]) {
-            let hinge = hitObjects(atWorld: probe).last { if case .joint(let j) = $0 { j.kind == .hinge } else { false } }
+            // Ring only: a tap on the ground mark pins the body there instead of releasing the pin.
+            let reach = JointGeometry.ringRadius + Self.hitSlop / (Viewport.pointsPerMillimetre * currentViewport.zoom)
+            let hinge = hitObjects(atWorld: probe).last {
+                if case .joint(let j) = $0 { j.kind == .hinge && probe.distance(to: j.position) <= reach } else { false }
+            }
             if case .joint(let j)? = hinge {
                 let added = pinEdits(at: j.position, under: bodyObjects(at: j.position), in: doc)
                 if added.isEmpty {

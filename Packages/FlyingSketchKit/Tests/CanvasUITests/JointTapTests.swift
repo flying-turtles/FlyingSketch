@@ -99,3 +99,14 @@ private func plate(_ x0: Double, _ y0: Double, _ x1: Double, _ y1: Double) -> Sh
     fingerTap(view, at: v(JointGeometry.groundHalfWidth, JointGeometry.groundDrop + 0.1))
     #expect(view.selection.ids == [b.id])
 }
+
+@Test @MainActor func pinToolTapOnGroundMarkKeepsPin() {
+    let body = plate(-10, -10, 10, 10)
+    let ground = Joint(position: v(0, 0), anchors: [JointAnchor(object: body.id, point: v(0, 0))], grounded: true)
+    let (view, m) = canvas([.shape(body), .joint(ground)])
+    // On the mark, outside the ring: a second pin at the tap, the first one stays grounded.
+    view.pinTap(at: point(view, v(JointGeometry.groundHalfWidth, JointGeometry.groundDrop + 0.1)))
+    let joints = m.document.objects.compactMap { if case .joint(let j) = $0 { j } else { nil } }
+    #expect(joints.count == 2 && joints.allSatisfy(\.grounded))
+    #expect(joints.contains { $0.id == ground.id })
+}
