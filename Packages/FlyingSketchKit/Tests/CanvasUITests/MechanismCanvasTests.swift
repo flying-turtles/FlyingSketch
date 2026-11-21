@@ -636,3 +636,19 @@ private func crossedBars() -> (doc: SketchDocument, bar1: ShapeObject, bar2: Sha
         }
     }
 }
+
+// MARK: Touch path
+
+@Test @MainActor func mechanismDragThroughTouchHandlers() {
+    let fb = fourBarDocument()
+    let (view, m) = canvas(fb.doc, select: [fb.crank])
+    let touch = FakeTouch(at: point(view, fb.b))
+    view.drive(touch, from: point(view, fb.b), through: [crankTip(-80), crankTip(-60), crankTip(-45)].map { point(view, $0) })
+    #expect(view.interaction == nil && view.mechanismDrag == nil && view.renderer.previewObjects.isEmpty)
+    #expect(near(shape(fb.crank, in: m.document).end, crankTip(-45), 1e-2))
+    expectPinsHold(m.document)
+    #expect(m.undoManager.undoActionName == "Move Mechanism")
+    m.undoManager.undo()
+    #expect(m.document.objects == fb.doc.objects)
+    #expect(!m.undoManager.canUndo)
+}
