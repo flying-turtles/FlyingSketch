@@ -9,14 +9,16 @@ public final class MechanismDrag {
     /// solver projects pins to 1e-10 mm and converges at 1e-6 mm). Measured against the drag start, so a slow drag
     /// still accumulates.
     static let stillTolerance = 1e-9
-    /// Largest mechanism (bodies) a drag solves; beyond it (e.g. a hostile file) there is no mechanism drag, as the
-    /// solver's dense normal equations grow with the square of the body count.
+    /// Largest mechanism (bodies) a drag solves; beyond it (e.g. a hostile file) there is no mechanism drag. Keeps
+    /// a frame's solve fast; well inside the solver's own cap (`MechanismSolver.maxUnknowns` = 3000 unknowns, i.e.
+    /// 1000 moving bodies; it solves sparse, RCM-ordered envelope systems).
     static let maxBodies = 500
 
     private struct Body {
         var members: [SceneObject]
         var origin: Vec2
-        /// Largest distance of a member anchor from `origin` (mm), the lever of the angle.
+        /// Largest distance (mm, at least 1) of the body's joint anchor points from `origin`: turns the pose angle
+        /// into an anchor displacement for `stillTolerance`. Not the extent of its members.
         var reach: Double
     }
 
@@ -29,7 +31,8 @@ public final class MechanismDrag {
     private let candidates: [SceneObject]
     /// In solver order (breadth-first from grounded / locked bodies).
     private let bodies: [Body]
-    private let bodyIndex: [ObjectID: Int]
+    /// Moving object (body member or carried part) -> index of the body it moves with.
+    private let memberBody: [ObjectID: Int]
     /// Leg ends of moving parts that do not simply ride with their own body, by part id.
     private let legRules: [ObjectID: [(connector: String, rule: LegRule)]]
     private let solverBodies: [SolverBody]
@@ -84,7 +87,7 @@ public final class MechanismDrag {
             return Body(members: members[i], origin: origin, reach: max(reach, 1))
         }
         self.bodies = bodies
-        bodyIndex = memberBody
+        self.memberBody = memberBody
         legRules = legRulesOf(memberBody, in: doc)
         solverBodies = order.indices.map { SolverBody(origin: bodies[$0].origin, isFixed: fixed[$0]) }
 
@@ -149,7 +152,7 @@ public final class MechanismDrag {
         for j in joints {
             var moved = j
             for k in moved.anchors.indices {
-                guard let b = bodyIndex[moved.anchors[k].object], let m = motions[b] else { continue }
+                guard let b = memberBody[moved.anchors[k].object], let m = motions[b] else { continue }
                 // An anchor its body turns about (e.g. on a ground pin) keeps its drag-start point.
                 let p = m.apply(j.anchors[k].point)
                 if p.distance(to: j.anchors[k].point) >= Self.stillTolerance { moved.anchors[k].point = p }
@@ -159,7 +162,7 @@ public final class MechanismDrag {
         }
         for w in wires {
             guard case .connector(let p, _)? = w.start.attachment, case .connector(let q, _)? = w.end.attachment,
-                  let b = bodyIndex[p], bodyIndex[q] == b, let m = motions[b] else { continue }
+                  let b = memberBody[p], memberBody[q] == b, let m = motions[b] else { continue }
             var moved = w
             moved.bends = w.bends.map(m.apply)
             changed[w.id] = .wire(moved)
