@@ -208,11 +208,16 @@ private func stroke(_ x: Double, _ y: Double) -> SceneObject {
 }
 
 @Test @MainActor func pinTouchPathTapAndSlop() {
-    // UITouch cannot be faked here: exercise the release path via the interaction value instead.
+    // Real touch handlers (FakeTouch). Travel beyond `tapSlop` is not a pin tap; travel within it still is.
     let (view, m) = canvas([rect(0, 0, 40, 40)])
-    view.interaction = .pin(start: point(view, v(10, 10)))
-    if case .pin(let s)? = view.interaction { view.pinTap(at: s) }
-    #expect(joints(m).count == 1)
+    let start = point(view, v(10, 10))
+    let touch = FakeTouch(at: start)
+    view.drive(touch, from: start, through: [CGPoint(x: start.x + CanvasView.tapSlop + 1, y: start.y), start])
+    #expect(joints(m).isEmpty && !m.undoManager.canUndo)
+    #expect(view.interaction == nil)
+    view.drive(touch, from: start, through: [CGPoint(x: start.x + CanvasView.tapSlop - 1, y: start.y)])
+    #expect(joints(m).count == 1 && joints(m)[0].position == view.worldPoint(start))
+    #expect(m.undoManager.undoActionName == "Pin to Background")
 }
 
 @Test @MainActor func tapOnPivotAddsThirdBar() {
@@ -248,6 +253,26 @@ private func stroke(_ x: Double, _ y: Double) -> SceneObject {
     #expect(hinge?.position == centre)
     #expect(hinge.map { Set($0.anchors.map(\.object)) } == [plate.id, other.id])
     #expect(hinge?.grounded == false)
+}
+
+/// A lock alone under the tap is ignored: its single body is pinned to the background, the lock stays.
+@Test @MainActor func tapOnLockOfSingleBodyPinsItToBackground() {
+    let plate = rect(0, 0, 40, 40)
+    let centre = v(20, 20)
+    let lock = Joint(kind: .fixed, position: centre, anchors: [JointAnchor(object: plate.id, point: centre)], grounded: true)
+    let (view, m) = canvas([plate, .joint(lock)])
+    for at in [centre, centre + v(1, -1.4)] { // ring centre, then the lock's shackle
+        m.undoManager.removeAllActions()
+        let before = m.document
+        tapPin(view, at: at)
+        let hinge = joints(m).first { $0.kind == .hinge }
+        #expect(joints(m).count == 2 && joints(m).contains(lock))
+        #expect((hinge?.position.distance(to: at) ?? 1) < 1e-9 && hinge?.grounded == true)
+        #expect(hinge?.anchors.map(\.object) == [plate.id])
+        #expect(m.undoManager.undoActionName == "Pin to Background")
+        m.undoManager.undo()
+        #expect(m.document.objects == before.objects)
+    }
 }
 
 @Test @MainActor func redoGroupReexpandsSelection() {
