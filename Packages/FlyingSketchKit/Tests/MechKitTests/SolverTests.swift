@@ -133,17 +133,23 @@ private func identity(_ n: Int) -> [BodyPose] { Array(repeating: .identity, coun
     var poses = identity(3)
     var previousC = c0
     for frame in 1...40 {
+        // The target moves for 30 frames, then holds; from frame 31 on C must stay put.
         let target = c0 + v(60, 0) * (Double(min(frame, 30)) / 30)
         let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
                                       drag: DragTarget(body: 1, point: c0, target: target), initial: poses)
         #expect(r.converged, "frame \(frame)")
         #expect(r.residual < 1e-6, "frame \(frame)")
         #expect(constraintError(bodies, constraints, r.poses) < 1e-6, "frame \(frame)")
-        let b = world(r, bodies, 0, b0), c = world(r, bodies, 1, c0)
+        // Pins as carried by the crank (B, 0), the coupler (B, C, 1) and the rocker (C, 2).
+        let bCrank = world(r, bodies, 0, b0), b = world(r, bodies, 1, b0)
+        let c = world(r, bodies, 1, c0), cRocker = world(r, bodies, 2, c0)
         #expect(cross(c - b, d - b).sign == startSign, "frame \(frame): mirror flip")
-        #expect(abs(world(r, bodies, 1, b0).distance(to: c) - 35) < 1e-9)
-        #expect(abs(world(r, bodies, 2, d).distance(to: world(r, bodies, 2, c0)) - 25) < 1e-9)
-        if frame > 31 { #expect(c.distance(to: previousC) < 1e-3, "frame \(frame): C moved \(c.distance(to: previousC))") }
+        #expect(cross(cRocker - bCrank, d - bCrank).sign == startSign, "frame \(frame): mirror flip")
+        // Link lengths between pins of different bodies: crank A–B, coupler B–C, rocker D–C.
+        #expect(abs(a.distance(to: b) - 10) < 1e-5, "frame \(frame)")
+        #expect(abs(bCrank.distance(to: cRocker) - 35) < 1e-5, "frame \(frame)")
+        #expect(abs(d.distance(to: c) - 25) < 1e-5, "frame \(frame)")
+        if frame > 30 { #expect(c.distance(to: previousC) < 1e-3, "frame \(frame): C moved \(c.distance(to: previousC))") }
         previousC = c
         poses = r.poses
     }

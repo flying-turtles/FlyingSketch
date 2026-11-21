@@ -412,7 +412,8 @@ private struct Problem {
             }
             let stepNorm = metricNorm(step)
             if stepNorm < MechanismSolver.projectionTolerance { break }
-            // Trust region: no point needs to move further than the drag point is from its target.
+            // Trust region: shorten the step so its size in the stay metric (all bodies together, angles at
+            // their reach) is at most the drag point's distance from its target, but never below 1 mm.
             let maxStep = max(1, dragDistance(poses))
             let candidate = project(from: applied(step, scale: min(1, maxStep / stepNorm), to: poses),
                                     holdingDrag: true, iterations: &iterations,
