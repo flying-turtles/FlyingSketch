@@ -59,27 +59,16 @@ public struct Mechanism: Sendable {
     public func members(of body: ObjectID) -> Set<ObjectID> { membersByBody[body] ?? [] }
 }
 
-/// Each body's members plus the parts plugged into them (transitively). A pinned (anchored) or grouped part is
-/// its own body and is never carried, nor is what is plugged into it. A part rides with the first body reaching it.
+/// Each body's members plus what it carries (`PlugCarrier`, as a free move): parts plugged into them
+/// (transitively), each with its whole group. A pinned part or group is never carried (a mechanism body, or held by
+/// its pin), nor is what is plugged only into it. A carried object rides with the first body reaching it.
 private func carriedMembers(of bodies: [ObjectID], in doc: SketchDocument) -> [ObjectID: Set<ObjectID>] {
-    var excluded = Set<ObjectID>()
-    for case .joint(let j) in doc.objects { excluded.formUnion(j.anchors.map(\.object)) }
-    for g in doc.groups { excluded.formUnion(g.members) }
-    var carriedBy: [ObjectID: [ObjectID]] = [:]
-    for c in contacts(in: doc) where !excluded.contains(c.male.part) {
-        carriedBy[c.female.part, default: []].append(c.male.part)
-    }
+    let carrier = PlugCarrier(doc)
     var taken = Set<ObjectID>()
     var result: [ObjectID: Set<ObjectID>] = [:]
     for body in bodies {
-        let own = bodyMembers(body, in: doc)
-        var members = Set(own)
-        var frontier = own
-        while let id = frontier.popLast() {
-            for child in carriedBy[id] ?? [] where !taken.contains(child) && members.insert(child).inserted {
-                frontier.append(child)
-            }
-        }
+        let own = Set(bodyMembers(body, in: doc))
+        let members = own.union(carrier.carried(by: own).subtracting(taken))
         taken.formUnion(members)
         result[body] = members
     }

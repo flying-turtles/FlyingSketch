@@ -135,23 +135,13 @@ extension CanvasView {
 
     // MARK: Move geometry
 
-    /// `ids` plus every part carried by them (plugged into a moving part, transitively). A pinned part outside
-    /// `ids` is never carried (its pin holds), nor is what is plugged into it.
+    /// `ids` plus everything carried by them (`PlugCarrier`): parts plugged into a moving part, transitively, each
+    /// with its whole group. A pinned part or group outside `ids` is never carried (its pin holds), nor is what is
+    /// plugged into it.
     func movingSet(_ ids: Set<ObjectID>) -> Set<ObjectID> {
         let doc = model.document
         guard doc.objects.contains(where: { ids.contains($0.id) && Self.isConnectable($0) }) else { return ids }
-        var anchored = Set<ObjectID>()
-        for case .joint(let j) in doc.objects { anchored.formUnion(j.anchors.map(\.object)) }
-        var carriedBy: [ObjectID: [ObjectID]] = [:]
-        for c in contacts(in: doc) where !anchored.contains(c.male.part) {
-            carriedBy[c.female.part, default: []].append(c.male.part)
-        }
-        var result = ids
-        var frontier = Array(ids)
-        while let id = frontier.popLast() {
-            for child in carriedBy[id] ?? [] where result.insert(child).inserted { frontier.append(child) }
-        }
-        return result
+        return ids.union(PlugCarrier(doc).carried(by: ids))
     }
 
     private static func isPart(_ o: SceneObject) -> Bool {
@@ -166,11 +156,11 @@ extension CanvasView {
     }
 
     /// Replacement objects for moving `moving` by `delta`: parts and wires via `moveParts` (carried parts follow,
-    /// attached wire ends re-path), every other object in `rigid` (joints included) translated.
+    /// attached wire ends re-path), every other object in `moving` (joints, members of carried groups) translated.
     /// Parts in `rigid` (directly dragged) move whole, legs included; only carried parts keep legs pinned.
     func movedObjects(_ moving: Set<ObjectID>, rigid: Set<ObjectID>, by delta: Vec2) -> [SceneObject] {
         let doc = model.document
-        var result = doc.objects.filter { rigid.contains($0.id) && !Self.isConnectable($0) }.map { $0.translated(by: delta) }
+        var result = doc.objects.filter { moving.contains($0.id) && !Self.isConnectable($0) }.map { $0.translated(by: delta) }
         if doc.objects.contains(where: { moving.contains($0.id) && Self.isConnectable($0) }) {
             result += moveParts(moving, by: delta, in: doc, rigid: rigid)
         }

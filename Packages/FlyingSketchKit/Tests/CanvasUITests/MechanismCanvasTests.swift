@@ -393,6 +393,38 @@ private func isPending(_ i: CanvasView.Interaction?) -> Bool {
     #expect(joint(pin.id, in: m.document) == pin)
 }
 
+/// A free move carries a plugged module together with its whole group; a group with a pinned member stays.
+@Test @MainActor func freeMoveCarriesGroupedPluggedModuleWithItsGroup() {
+    let boardDef = PartDefinition.fixtureBreadboardMini(), moduleDef = PartDefinition.fixtureModule()
+    let board = PartInstance(definitionKey: boardDef.key, center: v(40, 0))
+    var module = PartInstance(definitionKey: moduleDef.key, center: v(40, 0))
+    module.center = module.center + (connectorPositions(board, boardDef)["c0r1"]! - connectorPositions(module, moduleDef)["VCC"]!)
+    let label = TextObject(text: "U1", position: v(70, 20))
+    let group = ObjectGroup(members: [module.id, label.id])
+    let doc = SketchDocument(objects: [.part(board), .part(module), .text(label)],
+                             parts: [boardDef.key: boardDef, moduleDef.key: moduleDef], groups: [group])
+    let (view, m) = canvas(doc, select: [board.id])
+    #expect(view.movingSet([board.id]) == [board.id, module.id, label.id])
+    let d = v(20, 0)
+    view.beginMove(at: board.center)
+    view.updateMove(to: board.center + d)
+    #expect(view.renderer.movingIDs.contains(label.id)) // the label previews with its module
+    view.endMove()
+    guard case .part(let m1)? = object(module.id, in: m.document), case .text(let t1)? = object(label.id, in: m.document)
+    else { Issue.record("missing"); return }
+    #expect(near(m1.center, module.center + d, 1e-12))
+    #expect(near(t1.position, label.position + d, 1e-12))
+    #expect(contacts(in: m.document).count == contacts(in: doc).count)
+
+    // The label pinned to the background: the group holds, the module is not carried away from it.
+    let hold = Joint(position: label.position, anchors: [JointAnchor(object: label.id, point: label.position)],
+                     grounded: true)
+    var pinned = doc
+    pinned.objects.append(.joint(hold))
+    let (view2, _) = canvas(pinned, select: [board.id])
+    #expect(view2.movingSet([board.id]) == [board.id])
+}
+
 // MARK: Fix round 1
 
 /// Bar 1 (0,0)-(40,20) grounded at (0,0); bar 2 (0,20)-(40,0) grounded at (40,0), crossing bar 1's box.

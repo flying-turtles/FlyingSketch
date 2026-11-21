@@ -184,6 +184,63 @@ private func expectBarLengths(_ doc: SketchDocument, _ fb: FourBar, _ label: Str
     #expect(near(j1.bends[0], bend, 1e-9))
 }
 
+/// Board grounded at a pivot with a module plugged in at c0r1; `extra` objects are appended.
+private func pivotBoard(_ extra: [SceneObject] = [], groups: [ObjectGroup] = [],
+                        module moduleAt: String = "c0r1")
+    -> (doc: SketchDocument, board: PartInstance, module: PartInstance, pin: Joint, pivot: Vec2) {
+    let boardDef = PartDefinition.fixtureBreadboardMini(), moduleDef = PartDefinition.fixtureModule()
+    let board = PartInstance(definitionKey: boardDef.key, center: Vec2(x: 40, y: 0))
+    var module = PartInstance(definitionKey: moduleDef.key, center: Vec2(x: 40, y: 0))
+    module.center = module.center
+        + (connectorPositions(board, boardDef)[moduleAt]! - connectorPositions(module, moduleDef)["VCC"]!)
+    let pivot = board.center + Vec2(x: -6, y: -7)
+    let pin = Joint(position: pivot, anchors: [JointAnchor(object: board.id, point: pivot)], grounded: true)
+    let doc = SketchDocument(objects: [.part(board), .part(module), .joint(pin)] + extra,
+                             parts: [boardDef.key: boardDef, moduleDef.key: moduleDef], groups: groups)
+    return (doc, board, module, pin, pivot)
+}
+
+/// Drags the pivot board's far corner around the pivot by `angle`; the applied result.
+private func turnBoard(_ doc: SketchDocument, _ board: PartInstance, pivot: Vec2, by angle: Double) -> SketchDocument? {
+    let grab = board.center + Vec2(x: 6, y: 7)
+    guard let drag = MechanismDrag(grabbing: board.id, at: grab, in: doc) else { return nil }
+    var result: [SceneObject] = []
+    for k in 1...10 { result = drag.move(to: pivot + (grab - pivot).rotated(by: angle * Double(k) / 10)) }
+    return applied(result, to: doc)
+}
+
+/// A module plugged into the dragged board rides along with its whole group (label included).
+@Test func groupedPluggedModuleRidesWithItsGroup() throws {
+    let label = TextObject(text: "U1", position: Vec2(x: 60, y: 20))
+    var setup = pivotBoard([.text(label)])
+    let group = ObjectGroup(members: [setup.module.id, label.id])
+    setup.doc.groups = [group]
+    let m = try #require(Mechanism(containing: setup.board.id, in: setup.doc))
+    #expect(m.members(of: setup.board.id) == [setup.board.id, setup.module.id, label.id])
+    let after = try #require(turnBoard(setup.doc, setup.board, pivot: setup.pivot, by: 0.5))
+    guard case .part(let b1)? = object(setup.board.id, in: after), case .part(let m1)? = object(setup.module.id, in: after),
+          case .text(let t1)? = object(label.id, in: after) else { Issue.record("missing"); return }
+    let motion = { (p: Vec2) in setup.pivot + (p - setup.pivot).rotated(by: b1.rotation) }
+    #expect(abs(b1.rotation - 0.5) < 1e-3)
+    #expect(near(m1.center, motion(setup.module.center), 1e-9))
+    #expect(near(t1.position, motion(label.position), 1e-9))
+    #expect(contacts(in: after) == contacts(in: setup.doc))
+}
+
+/// A carried group with a pinned member holds by its pin: neither the plugged module nor its group-mate moves.
+@Test func anchoredGroupOfPluggedModuleIsNotCarried() throws {
+    let label = TextObject(text: "U1", position: Vec2(x: 60, y: 20))
+    let hold = Joint(position: label.position, anchors: [JointAnchor(object: label.id, point: label.position)],
+                     grounded: true)
+    var setup = pivotBoard([.text(label), .joint(hold)])
+    setup.doc.groups = [ObjectGroup(members: [setup.module.id, label.id])]
+    let m = try #require(Mechanism(containing: setup.board.id, in: setup.doc))
+    #expect(m.members(of: setup.board.id) == [setup.board.id])
+    let after = try #require(turnBoard(setup.doc, setup.board, pivot: setup.pivot, by: 0.5))
+    #expect(object(setup.module.id, in: after) == .part(setup.module))
+    #expect(object(label.id, in: after) == .text(label))
+}
+
 @Test func failedSolveKeepsPreviousResult() {
     // Two locked bars whose shared hinge anchors are 50 mm apart, plus a free bar hinged to one of them.
     let p = Vec2(x: 0, y: 0), q = Vec2(x: 60, y: 0), r = Vec2(x: 60, y: 20)

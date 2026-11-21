@@ -110,8 +110,59 @@ public func plugSnapOffset(for instance: PartInstance, in doc: SketchDocument, e
     return best?.offset
 }
 
+/// What a move carries through plugging, built once per document so several queries share one contact search.
+/// Shared by free moves and mechanism drags so both carry the same objects.
+public struct PlugCarrier: Sendable {
+    /// Female part -> parts with a male plugged into it.
+    private let carriedBy: [ObjectID: [ObjectID]]
+    private let groupOf: [ObjectID: Int]
+    private let groups: [ObjectGroup]
+    /// Bodies (group index, or the object itself when ungrouped) with a member anchored by a joint.
+    private let anchoredGroups: Set<Int>
+    private let anchoredObjects: Set<ObjectID>
+
+    public init(_ doc: SketchDocument) {
+        var carriedBy: [ObjectID: [ObjectID]] = [:]
+        for c in contacts(in: doc) { carriedBy[c.female.part, default: []].append(c.male.part) }
+        self.carriedBy = carriedBy
+        var groupOf: [ObjectID: Int] = [:]
+        for (i, g) in doc.groups.enumerated() {
+            for m in g.members where groupOf[m] == nil { groupOf[m] = i }
+        }
+        self.groupOf = groupOf
+        groups = doc.groups
+        var anchored = Set<ObjectID>()
+        for case .joint(let j) in doc.objects { anchored.formUnion(j.anchors.map(\.object)) }
+        anchoredObjects = anchored
+        anchoredGroups = Set(anchored.compactMap { groupOf[$0] })
+    }
+
+    /// Objects carried by moving `moving`: parts plugged (transitively) into a moving or carried part, each with its
+    /// whole group (a group is rigid). A body with a member anchored by a joint is never carried (its pin holds), nor
+    /// is what is plugged only into it. Excludes `moving`; callers pass whole groups.
+    public func carried(by moving: Set<ObjectID>) -> Set<ObjectID> {
+        var result: Set<ObjectID> = []
+        var frontier = Array(moving)
+        while let id = frontier.popLast() {
+            for child in carriedBy[id] ?? [] where !moving.contains(child) && !result.contains(child) {
+                let members: [ObjectID]
+                if let g = groupOf[child] {
+                    guard !anchoredGroups.contains(g) else { continue }
+                    members = groups[g].members
+                } else {
+                    guard !anchoredObjects.contains(child) else { continue }
+                    members = [child]
+                }
+                for m in members where !moving.contains(m) && result.insert(m).inserted { frontier.append(m) }
+            }
+        }
+        return result
+    }
+}
+
 /// Transitive closure of parts whose male connectors are plugged into a female of a moving (or carried) part.
-/// The result excludes `moving` itself.
+/// The result excludes `moving` itself. Ignores pins and groups (rotation uses it to find what a pin would hold);
+/// moves use `PlugCarrier`.
 public func carriedParts(by moving: Set<ObjectID>, in doc: SketchDocument) -> Set<ObjectID> {
     var carriedBy: [ObjectID: [ObjectID]] = [:]
     for c in contacts(in: doc) { carriedBy[c.female.part, default: []].append(c.male.part) }

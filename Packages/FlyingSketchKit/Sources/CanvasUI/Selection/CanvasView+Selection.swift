@@ -143,7 +143,7 @@ extension CanvasView {
         moveDelta = delta
         // Parts and wires re-render from moved geometry (carried parts, attached wire ends); the rest translate.
         let replaced = movedObjects(moveSet, rigid: moveRigid, by: delta).filter(Self.isConnectable)
-        let rigid = Set(model.document.objects.filter { moveRigid.contains($0.id) && !Self.isConnectable($0) }.map(\.id))
+        let rigid = Set(model.document.objects.filter { moveSet.contains($0.id) && !Self.isConnectable($0) }.map(\.id))
         renderer.setMovePreview(ids: rigid, offset: CGPoint(x: delta.x * scale, y: delta.y * scale),
                                 replacing: replaced)
         updateSelectionOverlay()
