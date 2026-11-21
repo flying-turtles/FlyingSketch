@@ -149,6 +149,8 @@ private struct Problem {
     /// The same for the projections' metric: 1, `grabbedProjectionScale` for the dragged body.
     let projectionStay: [Double]
     let unknowns: Int
+    /// Where the normal equations can be non-zero, given the column order.
+    let envelope: Envelope
 
     init?(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?, initial: [BodyPose]) {
         let range = bodies.indices
@@ -177,13 +179,60 @@ private struct Problem {
         self.stay = stay
         self.projectionStay = projectionStay
         var column = [Int](repeating: -1, count: bodies.count)
-        var next = 0
-        for i in range where !bodies[i].isFixed {
-            column[i] = next
-            next += 3
-        }
+        for (k, i) in Self.bandOrder(bodies: bodies, constraints: constraints).enumerated() { column[i] = 3 * k }
         self.column = column
-        unknowns = next
+        unknowns = 3 * bodies.count(where: { !$0.isFixed })
+        // Each body's three rows reach back to the first unknown of any moving body it shares a constraint with.
+        var first = column
+        for c in constraints {
+            guard let b = c.b, column[c.a] >= 0, column[b] >= 0 else { continue }
+            let (lo, hi) = column[c.a] < column[b] ? (c.a, b) : (b, c.a)
+            first[hi] = min(first[hi], column[lo])
+        }
+        var rowFirst = [Int](repeating: 0, count: unknowns)
+        for i in range where column[i] >= 0 {
+            for row in column[i]..<column[i] + 3 { rowFirst[row] = first[i] }
+        }
+        envelope = Envelope(first: rowFirst)
+    }
+
+    /// Moving bodies in reverse Cuthill–McKee order over the constraint graph: neighbours get nearby unknowns,
+    /// so the envelope stays narrow (a chain banded, a star with its hub last) whatever the input order.
+    private static func bandOrder(bodies: [SolverBody], constraints: [PointConstraint]) -> [Int] {
+        var neighbours = [[Int]](repeating: [], count: bodies.count)
+        for c in constraints {
+            guard let b = c.b, b != c.a, !bodies[c.a].isFixed, !bodies[b].isFixed else { continue }
+            neighbours[c.a].append(b)
+            neighbours[b].append(c.a)
+        }
+        for i in neighbours.indices where neighbours[i].count > 1 {
+            neighbours[i] = Array(Set(neighbours[i])).sorted()
+        }
+        // Breadth-first from `start` over unvisited moving bodies, neighbours by ascending degree; marks them.
+        func levels(from start: Int, _ visited: inout [Bool]) -> [Int] {
+            var queue = [start]
+            visited[start] = true
+            var head = 0
+            while head < queue.count {
+                let i = queue[head]
+                head += 1
+                for j in neighbours[i].sorted(by: { (neighbours[$0].count, $0) < (neighbours[$1].count, $1) })
+                where !visited[j] {
+                    visited[j] = true
+                    queue.append(j)
+                }
+            }
+            return queue
+        }
+        var visited = bodies.map(\.isFixed)
+        var probe = visited
+        var order: [Int] = []
+        for seed in bodies.indices where !visited[seed] {
+            // Pseudo-peripheral start: a body of the deepest level reached from `seed`.
+            let reached = levels(from: seed, &probe)
+            order += levels(from: reached[reached.count - 1], &visited)
+        }
+        return order.reversed()
     }
 
     // MARK: Residuals
@@ -378,7 +427,7 @@ private struct Problem {
         var bend: [Double]?
         while iterations < MechanismSolver.maxSoftIterations {
             iterations += 1
-            var eq = NormalEquations(size: unknowns)
+            var eq = NormalEquations(envelope: envelope)
             addConstraintRows(&eq, poses, weight: MechanismSolver.constraintWeight)
             addDragRows(&eq, poses)
             for i in bodies.indices where column[i] >= 0 {
@@ -456,7 +505,7 @@ private struct Problem {
         let limit = min(limit, MechanismSolver.maxIterations)
         while iterations < limit, cost >= done, unknowns > 0 {
             iterations += 1
-            var eq = NormalEquations(size: unknowns)
+            var eq = NormalEquations(envelope: envelope)
             addConstraintRows(&eq, poses, weight: wc)
             if holdingDrag { addDragRows(&eq, poses) }
             addMetric(&eq, scale: MechanismSolver.projectionDamping, projection: true)

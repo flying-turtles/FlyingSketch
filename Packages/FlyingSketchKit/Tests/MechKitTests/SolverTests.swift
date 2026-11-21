@@ -398,3 +398,62 @@ private func onCircle(_ center: Vec2, _ radius: Double, _ degrees: Double) -> Ve
     print("fiftyBodyChainUnreachableFrameTime: average solve \(String(format: "%.3f", averageMs)) ms over \(frames) frames")
     #expect(averageMs < 10)
 }
+
+// MARK: - Body order
+
+/// Chain of `n` 10 mm bars grounded at (0,0); body `order[i]` is bar `i`.
+private func chain(_ n: Int, order: [Int]) -> (bodies: [SolverBody], constraints: [PointConstraint]) {
+    let length = 10.0
+    var bodies = [SolverBody](repeating: SolverBody(origin: .zero), count: n)
+    for i in 0..<n { bodies[order[i]] = SolverBody(origin: v(Double(i) * length + length / 2, 0)) }
+    var constraints = [PointConstraint(a: order[0], pointA: v(0, 0), b: nil, pointB: v(0, 0))]
+    for i in 1..<n {
+        let p = v(Double(i) * length, 0)
+        constraints.append(PointConstraint(a: order[i], pointA: p, b: order[i - 1], pointB: p))
+    }
+    return (bodies, constraints)
+}
+
+/// Drags the chain's tip along an arc; returns the poses of bar `i` per frame, and the best run's time (s).
+private func dragChain(_ n: Int, order: [Int], frames: Int) -> (poses: [[BodyPose]], seconds: Double) {
+    let (bodies, constraints) = chain(n, order: order)
+    let tip = v(Double(n) * 10, 0)
+    let radius = 30.0, center = tip - v(radius, 0)
+    var best = Double.infinity
+    var out: [[BodyPose]] = []
+    for _ in 0..<3 {
+        var poses = identity(n)
+        out = []
+        let start = ContinuousClock.now
+        for k in 1...frames {
+            let phi = Double(k) / Double(frames)
+            let target = center + v(radius * cos(phi), -radius * sin(phi))
+            let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                          drag: DragTarget(body: order[n - 1], point: tip, target: target),
+                                          initial: poses)
+            #expect(r.converged, "frame \(k)")
+            #expect(constraintError(bodies, constraints, r.poses) < 1e-6, "frame \(k)")
+            poses = r.poses
+            out.append(order.map { poses[$0] })
+        }
+        let elapsed = ContinuousClock.now - start
+        best = min(best, Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18)
+    }
+    return (out, best)
+}
+
+@Test func shuffledChainMatchesOrdered() {
+    let n = 50, frames = 20
+    let ordered = dragChain(n, order: Array(0..<n), frames: frames)
+    let shuffled = dragChain(n, order: (0..<n).map { ($0 * 17 + 11) % n }, frames: frames)
+    var worst = 0.0
+    for (a, b) in zip(ordered.poses, shuffled.poses) {
+        for (p, q) in zip(a, b) {
+            worst = max(worst, (p.translation - q.translation).length + 5 * abs(p.angle - q.angle))
+        }
+    }
+    print("shuffledChainMatchesOrdered: worst difference \(worst) mm; \(ordered.seconds) s ordered, \(shuffled.seconds) s shuffled")
+    #expect(worst < 1e-6)
+    #expect(shuffled.seconds < 3 * ordered.seconds + 0.005)
+}
+
