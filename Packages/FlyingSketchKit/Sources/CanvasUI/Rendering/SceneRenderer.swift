@@ -72,13 +72,15 @@ final class SceneRenderer {
         applyFeedback()
     }
 
-    private func clearFeedback() {
+    /// Undoes all feedback; substituted layers are restored to their entry's object, except those in `keeping`
+    /// (about to be re-substituted, so restoring them would rebuild them twice).
+    private func clearFeedback(keeping: [ObjectID: SceneObject] = [:]) {
         for (_, b) in feedbackBase {
             b.layer.isHidden = false
             b.layer.transform = b.transform
         }
         feedbackBase.removeAll(keepingCapacity: true)
-        for id in substituted {
+        for id in substituted where keeping[id] == nil {
             guard let e = entries[id] else { continue }
             factory.update(e.layer, for: e.object, viewport: e.viewport, viewSize: e.viewSize)
         }
@@ -89,7 +91,7 @@ final class SceneRenderer {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
-        clearFeedback()
+        clearFeedback(keeping: previewObjects)
         netLayers.suppressed = !previewObjects.isEmpty
         for (id, object) in previewObjects {
             guard let e = entries[id] else { continue }

@@ -123,3 +123,36 @@ private func objectLayers(_ root: CALayer) -> [CAShapeLayer] {
     #expect(model.document.viewport == v)
     #expect(view.viewport == v)
 }
+
+/// Counts layer rebuilds (`update`) per object id; layers are built by the real factory.
+private final class CountingFactory: ObjectLayerFactory {
+    let base = CALayerObjectFactory()
+    var updates: [ObjectID: Int] = [:]
+    func makeLayer(for object: SceneObject, viewport: Viewport, viewSize: Vec2) -> CALayer {
+        base.makeLayer(for: object, viewport: viewport, viewSize: viewSize)
+    }
+    func update(_ layer: CALayer, for object: SceneObject, viewport: Viewport, viewSize: Vec2) {
+        updates[object.id, default: 0] += 1
+        base.update(layer, for: object, viewport: viewport, viewSize: viewSize)
+    }
+}
+
+/// A substitute preview (mechanism drag frames) rebuilds each substituted layer once per frame; one that leaves
+/// the preview is restored once.
+@Test @MainActor func movePreviewRebuildsSubstitutedLayersOncePerFrame() {
+    let a = line(at: .zero), b = line(at: Vec2(x: 0, y: 20))
+    let factory = CountingFactory()
+    let r = SceneRenderer(rootLayer: CALayer(), factory: factory)
+    r.update(document: SketchDocument(objects: [a, b]), viewport: Viewport(center: .zero, zoom: 1), viewSize: viewSize,
+             settled: true)
+    factory.updates = [:]
+    for k in 1...5 {
+        let d = Vec2(x: Double(k), y: 0)
+        r.setMovePreview(ids: [], offset: .zero, replacing: [a.translated(by: d), b.translated(by: d)])
+        #expect(factory.updates[a.id] == k && factory.updates[b.id] == k, "frame \(k)")
+    }
+    r.setMovePreview(ids: [], offset: .zero, replacing: [a.translated(by: Vec2(x: 9, y: 0))])
+    #expect(factory.updates[a.id] == 6 && factory.updates[b.id] == 6) // b restored once
+    r.setMovePreview(ids: [], offset: .zero)
+    #expect(factory.updates[a.id] == 7 && factory.updates[b.id] == 6)
+}
