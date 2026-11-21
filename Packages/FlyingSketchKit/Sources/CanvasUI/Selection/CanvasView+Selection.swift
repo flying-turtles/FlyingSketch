@@ -67,12 +67,24 @@ extension CanvasView {
         return selectedObjects.map { worldBounds($0, doc) }.reduce(nil) { acc, r in acc.map { $0.union(r) } ?? r }
     }
 
+    /// Selection bounds as on screen: during a move, what moves at its previewed place (pinned bodies of a partly
+    /// pinned selection stay put), the rest where it is.
+    private var selectionShownBounds: Rect? {
+        guard moveEngaged else { return selectionWorldBounds }
+        let doc = model.document
+        return selectedObjects.map { o -> Rect in
+            if let preview = moveSelectedPreview[o.id] { return worldBounds(preview, doc) }
+            let b = worldBounds(o, doc)
+            return moveSet.contains(o.id) ? Rect(origin: b.origin + moveDelta, size: b.size) : b
+        }.reduce(nil) { acc, r in acc.map { $0.union(r) } ?? r }
+    }
+
     /// Selection bounds in view space (follows an in-flight move preview).
     var selectionViewRect: CGRect? {
-        guard let b = selectionWorldBounds else { return nil }
+        guard let b = selectionShownBounds else { return nil }
         let vp = currentViewport
-        let a = vp.worldToView(Vec2(x: b.minX, y: b.minY) + moveDelta, viewSize: viewSize)
-        let c = vp.worldToView(Vec2(x: b.maxX, y: b.maxY) + moveDelta, viewSize: viewSize)
+        let a = vp.worldToView(Vec2(x: b.minX, y: b.minY), viewSize: viewSize)
+        let c = vp.worldToView(Vec2(x: b.maxX, y: b.maxY), viewSize: viewSize)
         return CGRect(x: a.x, y: a.y, width: c.x - a.x, height: c.y - a.y)
     }
 
@@ -149,6 +161,8 @@ extension CanvasView {
         moveDelta = delta
         // Parts and wires re-render from moved geometry (carried parts, attached wire ends); the rest translate.
         let replaced = movedObjects(moveSet, rigid: moveRigid, by: delta).filter(Self.isConnectable)
+        moveSelectedPreview = Dictionary(replaced.filter { selection.ids.contains($0.id) }.map { ($0.id, $0) },
+                                         uniquingKeysWith: { _, last in last })
         let rigid = Set(model.document.objects.filter { moveSet.contains($0.id) && !Self.isConnectable($0) }.map(\.id))
         renderer.setMovePreview(ids: rigid, offset: CGPoint(x: delta.x * scale, y: delta.y * scale),
                                 replacing: replaced)
@@ -193,6 +207,7 @@ extension CanvasView {
         moveRigid = []
         moveDelta = .zero
         moveEngaged = false
+        moveSelectedPreview = [:]
         renderer.setMovePreview(ids: [], offset: .zero)
         updateSelectionOverlay()
     }

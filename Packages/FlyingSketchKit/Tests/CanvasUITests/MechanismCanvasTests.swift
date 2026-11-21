@@ -652,3 +652,33 @@ private func crossedBars() -> (doc: SketchDocument, bar1: ShapeObject, bar2: Sha
     #expect(m.document.objects == fb.doc.objects)
     #expect(!m.undoManager.canUndo)
 }
+
+// MARK: Selection box during a loose move
+
+@MainActor private func viewRect(_ view: CanvasView, _ b: Rect) -> CGRect {
+    let a = point(view, v(b.minX, b.minY)), c = point(view, v(b.maxX, b.maxY))
+    return CGRect(x: a.x, y: a.y, width: c.x - a.x, height: c.y - a.y)
+}
+
+private func expectRect(_ a: CGRect?, _ b: CGRect, _ label: String) {
+    guard let a else { Issue.record("no rect \(label)"); return }
+    #expect(abs(a.minX - b.minX) < 1e-6 && abs(a.minY - b.minY) < 1e-6 && abs(a.maxX - b.maxX) < 1e-6
+            && abs(a.maxY - b.maxY) < 1e-6, "\(label): \(a) vs \(b)")
+}
+
+@Test @MainActor func selectionBoxFollowsLooseMoveOfPartlyPinnedSelection() {
+    var fb = fourBarDocument()
+    fb.doc.objects.append(.ink(looseStroke))
+    let (view, _) = canvas(fb.doc, select: [fb.crank, looseStroke.id])
+    let crankBox = bounds(of: .shape(shape(fb.crank, in: fb.doc)))
+    let strokeBox = bounds(of: .ink(looseStroke))
+    let on = v(10, 30), d = v(5, 5)
+    view.beginMove(at: on)
+    view.updateMove(to: on + d)
+    let moved = Rect(origin: strokeBox.origin + d, size: strokeBox.size)
+    expectRect(view.selectionViewRect, viewRect(view, crankBox.union(moved)), "during")
+    view.endMove()
+    let after = view.selectionWorldBounds!
+    #expect(after == crankBox.union(moved))
+    expectRect(view.selectionViewRect, viewRect(view, after), "after")
+}

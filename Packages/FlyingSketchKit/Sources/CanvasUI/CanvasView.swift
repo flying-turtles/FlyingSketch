@@ -101,6 +101,8 @@ public final class CanvasView: UIView, UIGestureRecognizerDelegate {
     var moveRigid: Set<ObjectID> = []
     var moveDelta: Vec2 = .zero
     var moveEngaged = false
+    /// Selected parts and wires as previewed by the in-flight move (re-rendered geometry, not a plain offset).
+    var moveSelectedPreview: [ObjectID: SceneObject] = [:]
     /// In-flight mechanism drag (selection mode, touch on a pinned body).
     var mechanismSession: MechanismSession?
     /// In-flight drag of a selected pin.
