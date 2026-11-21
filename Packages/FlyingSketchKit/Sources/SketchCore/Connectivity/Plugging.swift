@@ -161,8 +161,8 @@ public struct PlugCarrier: Sendable {
 }
 
 /// Transitive closure of parts whose male connectors are plugged into a female of a moving (or carried) part.
-/// The result excludes `moving` itself. Ignores pins and groups (rotation uses it to find what a pin would hold);
-/// moves use `PlugCarrier`.
+/// The result excludes `moving` itself. Ignores pins and groups (the rotate handle uses it to find what a pin would
+/// hold); moves and rotations carry with `PlugCarrier`.
 public func carriedParts(by moving: Set<ObjectID>, in doc: SketchDocument) -> Set<ObjectID> {
     var carriedBy: [ObjectID: [ObjectID]] = [:]
     for c in contacts(in: doc) { carriedBy[c.female.part, default: []].append(c.male.part) }

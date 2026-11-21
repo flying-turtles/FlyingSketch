@@ -747,3 +747,46 @@ private func barChain(_ n: Int) -> (doc: SketchDocument, bars: [ObjectID]) {
     #expect(view.selection.ids == [chain.bars[0]])
     #expect(!m.undoManager.canUndo && m.document.objects == chain.doc.objects)
 }
+
+// MARK: Rotation carries like a move
+
+/// Rotating a board turns a plugged, grouped module together with its whole group (as a move carries it); with a
+/// group member pinned to the background the group stays (and the handle is hidden).
+@Test @MainActor func rotateCarriesGroupedPluggedModuleWithItsGroup() throws {
+    let boardDef = PartDefinition.fixtureBreadboardMini(), moduleDef = PartDefinition.fixtureModule()
+    let board = PartInstance(definitionKey: boardDef.key, center: v(40, 0))
+    var module = PartInstance(definitionKey: moduleDef.key, center: v(40, 0))
+    module.center = module.center + (connectorPositions(board, boardDef)["c0r1"]! - connectorPositions(module, moduleDef)["VCC"]!)
+    let label = TextObject(text: "U1", position: v(70, 20))
+    let group = ObjectGroup(members: [module.id, label.id])
+    let doc = SketchDocument(objects: [.part(board), .part(module), .text(label)],
+                             parts: [boardDef.key: boardDef, moduleDef.key: moduleDef], groups: [group])
+    let (view, m) = canvas(doc, select: [board.id])
+    let handle = try #require(view.rotateHandleCenter)
+    let b = try #require(view.selectionWorldBounds)
+    let pivot = v((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2)
+    let grab = view.worldPoint(handle)
+    let target = pivot + (grab - pivot).rotated(by: .pi / 2)
+    view.beginRotate(at: grab)
+    view.moveRotate(to: target)
+    #expect(view.renderer.previewObjects[label.id] != nil) // the label previews with its module
+    view.endRotate(at: target)
+    #expect(m.undoManager.undoActionName == "Rotate")
+    guard case .text(let t1)? = object(label.id, in: m.document), case .part(let m1)? = object(module.id, in: m.document)
+    else { Issue.record("missing"); return }
+    #expect(near(m1.center, pivot + (module.center - pivot).rotated(by: .pi / 2), 1e-9))
+    #expect(near(t1.position, pivot + (label.position - pivot).rotated(by: .pi / 2), 1e-9))
+    #expect(contacts(in: m.document).count == contacts(in: doc).count)
+    m.undoManager.undo()
+    #expect(m.document.objects == doc.objects)
+
+    // A pinned group is not carried by the rotation edit.
+    let hold = Joint(position: label.position, anchors: [JointAnchor(object: label.id, point: label.position)],
+                     grounded: true)
+    var pinned = doc
+    pinned.objects.append(.joint(hold))
+    let turned = Set(rotateObjects([board.id], by: .pi / 2, around: pivot, in: pinned).map(\.id))
+    #expect(turned.contains(board.id) && !turned.contains(module.id) && !turned.contains(label.id))
+    let (view2, _) = canvas(pinned, select: [board.id])
+    #expect(view2.rotateHandleCenter == nil)
+}

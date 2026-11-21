@@ -99,14 +99,16 @@ public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocume
     return result
 }
 
-/// Rotates `ids` about `pivot`. Parts plugged into rotated parts rotate too; wires attached to a rotated part follow
-/// it (an attached end ends on its connector); a wire with both ends on rotating parts also rotates its bends. Returns only changed objects; `angle == 0` -> `[]`.
+/// Rotates `ids` (whole groups) about `pivot`. What a move would carry rotates too (`PlugCarrier`: plugged parts
+/// with their whole group, never a pinned body); wires attached to a rotated part follow it (an attached end ends on
+/// its connector); a wire with both ends on rotating parts also rotates its bends. Returns only changed objects;
+/// `angle == 0` -> `[]`.
 public func rotateObjects(_ ids: Set<ObjectID>, by angle: Double, around pivot: Vec2,
                           in doc: SketchDocument) -> [SceneObject] {
     guard angle != 0 else { return [] }
     let old = partsByID(doc)
     let partIDs = Set(old.keys)
-    let spinning = ids.intersection(partIDs).union(carriedParts(by: ids.intersection(partIDs), in: doc))
+    let spinning = ids.intersection(partIDs).union(PlugCarrier(doc).carried(by: ids))
     var result: [SceneObject] = []
     var rotatedParts = old
     var wires: [Wire] = []
