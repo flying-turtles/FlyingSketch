@@ -714,3 +714,36 @@ private func expectRect(_ a: CGRect?, _ b: CGRect, _ label: String) {
     #expect(tapView.selection.ids == [other.id])
     #expect(!tapModel.undoManager.canUndo)
 }
+
+// MARK: Taps without a mechanism drag
+
+/// Hinged chain of `n` 10 mm bars along +x (over `MechanismDrag.maxBodies` bodies: no mechanism drag).
+private func barChain(_ n: Int) -> (doc: SketchDocument, bars: [ObjectID]) {
+    let bars = (0..<n).map { i in ShapeObject(kind: .line, start: v(Double(i) * 10, 0), end: v(Double(i + 1) * 10, 0)) }
+    let hinges = (1..<n).map { i in
+        Joint(position: v(Double(i) * 10, 0), anchors: [JointAnchor(object: bars[i - 1].id, point: v(Double(i) * 10, 0)),
+                                                         JointAnchor(object: bars[i].id, point: v(Double(i) * 10, 0))])
+    }
+    return (SketchDocument(objects: bars.map { .shape($0) } + hinges.map { .joint($0) }), bars.map(\.id))
+}
+
+@Test @MainActor func tapOnPinnedBodyRetargetsWithoutMechanismDrag() {
+    var chain = barChain(501)
+    let cross = InkStroke(points: [InkPoint(position: v(5, -3), pressure: 0.5, time: 0),
+                                   InkPoint(position: v(5, 3), pressure: 0.5, time: 0.1)], tool: .pen, baseWidth: 0.5)
+    chain.doc.objects.append(.ink(cross)) // on top of bar 0
+    let (view, m) = canvas(chain.doc, select: [chain.bars[0]])
+    let at = point(view, v(5, 0))
+    #expect(isMechanism(view.route(isPencil: true, at: at), chain.bars[0]))
+    view.drive(FakeTouch(at: at), from: at)
+    #expect(view.mechanismDrag == nil && view.interaction == nil)
+    #expect(view.selection.ids == [cross.id])
+    #expect(!m.undoManager.canUndo)
+    // A drag makes no edit and leaves the selection alone.
+    view.selection.ids = [chain.bars[0]]
+    view.updateSelectionOverlay()
+    let bar = point(view, v(2, 0))
+    view.drive(FakeTouch(at: bar), from: bar, through: [point(view, v(2, 10))])
+    #expect(view.selection.ids == [chain.bars[0]])
+    #expect(!m.undoManager.canUndo && m.document.objects == chain.doc.objects)
+}

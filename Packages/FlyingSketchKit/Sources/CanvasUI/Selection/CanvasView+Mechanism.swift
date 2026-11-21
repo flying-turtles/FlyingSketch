@@ -5,7 +5,8 @@ import MechKit
 /// One mechanism drag: the solver session plus what it needs to commit or cancel. Every frame is relative to the
 /// drag-start document (`objects`, `groups`).
 struct MechanismSession {
-    let drag: MechanismDrag
+    /// nil when no solver session could be made (e.g. over `MechanismDrag.maxBodies`): the touch can still tap.
+    let drag: MechanismDrag?
     let grab: Vec2
     let objects: [SceneObject]
     let groups: [ObjectGroup]
@@ -28,7 +29,7 @@ extension CanvasView {
     var mechanismDrag: MechanismDrag? { mechanismSession?.drag }
 
     /// Selection box and handles are hidden while rotating, dragging a mechanism or moving a pin.
-    var selectionChromeHidden: Bool { rotator.isActive || mechanismSession != nil || pinMoveSession != nil }
+    var selectionChromeHidden: Bool { rotator.isActive || mechanismDrag != nil || pinMoveSession != nil }
 
     /// Whether rotating the selection would break a pin (quarter turns are then unavailable).
     var selectionIsPinned: Bool { selectionIsPinnedToOutside(selection.ids, in: model.document) }
@@ -104,11 +105,12 @@ extension CanvasView {
 
     // MARK: Mechanism drag
 
-    /// Starts dragging `object`'s mechanism, grabbed at world `world`. Nothing when its body has no joint.
+    /// Starts dragging `object`'s mechanism, grabbed at world `world`. Without a solver session (no joint, too many
+    /// bodies) nothing moves, but the release is still a tap.
     func beginMechanismDrag(object: ObjectID, at world: Vec2) {
         cancelMechanismDrag()
         let doc = model.document
-        guard let drag = MechanismDrag(grabbing: object, at: world, in: doc) else { return }
+        let drag = MechanismDrag(grabbing: object, at: world, in: doc)
         mechanismSession = MechanismSession(drag: drag, grab: world, objects: doc.objects, groups: doc.groups)
         updateSelectionOverlay()
     }
@@ -117,13 +119,14 @@ extension CanvasView {
         guard var session = mechanismSession else { return }
         session.travel = max(session.travel, world.distance(to: session.grab))
         mechanismSession = session
-        renderer.setMovePreview(ids: [], offset: .zero, replacing: session.drag.move(to: world))
+        guard let drag = session.drag else { return }
+        renderer.setMovePreview(ids: [], offset: .zero, replacing: drag.move(to: world))
     }
 
     /// Commits the previewed drag as "Move Mechanism"; a tap (travel under 4 pt) or no change makes no edit.
     func endMechanismDrag() {
         guard let session = mechanismSession else { return }
-        let edits = session.drag.replacements
+        let edits = session.drag?.replacements ?? []
         clearMechanismDrag() // same transaction as the commit (see touchesEnded)
         if session.travel < minTravel {
             selectionTap(atWorld: session.grab)
