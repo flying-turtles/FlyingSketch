@@ -682,3 +682,35 @@ private func expectRect(_ a: CGRect?, _ b: CGRect, _ label: String) {
     #expect(after == crankBox.union(moved))
     expectRect(view.selectionViewRect, viewRect(view, after), "after")
 }
+
+// MARK: Empty space inside a mixed selection box
+
+@Test @MainActor func dragOnEmptySpaceInMixedBoxMovesLooseObjects() {
+    var fb = fourBarDocument()
+    let other = InkStroke(points: [InkPoint(position: v(5, 15), pressure: 0.5, time: 0),
+                                   InkPoint(position: v(12, 15), pressure: 0.5, time: 0.1)], tool: .pen, baseWidth: 0.5)
+    fb.doc.objects += [.ink(looseStroke), .ink(other)]
+    let selected: Set<ObjectID> = [fb.crank, looseStroke.id]
+    let empty = v(15, 5) // inside the box (crank + stroke), on nothing
+    let (view, m) = canvas(fb.doc, select: selected)
+    #expect(view.hitObjects(atWorld: empty).isEmpty)
+    #expect(isMove(view.route(isPencil: false, at: point(view, empty))))
+    let d = v(5, 5)
+    view.drive(FakeTouch(at: point(view, empty), type: .direct), from: point(view, empty),
+               through: [point(view, empty + d / 2), point(view, empty + d)])
+    #expect(m.undoManager.undoActionName == "Move")
+    #expect(object(looseStroke.id, in: m.document) == .ink(looseStroke).translated(by: d))
+    #expect(shape(fb.crank, in: m.document) == shape(fb.crank, in: fb.doc))
+    #expect(object(other.id, in: m.document) == .ink(other))
+    #expect(view.selection.ids == selected)
+
+    // Taps there behave as today: empty space clears, an unselected object is selected.
+    let (tapView, tapModel) = canvas(fb.doc, select: selected)
+    tapView.drive(FakeTouch(at: point(tapView, empty), type: .direct), from: point(tapView, empty))
+    #expect(tapView.selection.ids.isEmpty)
+    tapView.selection.ids = selected
+    tapView.updateSelectionOverlay()
+    tapView.drive(FakeTouch(at: point(tapView, v(8, 15)), type: .direct), from: point(tapView, v(8, 15)))
+    #expect(tapView.selection.ids == [other.id])
+    #expect(!tapModel.undoManager.canUndo)
+}

@@ -68,7 +68,8 @@ extension CanvasView {
     }
 
     /// A touch at `p` inside the selection: a free move when the selection covers whole mechanisms (or holds no
-    /// pinned object); a mechanism drag on a selected pinned body; a move of the loose objects on a loose one;
+    /// pinned object); a mechanism drag on a selected pinned body; a move of the loose objects on a loose one, or
+    /// off the selected objects when the selection has loose ones (an unengaged move is a tap: `selectionTap`);
     /// else `.pending`, as outside the box (a tap re-targets or clears, a drag lassoes).
     func selectionDrag(at p: CGPoint) -> Interaction? {
         let doc = model.document
@@ -76,7 +77,7 @@ extension CanvasView {
         let hit = hitObjects(atWorld: worldPoint(p)).last { o in
             if case .joint = o { false } else { selection.ids.contains(o.id) }
         }
-        guard let hit else { return .pending(start: p) }
+        guard let hit else { return freeMoveIDs().isEmpty ? .pending(start: p) : .move }
         return pinnedBodies(in: doc).contains(bodyID(of: hit.id, in: doc)) ? .mechanism(hit.id) : .move
     }
 
