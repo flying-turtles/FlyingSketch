@@ -45,6 +45,23 @@ public enum JointGeometry {
         return [box, shackle]
     }
 
+    /// Whether `point` is within `tolerance` of the joint's ring or of one of its marks (ground or lock).
+    public static func hits(_ joint: Joint, point: Vec2, tolerance: Double) -> Bool {
+        if point.distance(to: joint.position) <= ringRadius + tolerance { return true }
+        let reach = tolerance + strokeWidth / 2
+        return marks(of: joint).contains { line in
+            zip(line, line.dropFirst()).contains { segmentDistance(point, $0, $1) <= reach }
+        }
+    }
+
+    private static func segmentDistance(_ p: Vec2, _ a: Vec2, _ b: Vec2) -> Double {
+        let ab = b - a
+        let len2 = ab.x * ab.x + ab.y * ab.y
+        guard len2 > 0 else { return p.distance(to: a) }
+        let t = min(max(((p.x - a.x) * ab.x + (p.y - a.y) * ab.y) / len2, 0), 1)
+        return p.distance(to: a + ab * t)
+    }
+
     /// Polylines of the joint's line marks: the lock for `.fixed`, the ground mark for a grounded hinge.
     public static func marks(of joint: Joint) -> [[Vec2]] {
         switch joint.kind {

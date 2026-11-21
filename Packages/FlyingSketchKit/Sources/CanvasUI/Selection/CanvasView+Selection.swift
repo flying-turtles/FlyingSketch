@@ -96,8 +96,14 @@ extension CanvasView {
 
     func topObject(at viewPoint: CGPoint) -> SceneObject? {
         let hits = hitObjects(atWorld: worldPoint(viewPoint))
-        // Pins win every tap, whatever the z-order.
-        return hits.last { if case .joint = $0 { true } else { false } } ?? hits.last
+        // Pins win every tap, whatever the z-order. A lock never wins: the tap goes to the topmost body, or to the
+        // body the lock holds when only the lock is hit (Unlock is in that body's menu; lasso still selects locks).
+        if let hinge = hits.last(where: { if case .joint(let j) = $0 { j.kind == .hinge } else { false } }) {
+            return hinge
+        }
+        if let body = hits.last(where: { if case .joint = $0 { false } else { true } }) { return body }
+        guard case .joint(let lock)? = hits.last, let anchor = lock.anchors.first else { return nil }
+        return model.document.objects.first { $0.id == anchor.object }
     }
 
     /// Finger tap outside the selection: a pin of a selected part (or end of a selected wire) highlights its net,

@@ -144,7 +144,7 @@ public func hitTest(_ object: SceneObject, point: Vec2, tolerance: Double) -> Bo
         return distance(from: point, toPolyline: w.polyline) <= tolerance + w.width / 2
 
     case .joint(let j):
-        return point.distance(to: j.position) <= Joint.radius + tolerance
+        return JointGeometry.hits(j, point: point, tolerance: tolerance) // ring or ground / lock mark
     }
 }
 
