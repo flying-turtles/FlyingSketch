@@ -399,6 +399,50 @@ private func onCircle(_ center: Vec2, _ radius: Double, _ degrees: Double) -> Ve
     #expect(averageMs < 10)
 }
 
+// MARK: - Large swings, antipodes, steady state
+
+/// Crank pinned to ground at (0,0), body origin at its midpoint, tip at (10,0).
+private func crank() -> (bodies: [SolverBody], constraints: [PointConstraint], tip: Vec2) {
+    ([SolverBody(origin: v(5, 0))], [PointConstraint(a: 0, pointA: v(0, 0), b: nil, pointB: v(0, 0))], v(10, 0))
+}
+
+@Test(arguments: [170.0, -170.0])
+func crankLargeSingleFrameSwing(degrees: Double) {
+    let (bodies, constraints, tip) = crank()
+    let target = onCircle(v(0, 0), 10, degrees)
+    let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                  drag: DragTarget(body: 0, point: tip, target: target), initial: identity(1))
+    #expect(r.converged)
+    #expect(constraintError(bodies, constraints, r.poses) < 1e-3)
+    #expect(near(world(r, bodies, 0, tip), target, 1e-3), "\(world(r, bodies, 0, tip)) vs \(target)")
+}
+
+@Test func freePlateReturnsAfterRoundTripOriginsAtPins() {
+    // As `freePlateReturnsAfterRoundTrip`, with every body origin on a pin (where drift used to show).
+    let h1 = v(0, 0), h2 = v(20, 0), e1 = v(-30, 0)
+    let bodies = [SolverBody(origin: h1), SolverBody(origin: h1), SolverBody(origin: h2)]
+    let constraints = [PointConstraint(a: 0, pointA: h1, b: 1, pointB: h1),
+                       PointConstraint(a: 0, pointA: h2, b: 2, pointB: h2)]
+    var poses = identity(3)
+    var worst = 0.0
+    let path = Array(stride(from: 185.0, through: 240, by: 5)) + Array(stride(from: 235.0, through: 180, by: -5))
+    for degrees in path {
+        let target = onCircle(h1, 30, degrees)
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                      drag: DragTarget(body: 1, point: e1, target: target), initial: poses)
+        #expect(r.converged, "\(degrees)°")
+        #expect(r.residual < 1e-6, "\(degrees)°")
+        #expect(near(world(r, bodies, 1, e1), target, 1e-3), "\(degrees)°")
+        for i in [0, 2] {
+            let motion = r.poses[i].translation.length + 20 * abs(r.poses[i].angle)
+            worst = max(worst, motion)
+            #expect(motion < 1e-4, "\(degrees)°: body \(i) \(r.poses[i])")
+        }
+        poses = r.poses
+    }
+    print("freePlateReturnsAfterRoundTripOriginsAtPins: worst plate / bar 2 motion \(worst) mm")
+}
+
 // MARK: - Body order
 
 /// Chain of `n` 10 mm bars grounded at (0,0); body `order[i]` is bar `i`.
