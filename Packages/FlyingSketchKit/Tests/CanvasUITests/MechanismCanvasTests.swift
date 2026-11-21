@@ -425,6 +425,37 @@ private func isPending(_ i: CanvasView.Interaction?) -> Bool {
     #expect(view2.movingSet([board.id]) == [board.id])
 }
 
+/// A group without pins in a partial mechanism selection is loose: a mechanism drag leaves it, a drag on it moves
+/// only the group.
+@Test @MainActor func unpinnedGroupInMechanismSelectionIsLoose() {
+    var fb = fourBarDocument()
+    let box = ShapeObject(kind: .rectangle, start: v(60, 20), end: v(80, 40))
+    fb.doc.objects += [.ink(looseStroke), .shape(box)]
+    let group = ObjectGroup(members: [looseStroke.id, box.id])
+    fb.doc.groups = [group]
+    let selected: Set<ObjectID> = [fb.crank, looseStroke.id, box.id]
+    let (view, m) = canvas(fb.doc, select: selected)
+    #expect(view.freeMoveIDs() == [looseStroke.id, box.id])
+    #expect(isMechanism(view.route(isPencil: true, at: point(view, (fb.a + fb.b) / 2)), fb.crank))
+    view.beginMechanismDrag(object: fb.crank, at: fb.b)
+    view.moveMechanism(to: crankTip(-45))
+    #expect(!(view.mechanismDrag?.replacements.contains { group.members.contains($0.id) } ?? true))
+    view.endMechanismDrag()
+    #expect(m.undoManager.undoActionName == "Move Mechanism")
+    #expect(object(box.id, in: m.document) == .shape(box))
+    #expect(object(looseStroke.id, in: m.document) == .ink(looseStroke))
+
+    let (view2, m2) = canvas(fb.doc, select: selected)
+    let on = v(60, 30) // on the box outline
+    #expect(isMove(view2.route(isPencil: true, at: point(view2, on))))
+    view2.beginMove(at: on)
+    view2.updateMove(to: on + v(5, 5))
+    view2.endMove()
+    #expect(object(box.id, in: m2.document) == .shape(box).translated(by: v(5, 5)))
+    #expect(object(looseStroke.id, in: m2.document) == .ink(looseStroke).translated(by: v(5, 5)))
+    #expect(shape(fb.crank, in: m2.document) == shape(fb.crank, in: fb.doc))
+}
+
 // MARK: Fix round 1
 
 /// Bar 1 (0,0)-(40,20) grounded at (0,0); bar 2 (0,20)-(40,0) grounded at (40,0), crossing bar 1's box.

@@ -466,3 +466,107 @@ private func frameTime(_ s: (doc: SketchDocument, board: PartInstance, pivot: Ve
         #expect(result.map(\.id) == order)
     }
 }
+
+// MARK: - Coverage
+
+/// A solve failing mid-drag freezes the frame (previous non-empty result) and leaves the session usable: the
+/// next frame equals a drag that never saw the failure.
+@Test func midDragSolveFailureFreezesFrame() throws {
+    let fb = fourBarDocument()
+    let drag = try #require(MechanismDrag(grabbing: fb.crank, at: fb.b, in: fb.doc))
+    let first = drag.move(to: crankTip(-60))
+    #expect(!first.isEmpty)
+    let real = drag.solve
+    var calls = 0
+    drag.solve = { bodies, _, _, _ in
+        calls += 1
+        return SolveResult(poses: Array(repeating: BodyPose(translation: Vec2(x: .nan, y: 7), angle: 3), count: bodies.count),
+                           residual: .infinity, converged: false)
+    }
+    #expect(drag.move(to: crankTip(-30)) == first)
+    #expect(drag.move(to: crankTip(-10)) == first)
+    #expect(drag.replacements == first)
+    #expect(calls == 2)
+    drag.solve = real
+    let next = drag.move(to: crankTip(-30))
+    let reference = try #require(MechanismDrag(grabbing: fb.crank, at: fb.b, in: fb.doc))
+    _ = reference.move(to: crankTip(-60))
+    #expect(next == reference.move(to: crankTip(-30)))
+    expectPinsHold(applied(next, to: fb.doc), start: fb.doc)
+}
+
+/// Two bars on one grounded pin (two anchors): the dragged bar turns about it, the other stays, the pin holds.
+@Test func groundedHingeWithTwoAnchors() throws {
+    let g = Vec2(x: 0, y: 0), p = Vec2(x: 20, y: 0), q = Vec2(x: 0, y: 20)
+    let bar1 = ShapeObject(kind: .line, start: g, end: p), bar2 = ShapeObject(kind: .line, start: g, end: q)
+    let pin = Joint(position: g, anchors: [JointAnchor(object: bar1.id, point: g), JointAnchor(object: bar2.id, point: g)],
+                    grounded: true)
+    let doc = SketchDocument(objects: [.shape(bar1), .shape(bar2), .joint(pin)])
+    let drag = try #require(MechanismDrag(grabbing: bar1.id, at: p, in: doc))
+    var result: [SceneObject] = []
+    for k in 1...10 { result = drag.move(to: g + (p - g).rotated(by: 0.08 * Double(k))) }
+    #expect(result.map(\.id) == [bar1.id])
+    let after = applied(result, to: doc)
+    #expect(near(shape(bar1.id, in: after).end, g + (p - g).rotated(by: 0.8), 1e-3))
+    #expect(near(shape(bar1.id, in: after).start, g, 1e-9))
+    expectPinsHold(after, start: doc)
+}
+
+/// A module plugged into two hinged boards rides with exactly one of them (the first in body order).
+@Test func partCarriedByTwoBodiesRidesWithOne() throws {
+    let boardDef = PartDefinition.fixtureBreadboardMini()
+    var setup = pivotBoard(module: "c1r0") // SCL just past the board edge
+    let scl = connectorPositions(setup.module, PartDefinition.fixtureModule())["SCL"]!
+    let second = PartInstance(definitionKey: boardDef.key,
+                              center: scl - connectorPositions(PartInstance(definitionKey: boardDef.key, center: .zero),
+                                                               boardDef)["c0r0"]!)
+    let hinge = Joint(position: second.center, anchors: [JointAnchor(object: setup.board.id, point: second.center),
+                                                         JointAnchor(object: second.id, point: second.center)])
+    setup.doc.objects += [.part(second), .joint(hinge)]
+    let m = try #require(Mechanism(containing: setup.board.id, in: setup.doc))
+    #expect(m.bodies == [setup.board.id, second.id])
+    #expect(m.members(of: setup.board.id) == [setup.board.id, setup.module.id])
+    #expect(m.members(of: second.id) == [second.id])
+    let after = try #require(turnBoard(setup.doc, setup.board, pivot: setup.pivot, by: 0.4))
+    guard case .part(let b1)? = object(setup.board.id, in: after), case .part(let m1)? = object(setup.module.id, in: after)
+    else { Issue.record("missing"); return }
+    #expect(near(m1.center, setup.pivot + (setup.module.center - setup.pivot).rotated(by: b1.rotation), 1e-9))
+    #expect(abs(m1.rotation - b1.rotation) < 1e-12)
+    expectPinsHold(after, start: setup.doc)
+}
+
+/// Grabbing a locked body: nothing moves, nothing crashes.
+@Test func grabbedLockedBodyDoesNotMove() throws {
+    let bar = ShapeObject(kind: .line, start: Vec2(x: 0, y: 0), end: Vec2(x: 20, y: 0))
+    let lock = Joint(kind: .fixed, position: bar.start, anchors: [JointAnchor(object: bar.id, point: bar.start)],
+                     grounded: true)
+    let doc = SketchDocument(objects: [.shape(bar), .joint(lock)])
+    let drag = try #require(MechanismDrag(grabbing: bar.id, at: bar.end, in: doc))
+    for target in [Vec2(x: 25, y: 5), Vec2(x: 10, y: 30), Vec2(x: -50, y: 0)] { #expect(drag.move(to: target) == []) }
+
+    // Locked coupler of the four-bar, grabbed: the whole linkage is rigid.
+    var fb = fourBarDocument()
+    let mid = (fb.b + fb.c) / 2
+    fb.doc.objects.append(.joint(Joint(kind: .fixed, position: mid, anchors: [JointAnchor(object: fb.coupler, point: mid)],
+                                       grounded: true)))
+    let fbDrag = try #require(MechanismDrag(grabbing: fb.coupler, at: mid, in: fb.doc))
+    for target in [mid + Vec2(x: 5, y: 5), mid + Vec2(x: -20, y: 0)] {
+        #expect(!fbDrag.move(to: target).contains { if case .shape = $0 { true } else { false } })
+    }
+}
+
+/// Two pins between the same two bodies make them one rigid piece: with one of them locked, nothing moves.
+@Test func twoJointsBetweenSameBodiesAreRigid() throws {
+    let bar1 = ShapeObject(kind: .line, start: Vec2(x: 0, y: 0), end: Vec2(x: 30, y: 0))
+    let bar2 = ShapeObject(kind: .line, start: Vec2(x: 10, y: 0), end: Vec2(x: 20, y: 15))
+    let p = Vec2(x: 10, y: 0), q = Vec2(x: 20, y: 0)
+    let pins = [p, q].map { Joint(position: $0, anchors: [JointAnchor(object: bar1.id, point: $0),
+                                                          JointAnchor(object: bar2.id, point: $0)]) }
+    let lock = Joint(kind: .fixed, position: bar1.start, anchors: [JointAnchor(object: bar1.id, point: bar1.start)],
+                     grounded: true)
+    let doc = SketchDocument(objects: [.shape(bar1), .shape(bar2), .joint(lock)] + pins.map { .joint($0) })
+    let drag = try #require(MechanismDrag(grabbing: bar2.id, at: bar2.end, in: doc))
+    for target in [bar2.end + Vec2(x: 5, y: 2), bar2.end + Vec2(x: -8, y: -3)] {
+        #expect(!drag.move(to: target).contains { if case .shape = $0 { true } else { false } }, "\(target)")
+    }
+}

@@ -38,6 +38,12 @@ public final class MechanismDrag {
     private let grabPoint: Vec2
     private var poses: [BodyPose]
 
+    /// The solver; a test seam (e.g. to force a failed solve mid-drag).
+    var solve: (_ bodies: [SolverBody], _ constraints: [PointConstraint], _ drag: DragTarget,
+                _ initial: [BodyPose]) -> SolveResult = {
+        MechanismSolver.solve(bodies: $0, constraints: $1, drag: $2, initial: $3)
+    }
+
     /// Last result of `move` (empty before the first successful frame).
     public private(set) var replacements: [SceneObject] = []
 
@@ -127,9 +133,7 @@ public final class MechanismDrag {
     /// anchor points and positions, and re-synced wires; only objects that differ from the drag-start document.
     /// Keeps the previous result when the solve fails.
     public func move(to world: Vec2) -> [SceneObject] {
-        let result = MechanismSolver.solve(bodies: solverBodies, constraints: constraints,
-                                           drag: DragTarget(body: grabbed, point: grabPoint, target: world),
-                                           initial: poses)
+        let result = solve(solverBodies, constraints, DragTarget(body: grabbed, point: grabPoint, target: world), poses)
         guard result.converged else { return replacements }
         poses = result.poses
         let motions = bodies.indices.map { motion(of: $0) }
