@@ -457,3 +457,77 @@ private func dragChain(_ n: Int, order: [Int], frames: Int) -> (poses: [[BodyPos
     #expect(shuffled.seconds < 3 * ordered.seconds + 0.005)
 }
 
+// MARK: - Hostile input
+
+/// Poses equal bit for bit (NaN equals NaN).
+private func same(_ a: [BodyPose], _ b: [BodyPose]) -> Bool {
+    a.count == b.count && zip(a, b).allSatisfy { p, q in
+        p.translation.x.bitPattern == q.translation.x.bitPattern
+            && p.translation.y.bitPattern == q.translation.y.bitPattern && p.angle.bitPattern == q.angle.bitPattern
+    }
+}
+
+@Test func nonFiniteInputsKeepInitial() {
+    let bodies = [SolverBody(origin: v(0, 0)), SolverBody(origin: v(10, 0))]
+    let constraints = [PointConstraint(a: 0, pointA: v(5, 0), b: 1, pointB: v(5, 0))]
+    let drag = DragTarget(body: 1, point: v(15, 0), target: v(15, 6))
+    let initial = [BodyPose(translation: v(1, 0), angle: 0), BodyPose(translation: v(1, 0), angle: 0)]
+    let bad: [Double] = [.nan, .infinity, -.infinity]
+    var cases: [(String, [SolverBody], [PointConstraint], DragTarget?, [BodyPose])] = []
+    for x in bad {
+        var c = constraints
+        c[0].pointA.x = x
+        cases.append(("pointA \(x)", bodies, c, drag, initial))
+        c = constraints
+        c[0].pointB.y = x
+        cases.append(("pointB \(x)", bodies, c, drag, initial))
+        var d = drag
+        d.target.y = x
+        cases.append(("target \(x)", bodies, constraints, d, initial))
+        d = drag
+        d.point.x = x
+        cases.append(("drag point \(x)", bodies, constraints, d, initial))
+        var b = bodies
+        b[1].origin.x = x
+        cases.append(("origin \(x)", b, constraints, drag, initial))
+        var i = initial
+        i[1].angle = x
+        cases.append(("initial angle \(x)", bodies, constraints, drag, i))
+        i = initial
+        i[0].translation.y = x
+        cases.append(("initial translation \(x)", bodies, constraints, nil, i))
+    }
+    for (name, bodies, constraints, drag, initial) in cases {
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints, drag: drag, initial: initial)
+        #expect(!r.converged, "\(name)")
+        #expect(same(r.poses, initial), "\(name): \(r.poses)")
+    }
+}
+
+@Test func tooManyUnknownsReturnFast() {
+    // One hinge joining a hub to many bodies (a hostile document), just over the unknowns cap.
+    let n = MechanismSolver.maxUnknowns / 3 + 1
+    let bodies = (0..<n).map { SolverBody(origin: v(Double($0), 1)) }
+    let constraints = (1..<n).map { PointConstraint(a: $0, pointA: v(0, 0), b: 0, pointB: v(0, 0)) }
+    let initial = identity(n)
+    let start = ContinuousClock.now
+    let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                  drag: DragTarget(body: 1, point: v(1, 1), target: v(5, 5)), initial: initial)
+    let elapsed = ContinuousClock.now - start
+    #expect(!r.converged)
+    #expect(same(r.poses, initial))
+    #expect(elapsed < .milliseconds(50), "\(elapsed)")
+}
+
+@Test func largestDraggableMechanismSolves() {
+    // `MechanismDrag.maxBodies` bodies on one hinge stay well within the cap.
+    let n = MechanismDrag.maxBodies
+    #expect(3 * n * 2 <= MechanismSolver.maxUnknowns)
+    let bodies = (0..<n).map { SolverBody(origin: v(Double($0), 1), isFixed: $0 == 0) }
+    let constraints = (1..<n).map { PointConstraint(a: $0, pointA: v(0, 0), b: 0, pointB: v(0, 0)) }
+    let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                  drag: DragTarget(body: 1, point: v(1, 1), target: v(-1, 1)), initial: identity(n))
+    #expect(r.converged)
+    #expect(constraintError(bodies, constraints, r.poses) < 1e-6)
+    #expect(near(world(r, bodies, 1, v(1, 1)), v(-1, 1), 1e-3))
+}

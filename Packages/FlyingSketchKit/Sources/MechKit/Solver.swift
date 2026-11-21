@@ -100,6 +100,9 @@ public enum MechanismSolver {
     /// because their damping is already tiny (`projectionDamping`) and must stay well above round-off.
     static let grabbedStayScale = 1e-6
     static let grabbedProjectionScale = 1e-3
+    /// Most unknowns (3 per moving body) a solve takes on; beyond it (a hostile document) it returns `initial`
+    /// unsolved. Twice what `MechanismDrag.maxBodies` can produce.
+    static let maxUnknowns = 3000
 
     /// `initial`: poses to start from (previous frame); points in constraints / drag are given at the identity pose.
     public static func solve(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?,
@@ -122,7 +125,11 @@ public enum MechanismSolver {
 }
 
 extension BodyPose {
-    var isFinite: Bool { translation.x.isFinite && translation.y.isFinite && angle.isFinite }
+    var isFinite: Bool { translation.isFinite && angle.isFinite }
+}
+
+private extension Vec2 {
+    var isFinite: Bool { x.isFinite && y.isFinite }
 }
 
 /// One 2-row residual block's dependence on one body. With `r` the rotated lever of the point and `w` the
@@ -155,8 +162,12 @@ private struct Problem {
     init?(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?, initial: [BodyPose]) {
         let range = bodies.indices
         guard initial.count == bodies.count, initial.allSatisfy(\.isFinite),
-              constraints.allSatisfy({ range.contains($0.a) && ($0.b.map(range.contains) ?? true) }),
-              drag.map({ range.contains($0.body) }) ?? true
+              bodies.allSatisfy({ $0.origin.isFinite }),
+              constraints.allSatisfy({
+                  range.contains($0.a) && ($0.b.map(range.contains) ?? true) && $0.pointA.isFinite && $0.pointB.isFinite
+              }),
+              drag.map({ range.contains($0.body) && $0.point.isFinite && $0.target.isFinite }) ?? true,
+              3 * bodies.count(where: { !$0.isFixed }) <= MechanismSolver.maxUnknowns
         else { return nil }
         self.bodies = bodies
         self.constraints = constraints
