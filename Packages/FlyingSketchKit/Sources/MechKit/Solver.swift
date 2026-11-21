@@ -104,6 +104,8 @@ public enum MechanismSolver {
     /// Most unknowns (3 per moving body) a solve takes on; beyond it (a hostile document) it returns `initial`
     /// unsolved. Twice what `MechanismDrag.maxBodies` can produce.
     static let maxUnknowns = 3000
+    /// A solve that brings the drag point less than this closer (mm) keeps `initial` when that is assembled.
+    static let minimumGain = 1e-6
 
     /// `initial`: poses to start from (previous frame); points in constraints / drag are given at the identity pose.
     public static func solve(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?,
@@ -131,6 +133,13 @@ public enum MechanismSolver {
         let residual = problem.constraintResidual(poses)
         guard residual.isFinite, poses.allSatisfy(\.isFinite) else {
             return SolveResult(poses: initial, residual: problem.constraintResidual(initial), converged: false)
+        }
+        // Keep the previous frame when the drag point would come no measurably closer (a steady drag beyond
+        // reach): staying is then optimal, and the projections' near-free directions (the grabbed body barely
+        // counts in their metric) would otherwise turn round-off into frame-to-frame jitter.
+        if drag != nil, case let still = problem.constraintResidual(initial), still < tolerance,
+           problem.dragDistance(initial) - problem.dragDistance(poses) < minimumGain {
+            return SolveResult(poses: initial, residual: still, converged: true)
         }
         return SolveResult(poses: poses, residual: residual, converged: residual < tolerance)
     }
@@ -432,7 +441,7 @@ private struct Problem {
         return cost
     }
 
-    private func dragDistance(_ poses: [BodyPose]) -> Double {
+    func dragDistance(_ poses: [BodyPose]) -> Double {
         guard let drag else { return 0 }
         return world(poses, drag.body, drag.point).distance(to: drag.target)
     }

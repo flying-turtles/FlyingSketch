@@ -417,6 +417,29 @@ func crankLargeSingleFrameSwing(degrees: Double) {
     #expect(near(world(r, bodies, 0, tip), target, 1e-3), "\(world(r, bodies, 0, tip)) vs \(target)")
 }
 
+@Test(arguments: [5.0, 0.0, 10.0, 25.0])
+func unreachableTargetSettles(originX: Double) {
+    // The grabbed bar's origin lies `originX` along it from its only pin; the target is out of reach.
+    let bodies = [SolverBody(origin: v(originX, 0))]
+    let constraints = [PointConstraint(a: 0, pointA: v(0, 0), b: nil, pointB: v(0, 0))]
+    let drag = DragTarget(body: 0, point: v(10, 0), target: v(30, 100))
+    var poses = identity(1)
+    var previous = drag.point
+    var worst = 0.0
+    for frame in 0..<40 {
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints, drag: drag, initial: poses)
+        #expect(r.converged, "frame \(frame)")
+        let end = world(r, bodies, 0, drag.point)
+        if frame >= 10 {
+            worst = max(worst, end.distance(to: previous))
+            #expect(end.distance(to: previous) < 1e-6, "frame \(frame): tip moved \(end.distance(to: previous))")
+        }
+        previous = end
+        poses = r.poses
+    }
+    print("unreachableTargetSettles(\(originX)): worst frame-to-frame motion \(worst) mm")
+}
+
 @Test func freePlateReturnsAfterRoundTripOriginsAtPins() {
     // As `freePlateReturnsAfterRoundTrip`, with every body origin on a pin (where drift used to show).
     let h1 = v(0, 0), h2 = v(20, 0), e1 = v(-30, 0)
@@ -441,6 +464,30 @@ func crankLargeSingleFrameSwing(degrees: Double) {
         poses = r.poses
     }
     print("freePlateReturnsAfterRoundTripOriginsAtPins: worst plate / bar 2 motion \(worst) mm")
+}
+
+@Test(arguments: [v(15, 0), v(10, 0), v(20, 0), v(15, 5), v(30, 0)])
+func unreachableTargetSettlesOnTwoBars(origin: Vec2) {
+    // Grounded crank (0, 0)-(10, 0) and a bar (10, 0)-(20, 0) grabbed at its end; the bar's origin is `origin`.
+    let bodies = [SolverBody(origin: v(5, 0)), SolverBody(origin: origin)]
+    let constraints = [PointConstraint(a: 0, pointA: v(0, 0), b: nil, pointB: v(0, 0)),
+                       PointConstraint(a: 0, pointA: v(10, 0), b: 1, pointB: v(10, 0))]
+    let drag = DragTarget(body: 1, point: v(20, 0), target: v(40, 100))
+    var poses = identity(2)
+    var previous = drag.point
+    var worst = 0.0
+    for frame in 0..<40 {
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints, drag: drag, initial: poses)
+        #expect(r.converged, "frame \(frame)")
+        let end = world(r, bodies, 1, drag.point)
+        if frame >= 10 {
+            worst = max(worst, end.distance(to: previous))
+            #expect(end.distance(to: previous) < 1e-6, "frame \(frame): tip moved \(end.distance(to: previous))")
+        }
+        previous = end
+        poses = r.poses
+    }
+    print("unreachableTargetSettlesOnTwoBars(\(origin)): worst frame-to-frame motion \(worst) mm")
 }
 
 // MARK: - Body order
