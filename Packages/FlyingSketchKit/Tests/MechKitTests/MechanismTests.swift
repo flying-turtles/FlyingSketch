@@ -388,7 +388,8 @@ private func stretchSetup(hingeResistor: Bool)
     let after = applied(result, to: doc)
     let moved = shape(plate.id, in: after)
     print("ungroundedPlateStaysInDocumentDrag: plate moved \(moved.start.distance(to: plate.start)) mm")
-    #expect(near(moved.start, plate.start, 1e-3) && near(moved.end, plate.end, 1e-3), "\(moved)")
+    // Measured 2.3e-5 mm; the bound is about 10x that.
+    #expect(near(moved.start, plate.start, 2.3e-4) && near(moved.end, plate.end, 2.3e-4), "\(moved)")
     #expect(abs(moved.rotation - plate.rotation) < 1e-4)
     #expect(near(shape(bar.id, in: after).end, Vec2(x: 30 * cos(Double.pi / 4), y: 30 * sin(Double.pi / 4)), 1e-3))
 }
