@@ -82,10 +82,11 @@ public enum MechanismSolver {
     static let tolerance = 1e-6
     /// Projections keep going until here (mm), well inside `tolerance`.
     static let projectionTolerance = 1e-10
-    /// Cap on linear solves per call, all phases together.
-    static let maxIterations = 40
-    /// Phase 1 starts no new step after this many solves, leaving the rest to the final projection.
+    /// Phase 1 starts no new step after this many linear solves (the retraction of the last step may run past
+    /// it by up to `maxRetractionSteps`).
     static let maxSoftIterations = 30
+    /// Linear solves reserved for the final projection, whatever phase 1 used.
+    static let maxProjectionIterations = 20
     /// Projection solves that retract each phase-1 trial step, and how exact the retraction must be (mm):
     /// enough that drag leakage is far below the stay term that decides between trial steps.
     static let maxRetractionSteps = 4
@@ -107,6 +108,13 @@ public enum MechanismSolver {
     /// `initial`: poses to start from (previous frame); points in constraints / drag are given at the identity pose.
     public static func solve(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?,
                              initial: [BodyPose]) -> SolveResult {
+        var stats = SolveStats()
+        return solve(bodies: bodies, constraints: constraints, drag: drag, initial: initial, stats: &stats)
+    }
+
+    /// `solve`, reporting how the linear solves were spent.
+    static func solve(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?,
+                      initial: [BodyPose], stats: inout SolveStats) -> SolveResult {
         guard let problem = Problem(bodies: bodies, constraints: constraints, drag: drag, initial: initial) else {
             return SolveResult(poses: initial, residual: .infinity, converged: false)
         }
@@ -115,13 +123,24 @@ public enum MechanismSolver {
         if drag != nil, problem.unknowns > 0 {
             poses = problem.minimizeSoft(from: poses, iterations: &iterations)
         }
-        poses = problem.project(from: poses, holdingDrag: false, iterations: &iterations)
+        stats.softIterations = iterations
+        stats.softResidual = problem.constraintResidual(poses)
+        var projectionIterations = 0
+        poses = problem.project(from: poses, holdingDrag: false, iterations: &projectionIterations)
+        stats.projectionIterations = projectionIterations
         let residual = problem.constraintResidual(poses)
         guard residual.isFinite, poses.allSatisfy(\.isFinite) else {
             return SolveResult(poses: initial, residual: problem.constraintResidual(initial), converged: false)
         }
         return SolveResult(poses: poses, residual: residual, converged: residual < tolerance)
     }
+}
+
+/// Linear solves one `solve` spent per phase, and the constraint residual the soft phase left (mm).
+struct SolveStats {
+    var softIterations = 0
+    var softResidual = 0.0
+    var projectionIterations = 0
 }
 
 extension BodyPose {
@@ -504,16 +523,14 @@ private struct Problem {
     // MARK: Projection (damped Gauss–Newton)
 
     /// Moves `start` onto the constraints (and onto the drag target if `holdingDrag`, as far as it is
-    /// reachable) with minimal motion. Every linear solve counts towards `iterations`, which stops at `limit`
-    /// (never beyond `maxIterations`).
+    /// reachable) with minimal motion. Every linear solve counts towards `iterations`, which stops at `limit`.
     func project(from start: [BodyPose], holdingDrag: Bool, iterations: inout Int,
-                 limit: Int = MechanismSolver.maxIterations,
+                 limit: Int = MechanismSolver.maxProjectionIterations,
                  tolerance: Double = MechanismSolver.projectionTolerance) -> [BodyPose] {
         let wc = MechanismSolver.constraintWeight
         let done = wc * wc * tolerance * tolerance
         var poses = start
         var cost = projectionCost(poses, holdingDrag: holdingDrag)
-        let limit = min(limit, MechanismSolver.maxIterations)
         while iterations < limit, cost >= done, unknowns > 0 {
             iterations += 1
             var eq = NormalEquations(envelope: envelope)

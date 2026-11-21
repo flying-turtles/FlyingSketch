@@ -531,3 +531,27 @@ private func same(_ a: [BodyPose], _ b: [BodyPose]) -> Bool {
     #expect(constraintError(bodies, constraints, r.poses) < 1e-6)
     #expect(near(world(r, bodies, 1, v(1, 1)), v(-1, 1), 1e-3))
 }
+
+// MARK: - Budgets
+
+@Test func finalProjectionHasItsOwnBudget() {
+    // A badly broken start (every bar of a 50-bar chain thrown about) keeps phase 1 busy for its whole budget;
+    // the final projection must still have enough solves of its own to close the pins.
+    let n = 50
+    let (bodies, constraints) = chain(n, order: Array(0..<n))
+    var seed: UInt64 = 12345
+    func random() -> Double {
+        seed = seed &* 6364136223846793005 &+ 1442695040888963407
+        return Double(seed >> 11) / Double(1 << 53) * 2 - 1
+    }
+    for trial in 0..<4 {
+        let initial = (0..<n).map { _ in BodyPose(translation: v(20 * random(), 20 * random()), angle: 2 * random()) }
+        var stats = SolveStats()
+        let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                      drag: DragTarget(body: n - 1, point: v(500, 0), target: v(350, 250)),
+                                      initial: initial, stats: &stats)
+        #expect(stats.softIterations >= MechanismSolver.maxSoftIterations, "trial \(trial): \(stats)")
+        #expect(r.converged, "trial \(trial): \(stats)")
+        #expect(constraintError(bodies, constraints, r.poses) < 1e-3, "trial \(trial): \(stats)")
+    }
+}
