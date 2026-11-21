@@ -4,8 +4,10 @@ import SketchCore
 /// object from its drag-start value (no accumulation). Not thread-safe: create and use it on one actor (the canvas
 /// keeps it on the main actor).
 public final class MechanismDrag {
-    /// Rigid poses whose points all move less than this (mm) are treated as identity, so bodies held still by
-    /// their pins report no change instead of solver round-off.
+    /// Rigid poses whose points all move less than this (mm) are treated as identity, and joint anchors moving
+    /// less keep their point, so bodies and pins held still report no change instead of solver round-off (the
+    /// solver projects pins to 1e-10 mm and converges at 1e-6 mm). Measured against the drag start, so a slow drag
+    /// still accumulates.
     static let stillTolerance = 1e-9
     /// Largest mechanism (bodies) a drag solves; beyond it (e.g. a hostile file) there is no mechanism drag, as the
     /// solver's dense normal equations grow with the square of the body count.
@@ -48,7 +50,7 @@ public final class MechanismDrag {
         for case .joint(let j) in doc.objects where jointIDs.contains(j.id) { joints.append(j) }
         self.joints = joints
 
-        let order = solverOrder(mechanism, joints: joints, grabbed: bodyID(of: object, in: doc), in: doc)
+        let order = solverOrder(mechanism, joints: joints, grabbed: mechanism.body(of: object))
         var index: [ObjectID: Int] = [:]
         for (i, id) in order.enumerated() { index[id] = i }
         var anchorPoints = [[Vec2]](repeating: [], count: order.count)
@@ -57,7 +59,7 @@ public final class MechanismDrag {
         for (i, id) in order.enumerated() {
             for m in mechanism.members(of: id) { memberBody[m] = i }
         }
-        func body(of anchor: JointAnchor) -> Int? { index[bodyID(of: anchor.object, in: doc)] }
+        func body(of anchor: JointAnchor) -> Int? { index[mechanism.body(of: anchor.object)] }
         for j in joints {
             for a in j.anchors {
                 guard let b = body(of: a) else { continue }
@@ -93,7 +95,7 @@ public final class MechanismDrag {
             }
         }
         self.constraints = constraints
-        guard let g = index[bodyID(of: object, in: doc)] else { return nil }
+        guard let g = index[mechanism.body(of: object)] else { return nil }
         grabbed = g
         grabPoint = world
         poses = Array(repeating: .identity, count: order.count)
@@ -144,9 +146,11 @@ public final class MechanismDrag {
             var moved = j
             for k in moved.anchors.indices {
                 guard let b = bodyIndex[moved.anchors[k].object], let m = motions[b] else { continue }
-                moved.anchors[k].point = m.apply(moved.anchors[k].point)
+                // An anchor its body turns about (e.g. on a ground pin) keeps its drag-start point.
+                let p = m.apply(j.anchors[k].point)
+                if p.distance(to: j.anchors[k].point) >= Self.stillTolerance { moved.anchors[k].point = p }
             }
-            if !moved.grounded, let first = moved.anchors.first { moved.position = first.point }
+            if !moved.grounded, let first = moved.anchors.first, first != j.anchors.first { moved.position = first.point }
             changed[j.id] = .joint(moved)
         }
         for w in wires {
@@ -240,12 +244,12 @@ private struct RigidMotion {
 
 /// Mechanism bodies breadth-first from grounded / locked bodies (from `grabbed` when there are none), so chains
 /// give the solver a banded system.
-private func solverOrder(_ m: Mechanism, joints: [Joint], grabbed: ObjectID, in doc: SketchDocument) -> [ObjectID] {
+private func solverOrder(_ m: Mechanism, joints: [Joint], grabbed: ObjectID) -> [ObjectID] {
     var jointsByBody: [ObjectID: [Joint]] = [:]
     var seeds: [ObjectID] = []
     for j in joints {
         for a in j.anchors {
-            let body = bodyID(of: a.object, in: doc)
+            let body = m.body(of: a.object)
             jointsByBody[body, default: []].append(j)
             if j.grounded || j.kind == .fixed { seeds.append(body) }
         }
@@ -262,7 +266,7 @@ private func solverOrder(_ m: Mechanism, joints: [Joint], grabbed: ObjectID, in 
     var next = 0
     while next < order.count {
         for j in jointsByBody[order[next]] ?? [] {
-            for a in j.anchors { visit(bodyID(of: a.object, in: doc)) }
+            for a in j.anchors { visit(m.body(of: a.object)) }
         }
         next += 1
     }

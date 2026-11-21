@@ -91,8 +91,9 @@ private func expectBarLengths(_ doc: SketchDocument, _ fb: FourBar, _ label: Str
     let shapes = result.filter { if case .shape = $0 { true } else { false } }
     let joints = result.filter { if case .joint = $0 { true } else { false } }
     #expect(Set(shapes.map(\.id)) == Set(fb.bars))
-    #expect(Set(joints.map(\.id)) == Set(fb.joints))
-    #expect(result.count == 7)
+    // Grounded pins A and D: their anchors stay on the ground point, so they are not replaced.
+    #expect(Set(joints.map(\.id)) == [fb.jointB, fb.jointC])
+    #expect(result.count == 5)
     let after = applied(result, to: fb.doc)
     expectPinsHold(after, start: fb.doc)
     expectBarLengths(after, fb)
@@ -128,6 +129,30 @@ private func expectBarLengths(_ doc: SketchDocument, _ fb: FourBar, _ label: Str
         #expect(cross(c - b, fb.d - b).sign == startSign, "\(degrees)°: mirror flip")
         expectPinsHold(after, start: fb.doc, "\(degrees)°")
     }
+}
+
+/// Grounded pins whose anchors only see solver round-off are never reported as changed.
+@Test func groundedPinsAreNotReplaced() {
+    let fb = fourBarDocument()
+    guard let drag = MechanismDrag(grabbing: fb.crank, at: fb.b, in: fb.doc) else { Issue.record("no drag"); return }
+    for degrees in stride(from: -88.0, through: 200, by: 4) {
+        let ids = Set(drag.move(to: crankTip(degrees)).map(\.id))
+        #expect(!ids.contains(fb.jointA) && !ids.contains(fb.jointD), "\(degrees)°")
+        #expect(ids.isSuperset(of: Set(fb.bars) .union([fb.jointB, fb.jointC])), "\(degrees)°")
+    }
+}
+
+/// A slow drag still moves the mechanism: each frame is compared with the drag start, not the previous frame.
+@Test func slowDragAccumulates() {
+    let fb = fourBarDocument()
+    guard let drag = MechanismDrag(grabbing: fb.crank, at: fb.b, in: fb.doc) else { Issue.record("no drag"); return }
+    var result: [SceneObject] = []
+    for k in 1...50 {
+        result = drag.move(to: fb.b + Vec2(x: 5e-6 * Double(k), y: 0))
+        #expect(result.contains { $0.id == fb.crank }, "frame \(k)")
+    }
+    let tip = shape(fb.crank, in: applied(result, to: fb.doc)).end
+    #expect(near(tip, fb.b + Vec2(x: 2.5e-4, y: 0), 2e-5), "\(tip)")
 }
 
 @Test func lockedBodyStays() {
