@@ -241,6 +241,70 @@ private func turnBoard(_ doc: SketchDocument, _ board: PartInstance, pivot: Vec2
     #expect(object(label.id, in: after) == .text(label))
 }
 
+/// Board B1 grounded at a pivot (drag turns it), a resistor whose leg a is in B1 c3r2 and leg b in a board B2 that
+/// is outside the mechanism. `hingeResistor`: the resistor is its own body, hinged to B1 at its centre; else it is
+/// carried by B1 through leg a.
+private func stretchSetup(hingeResistor: Bool)
+    -> (doc: SketchDocument, b1: PartInstance, b2: PartInstance, r: PartInstance, pivot: Vec2) {
+    let boardDef = PartDefinition.fixtureBreadboardMini(), rDef = PartDefinition.fixtureResistor()
+    let b1 = PartInstance(definitionKey: boardDef.key, center: Vec2(x: 40, y: 0))
+    let b2 = PartInstance(definitionKey: boardDef.key, center: Vec2(x: 70, y: 0))
+    let r = PartInstance(definitionKey: rDef.key, center: Vec2(x: 55, y: 0),
+                         legEnds: ["a": connectorPositions(b1, boardDef)["c3r2"]!,
+                                   "b": connectorPositions(b2, boardDef)["c0r2"]!])
+    let pivot = b1.center + Vec2(x: -6, y: -7)
+    var objects: [SceneObject] = [.part(b1), .part(b2), .part(r),
+                                  .joint(Joint(position: pivot, anchors: [JointAnchor(object: b1.id, point: pivot)],
+                                               grounded: true))]
+    if hingeResistor {
+        objects.append(.joint(Joint(position: r.center, anchors: [JointAnchor(object: r.id, point: r.center),
+                                                                  JointAnchor(object: b1.id, point: r.center)])))
+    }
+    return (SketchDocument(objects: objects, parts: [boardDef.key: boardDef, rDef.key: rDef]), b1, b2, r, pivot)
+}
+
+/// Spec: "a leg plugged into a part outside the moving set keeps its end and stretches"; a leg end plugged into a
+/// moving part rides with that part.
+@Test(arguments: [true, false]) func legPluggedOutsideStretches(hingeResistor: Bool) throws {
+    let s = stretchSetup(hingeResistor: hingeResistor)
+    let before = contacts(in: s.doc)
+    #expect(before.count == 2)
+    let after = try #require(turnBoard(s.doc, s.b1, pivot: s.pivot, by: 0.5))
+    guard case .part(let b1)? = object(s.b1.id, in: after), case .part(let r1)? = object(s.r.id, in: after)
+    else { Issue.record("missing"); return }
+    #expect(abs(b1.rotation - 0.5) < 1e-3)
+    #expect(r1.center != s.r.center)
+    #expect(r1.legEnds["b"] == s.r.legEnds["b"]) // kept at its world point
+    #expect(near(r1.legEnds["a"]!, connectorPositions(b1, after.parts[b1.definitionKey]!)["c3r2"]!, 1e-9))
+    #expect(contacts(in: after) == before)
+}
+
+/// A carried module also plugged into a board outside the mechanism unplugs from it, exactly as a free move of
+/// the same board does (male pins without legs move with their part).
+@Test func carriedModuleUnplugsFromOutsideBoardLikeFreeMove() throws {
+    let boardDef = PartDefinition.fixtureBreadboardMini()
+    var setup = pivotBoard(module: "c1r0") // VCC GND SDA in c1..c3; SCL just past the board edge
+    let pins = connectorPositions(setup.module, PartDefinition.fixtureModule())
+    let outside = PartInstance(definitionKey: boardDef.key,
+                               center: pins["SCL"]! - (connectorPositions(PartInstance(definitionKey: boardDef.key,
+                                   center: .zero), boardDef)["c0r0"]!))
+    setup.doc.objects.append(.part(outside))
+    let scl = Contact(male: ConnectorRef(part: setup.module.id, connector: "SCL"),
+                      female: ConnectorRef(part: outside.id, connector: "c0r0"))
+    let before = contacts(in: setup.doc)
+    #expect(before.contains(scl) && before.count == 4)
+
+    // Free move of the board: the module is carried and leaves the outside board.
+    let moving = Set([setup.board.id]).union(PlugCarrier(setup.doc).carried(by: [setup.board.id]))
+    #expect(moving == [setup.board.id, setup.module.id])
+    let free = applied(moveParts(moving, by: Vec2(x: 1, y: 1), in: setup.doc, rigid: [setup.board.id]), to: setup.doc)
+    #expect(contacts(in: free) == before.subtracting([scl]))
+
+    let after = try #require(turnBoard(setup.doc, setup.board, pivot: setup.pivot, by: 0.5))
+    #expect(object(setup.module.id, in: after) != .part(setup.module))
+    #expect(contacts(in: after) == before.subtracting([scl]))
+}
+
 @Test func failedSolveKeepsPreviousResult() {
     // Two locked bars whose shared hinge anchors are 50 mm apart, plus a free bar hinged to one of them.
     let p = Vec2(x: 0, y: 0), q = Vec2(x: 60, y: 0), r = Vec2(x: 60, y: 20)

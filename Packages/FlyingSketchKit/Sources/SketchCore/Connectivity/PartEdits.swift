@@ -26,6 +26,28 @@ private func attached(_ end: WireEnd, toAnyOf ids: Set<ObjectID>) -> Bool {
     return false
 }
 
+/// Where the male connectors of moving parts are plugged, for deciding which leg ends hold during a move. Shared
+/// by free part moves (`moveParts`) and mechanism drags so both treat legs the same way.
+public struct LegPlugs: Sendable {
+    private let pluggedTo: [ConnectorRef: Set<ObjectID>]
+
+    /// Contacts of the male connectors of `parts`.
+    public init(_ parts: Set<ObjectID>, in doc: SketchDocument) {
+        var pluggedTo: [ConnectorRef: Set<ObjectID>] = [:]
+        for c in contacts(in: doc) where parts.contains(c.male.part) { pluggedTo[c.male, default: []].insert(c.female.part) }
+        self.pluggedTo = pluggedTo
+    }
+
+    /// Parts whose female `ref` is plugged into.
+    public func females(of ref: ConnectorRef) -> Set<ObjectID> { pluggedTo[ref] ?? [] }
+
+    /// True when the leg end of `ref` is plugged into a part outside `moving`: it keeps its end and the leg
+    /// stretches.
+    public func holds(_ ref: ConnectorRef, moving: Set<ObjectID>) -> Bool {
+        pluggedTo[ref]?.contains { !moving.contains($0) } ?? false
+    }
+}
+
 /// Moves parts by `delta`. Returns replaced part instances (a leg end stays put when plugged into a part
 /// outside `ids`) plus every wire whose attached connector actually moved (end positions updated). Wires listed in `ids`
 /// also shift their free ends and bends. Parts in `rigid` (directly dragged) never pin legs: they move whole and
@@ -33,16 +55,14 @@ private func attached(_ end: WireEnd, toAnyOf ids: Set<ObjectID>) -> Bool {
 public func moveParts(_ ids: Set<ObjectID>, by delta: Vec2, in doc: SketchDocument,
                       rigid: Set<ObjectID> = []) -> [SceneObject] {
     let old = partsByID(doc)
-    var pluggedTo: [ConnectorRef: Set<ObjectID>] = [:]
-    for c in contacts(in: doc) where ids.contains(c.male.part) { pluggedTo[c.male, default: []].insert(c.female.part) }
+    let plugs = LegPlugs(ids, in: doc)
     var moved: [ObjectID: PartInstance] = [:]
     for id in ids {
         guard var p = old[id], let def = doc.parts[p.definitionKey] else { continue }
         let current = connectorPositions(p, def)
         p.center = p.center + delta
         for c in def.connectors where c.leg != nil {
-            let pinned = !rigid.contains(id)
-                && (pluggedTo[ConnectorRef(part: id, connector: c.id)]?.contains { !ids.contains($0) } ?? false)
+            let pinned = !rigid.contains(id) && plugs.holds(ConnectorRef(part: id, connector: c.id), moving: ids)
             if pinned {
                 p.legEnds[c.id] = current[c.id]
             } else if let end = p.legEnds[c.id] {

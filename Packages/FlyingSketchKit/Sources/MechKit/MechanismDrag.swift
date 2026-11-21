@@ -24,6 +24,8 @@ public final class MechanismDrag {
     /// In solver order (breadth-first from grounded / locked bodies).
     private let bodies: [Body]
     private let bodyIndex: [ObjectID: Int]
+    /// Leg ends of moving parts that do not simply ride with their own body, by part id.
+    private let legRules: [ObjectID: [(connector: String, rule: LegRule)]]
     private let solverBodies: [SolverBody]
     private let constraints: [PointConstraint]
     private let grabbed: Int
@@ -72,6 +74,7 @@ public final class MechanismDrag {
         }
         self.bodies = bodies
         bodyIndex = memberBody
+        legRules = legRulesOf(memberBody, in: doc)
         solverBodies = order.indices.map { SolverBody(origin: bodies[$0].origin, isFixed: fixed[$0]) }
 
         var constraints: [PointConstraint] = []
@@ -109,8 +112,11 @@ public final class MechanismDrag {
 
         var changed: [ObjectID: SceneObject] = [:]
         for (i, body) in bodies.enumerated() {
-            guard let m = motions[i] else { continue }
-            for o in body.members { changed[o.id] = m.apply(o) }
+            for o in body.members {
+                let rules = legRules[o.id]
+                guard motions[i] != nil || rules != nil else { continue }
+                changed[o.id] = moved(o, motion: motions[i], rules: rules ?? [], motions: motions)
+            }
         }
         for j in joints {
             var moved = j
@@ -141,12 +147,58 @@ public final class MechanismDrag {
         return replacements
     }
 
+    /// `o` moved with its body (`motion`, nil: stays); leg ends with a rule are placed by it instead.
+    private func moved(_ o: SceneObject, motion: RigidMotion?, rules: [(connector: String, rule: LegRule)],
+                       motions: [RigidMotion?]) -> SceneObject {
+        let new = motion?.apply(o) ?? o
+        guard !rules.isEmpty, case .part(var p) = new else { return new }
+        for (c, rule) in rules {
+            switch rule {
+            case .hold(let end):
+                if motion != nil { p.legEnds[c] = end }
+            case .follow(let k, let end):
+                if motion != nil || motions[k] != nil { p.legEnds[c] = motions[k]?.apply(end) ?? end }
+            }
+        }
+        return .part(p)
+    }
+
     /// Body `i`'s motion this frame; nil when it (practically) stays put.
     private func motion(of i: Int) -> RigidMotion? {
         let pose = poses[i]
         guard pose.translation.length + abs(pose.angle) * bodies[i].reach >= Self.stillTolerance else { return nil }
         return RigidMotion(origin: bodies[i].origin, angle: pose.angle, translation: pose.translation)
     }
+}
+
+/// How a leg end of a moving part moves, decided as in a free part move (`LegPlugs`): an end plugged into a part
+/// outside the moving set holds its world point and the leg stretches; an end plugged into a part of another body
+/// rides with that body. Ends that ride with their own part's body need no rule.
+private enum LegRule {
+    case hold(Vec2)
+    case follow(body: Int, end: Vec2)
+}
+
+/// Leg rules of the parts in `memberBody` (moving object -> body index), from the drag-start positions.
+private func legRulesOf(_ memberBody: [ObjectID: Int], in doc: SketchDocument)
+    -> [ObjectID: [(connector: String, rule: LegRule)]] {
+    let moving = Set(memberBody.keys)
+    let plugs = LegPlugs(moving, in: doc)
+    var result: [ObjectID: [(connector: String, rule: LegRule)]] = [:]
+    for case .part(let p) in doc.objects {
+        guard let own = memberBody[p.id], let def = doc.parts[p.definitionKey] else { continue }
+        let ends = connectorPositions(p, def)
+        for c in def.connectors where c.leg != nil {
+            let ref = ConnectorRef(part: p.id, connector: c.id)
+            guard let end = ends[c.id] else { continue }
+            if plugs.holds(ref, moving: moving) {
+                result[p.id, default: []].append((c.id, .hold(end)))
+            } else if let k = plugs.females(of: ref).compactMap({ memberBody[$0] }).min(), k != own {
+                result[p.id, default: []].append((c.id, .follow(body: k, end: end)))
+            }
+        }
+    }
+    return result
 }
 
 /// `BodyPose` applied exactly as `SceneObject.rotated(by:around:)` then `translated(by:)`, so anchor copies and
