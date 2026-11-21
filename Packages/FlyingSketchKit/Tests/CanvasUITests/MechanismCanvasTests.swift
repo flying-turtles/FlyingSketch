@@ -509,6 +509,23 @@ private func crossedBars() -> (doc: SketchDocument, bar1: ShapeObject, bar2: Sha
     #expect(!m.undoManager.canUndo)
 }
 
+/// Re-target branch: the tap starts on selected pin B, but an unselected pin E above it in z-order wins the tap.
+@Test @MainActor func pinTapRetargetsToPinOnTop() {
+    var fb = fourBarDocument()
+    let e = fb.b + v(1.5, 0)
+    let pinE = Joint(position: e, anchors: [JointAnchor(object: fb.coupler, point: e)], grounded: true)
+    fb.doc.objects.append(.joint(pinE))
+    let (view, m) = canvas(fb.doc, select: [fb.jointB, fb.jointC])
+    let between = fb.b + v(0.75, 0) // within reach of both B and E
+    guard case .pinMove(let id)? = view.route(isPencil: true, at: point(view, between)), id == fb.jointB else {
+        Issue.record("expected .pinMove of B"); return
+    }
+    view.beginPinMove(fb.jointB, at: between)
+    view.endPinMove(at: between)
+    #expect(view.selection.ids == [pinE.id])
+    #expect(!m.undoManager.canUndo)
+}
+
 @Test @MainActor func pinMoveOnlyForPinOnlySelection() {
     let fb = fourBarDocument()
     let (view, _) = canvas(fb.doc, select: [fb.jointB])

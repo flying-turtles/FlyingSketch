@@ -287,3 +287,45 @@ private func stroke(_ x: Double, _ y: Double) -> SceneObject {
     #expect(m.document.groups.count == 1)
     #expect(view.selection.ids == [a.id, b.id])
 }
+
+// MARK: Undo through the canvas (one user action per test: UndoManager groups a run-loop turn)
+
+@Test @MainActor func undoUnlockRestoresLock() {
+    let a = stroke(0, 0)
+    let lock = Joint(kind: .fixed, position: v(5, 0), anchors: [JointAnchor(object: a.id, point: v(5, 0))], grounded: true)
+    let (view, m) = canvas([a, .joint(lock)])
+    let before = m.document
+    view.selection.ids = [a.id]
+    #expect(view.selectionIsLocked)
+    view.toggleLockSelection()
+    #expect(joints(m).isEmpty && m.undoManager.undoActionName == "Unlock")
+    m.undoManager.undo()
+    #expect(m.document == before)
+    #expect(!m.undoManager.canUndo)
+}
+
+@Test @MainActor func undoReleasePinRestoresGroundPin() {
+    let plate = rect(0, 0, 40, 40)
+    let ground = Joint(position: v(10, 10), anchors: [JointAnchor(object: plate.id, point: v(10, 10))], grounded: true)
+    let (view, m) = canvas([plate, .joint(ground)])
+    let before = m.document
+    tapPin(view, at: v(10, 10)) // nothing un-joined under it: ground off, and a lone ungrounded anchor goes
+    #expect(joints(m).isEmpty && m.undoManager.undoActionName == "Release Pin")
+    m.undoManager.undo()
+    #expect(m.document == before)
+    #expect(!m.undoManager.canUndo)
+}
+
+@Test @MainActor func undoGroupMergingExistingGroupRestoresIt() {
+    let (a, b, c) = (stroke(0, 0), stroke(0, 30), stroke(0, 60))
+    let existing = ObjectGroup(members: [a.id, b.id])
+    let (view, m) = canvas([a, b, c], groups: [existing])
+    let before = m.document
+    view.selection.ids = [a.id, b.id, c.id]
+    view.groupSelection()
+    #expect(m.document.groups.count == 1 && m.document.groups[0].id != existing.id)
+    #expect(Set(m.document.groups[0].members) == [a.id, b.id, c.id] && m.undoManager.undoActionName == "Group")
+    m.undoManager.undo()
+    #expect(m.document == before)
+    #expect(!m.undoManager.canUndo)
+}
