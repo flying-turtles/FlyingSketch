@@ -417,6 +417,19 @@ func crankLargeSingleFrameSwing(degrees: Double) {
     #expect(near(world(r, bodies, 0, tip), target, 1e-3), "\(world(r, bodies, 0, tip)) vs \(target)")
 }
 
+@Test func crankAntipodalJumpMoves() {
+    // Exactly opposite the tip: the drag gradient vanishes at the start.
+    let (bodies, constraints, tip) = crank()
+    let target = v(-10, 0)
+    let r = MechanismSolver.solve(bodies: bodies, constraints: constraints,
+                                  drag: DragTarget(body: 0, point: tip, target: target), initial: identity(1))
+    #expect(r.converged)
+    #expect(constraintError(bodies, constraints, r.poses) < 1e-3)
+    let end = world(r, bodies, 0, tip)
+    print("crankAntipodalJumpMoves: tip \(end)")
+    #expect(near(end, target, 1e-3), "tip \(end)")
+}
+
 @Test(arguments: [5.0, 0.0, 10.0, 25.0])
 func unreachableTargetSettles(originX: Double) {
     // The grabbed bar's origin lies `originX` along it from its only pin; the target is out of reach.

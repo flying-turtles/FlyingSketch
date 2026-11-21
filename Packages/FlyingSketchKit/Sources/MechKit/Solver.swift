@@ -106,6 +106,8 @@ public enum MechanismSolver {
     static let maxUnknowns = 3000
     /// A solve that brings the drag point less than this closer (mm) keeps `initial` when that is assembled.
     static let minimumGain = 1e-6
+    /// Turn (rad) of the grabbed body that tries to leave a stationary point the drag cannot pull from.
+    static let nudgeAngle = 1e-3
 
     /// `initial`: poses to start from (previous frame); points in constraints / drag are given at the identity pose.
     public static func solve(bodies: [SolverBody], constraints: [PointConstraint], drag: DragTarget?,
@@ -463,6 +465,7 @@ private struct Problem {
         let tolerance = MechanismSolver.constraintWeight * MechanismSolver.retractionTolerance
         let settledCost = tolerance * tolerance
         var settled = false
+        var nudged = false
         var bend: [Double]?
         while iterations < MechanismSolver.maxSoftIterations {
             iterations += 1
@@ -499,7 +502,25 @@ private struct Problem {
                 }
             }
             let stepNorm = metricNorm(step)
-            if stepNorm < MechanismSolver.projectionTolerance { break }
+            if stepNorm < MechanismSolver.projectionTolerance {
+                // Stationary, yet the drag is not where it can get (e.g. its target exactly opposite a crank's
+                // tip, a maximum): turn the grabbed body slightly, once, and go on from there if that pays.
+                guard !nudged, let drag, column[drag.body] >= 0, dragDistance(poses) > MechanismSolver.tolerance,
+                      iterations < MechanismSolver.maxSoftIterations
+                else { break }
+                nudged = true
+                var turned = poses
+                turned[drag.body].angle += MechanismSolver.nudgeAngle
+                let candidate = project(from: turned, holdingDrag: true, iterations: &iterations,
+                                        limit: iterations + MechanismSolver.maxRetractionSteps,
+                                        tolerance: MechanismSolver.retractionTolerance)
+                let newCost = softCost(candidate)
+                guard newCost.isFinite, newCost < cost else { break }
+                poses = candidate
+                cost = newCost
+                bend = nil
+                continue
+            }
             // Trust region: shorten the step so its size in the stay metric (all bodies together, angles at
             // their reach) is at most the drag point's distance from its target, but never below 1 mm.
             let maxStep = max(1, dragDistance(poses))
